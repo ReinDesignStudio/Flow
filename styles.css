@@ -395,7 +395,7 @@ h2 {
 .category-grid {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: calc((100% - 24px) / 3);
+  grid-auto-columns: calc((100% - 12px) / 2);
   grid-template-rows: repeat(2, 58px);
   gap: 12px;
   margin-top: 6px;
@@ -442,9 +442,9 @@ h2 {
   border-radius: 999px;
   background: #262525;
   color: var(--text);
-  padding: 0 10px;
+  padding: 0 14px;
   text-align: left;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 800;
   touch-action: pan-x;
   -webkit-touch-callout: none;
@@ -462,6 +462,9 @@ h2 {
   line-height: 1.1;
   max-height: 2.2em;
   white-space: normal;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .category-pill.dragging {
