@@ -395,7 +395,7 @@ h2 {
 .category-grid {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: calc((100% - 12px) / 2);
+  grid-auto-columns: calc((100% - 24px) / 3);
   grid-template-rows: repeat(2, 58px);
   gap: 12px;
   margin-top: 6px;
@@ -436,15 +436,15 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
+  gap: 6px;
   min-height: 58px;
   border: 0;
   border-radius: 999px;
   background: #262525;
   color: var(--text);
-  padding: 0 14px;
+  padding: 0 9px;
   text-align: left;
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 800;
   touch-action: pan-x;
   -webkit-touch-callout: none;
@@ -489,8 +489,8 @@ h2 {
 }
 
 .category-icon {
-  width: 17px;
-  height: 17px;
+  width: 15px;
+  height: 15px;
   flex: 0 0 auto;
   fill: none;
   stroke: currentColor;
@@ -534,6 +534,14 @@ h2 {
   width: 15px;
   border-radius: 999px;
   background: var(--accent);
+}
+
+.category-hint {
+  margin: 0 0 10px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 800;
 }
 
 .category-edit-bar {
