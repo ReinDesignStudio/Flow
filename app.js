@@ -561,6 +561,15 @@ elements.monthDetailButton.addEventListener("click", () => {
   openInsightDetail("month");
 });
 
+elements.breakdownList.addEventListener("click", (event) => {
+  const row = event.target.closest("[data-breakdown-category]");
+  if (!row) {
+    return;
+  }
+
+  openCategoryBreakdown(row.dataset.breakdownCategory);
+});
+
 elements.closeInsightDetailButton.addEventListener("click", () => {
   closeInsightDetail();
 });
@@ -1459,11 +1468,11 @@ function renderInsights() {
     .map(([category, total]) => {
       const percent = Math.max(5, Math.round((total / weekTotal) * 100));
       return `
-        <div class="breakdown-row">
+        <button class="breakdown-row breakdown-button" type="button" data-breakdown-category="${escapeHtml(category)}" aria-label="View ${escapeHtml(category)} expenses">
           <strong class="breakdown-label">${categoryIcon(category)}${escapeHtml(category)}</strong>
           <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${percent}%"></div></div>
           <span>${formatMoney(total)}</span>
-        </div>
+        </button>
       `;
     })
     .join("");
@@ -1576,6 +1585,51 @@ function renderInsightBarChart(entries, max, type) {
           .map((entry, index) => `<span class="${labelIndexes.includes(index) ? "" : "ghost"}">${labelIndexes.includes(index) ? escapeHtml(entry.label) : ""}</span>`)
           .join("")}
       </div>
+    </div>
+  `;
+}
+
+function openCategoryBreakdown(category) {
+  const expenses = state.expenses
+    .filter((expense) => expense.category === category)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+  if (!expenses.length) {
+    showToast("No expenses found");
+    return;
+  }
+
+  window.clearTimeout(state.insightDetailCloseTimer);
+  elements.insightDetailKicker.textContent = "Category breakdown";
+  elements.insightDetailTitle.textContent = category;
+  elements.insightDetailTotal.textContent = formatMoney(total);
+  elements.insightDetailContent.innerHTML = renderCategoryExpenseList(expenses);
+
+  elements.insightDetailSheet.hidden = false;
+  window.setTimeout(() => {
+    elements.insightDetailSheet.classList.add("show");
+    elements.closeInsightDetailButton.focus({ preventScroll: true });
+  }, 20);
+}
+
+function renderCategoryExpenseList(expenses) {
+  return `
+    <div class="category-detail-list">
+      ${expenses
+        .map((expense) => {
+          const date = new Date(expense.createdAt);
+          return `
+            <article class="category-detail-row">
+              <div>
+                <strong>${categoryIcon(expense.category)}${escapeHtml(expense.label)}</strong>
+                <span>${expense.note ? escapeHtml(expense.note) : detailDateLabel(date)}</span>
+              </div>
+              <em>${formatMoney(expense.amount)}</em>
+            </article>
+          `;
+        })
+        .join("")}
     </div>
   `;
 }
@@ -2118,6 +2172,10 @@ function dayLabel(date) {
     return "Yesterday";
   }
   return date.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+}
+
+function detailDateLabel(date) {
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
 function startOfDay(date) {
