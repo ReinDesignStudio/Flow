@@ -1110,7 +1110,8 @@ h2 {
   display: grid;
   gap: 8px;
   width: 100%;
-  padding: 8px 42px 0 10px;
+  padding: 8px 58px 0 10px;
+  --chart-inset: 10px;
 }
 
 .health-plot {
@@ -1135,7 +1136,7 @@ h2 {
 
 .health-grid-line span {
   position: absolute;
-  right: -38px;
+  right: -52px;
   top: -10px;
   color: var(--muted);
   font-size: 0.74rem;
@@ -1144,7 +1145,7 @@ h2 {
 
 .health-bars {
   position: absolute;
-  inset: 0 8px 0;
+  inset: 0 var(--chart-inset) 0;
   display: grid;
   grid-template-columns: repeat(var(--bar-count), minmax(0, 1fr));
   align-items: end;
@@ -1173,7 +1174,7 @@ h2 {
   display: grid;
   grid-template-columns: repeat(var(--bar-count), minmax(0, 1fr));
   gap: 6px;
-  padding: 0 50px 0 18px;
+  padding: 0 calc(58px + var(--chart-inset)) 0 calc(10px + var(--chart-inset));
 }
 
 .health-x-labels span {
