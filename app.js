@@ -1727,7 +1727,7 @@ function startEdit(expense) {
   elements.noteEntry.value = expense.note || "";
   selectCategory(expense.category);
   renderPreview(parseEntry(elements.quickEntry.value));
-  elements.saveButton.textContent = "Update Expense";
+  setSaveButtonLabel("Update Flow");
   elements.cancelEditButton.hidden = false;
   showTab("capture");
   focusCapture();
@@ -1751,9 +1751,19 @@ function resetCapture() {
   state.editingId = "";
   elements.quickEntry.value = "";
   elements.noteEntry.value = "";
-  elements.saveButton.textContent = "Save Expense";
+  setSaveButtonLabel("Save to Flow");
   elements.cancelEditButton.hidden = true;
   renderPreview(parseEntry(""));
+}
+
+function setSaveButtonLabel(label) {
+  elements.saveButton.innerHTML = `
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path d="M5 12h14" />
+      <path d="m13 6 6 6-6 6" />
+    </svg>
+    <span>${escapeHtml(label)}</span>
+  `;
 }
 
 function toggleMenu(id) {
