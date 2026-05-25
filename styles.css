@@ -999,6 +999,12 @@ h2 {
   stroke-linejoin: round;
 }
 
+.tab .capture-tab-icon {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2.35;
+}
+
 .tab.active {
   background: var(--accent);
   color: var(--bg);
