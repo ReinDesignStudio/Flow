@@ -11,6 +11,7 @@ const defaultCategories = ["Food", "Gas", "Coffee", "Shopping", "Bills", "Transp
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 const supabase = supabaseConfigured ? await createSupabaseClient() : null;
 const initialSession = supabase ? await getSupabaseSession() : null;
+const tabOrder = ["capture", "history", "insights"];
 const promptExamples = ["120 coffee", "199 lunch", "850 gas", "45 water", "250 dinner"];
 const keywordMap = {
   coffee: "Coffee",
@@ -234,6 +235,9 @@ const state = {
   iconManuallyPicked: false,
   settingsReturnFocus: null,
   insightDetailCloseTimer: 0,
+  pageSwipeStartX: 0,
+  pageSwipeStartY: 0,
+  pageSwipeTracking: false,
   selectedCategory: "Food",
   editingId: "",
   openMenuId: "",
@@ -659,6 +663,67 @@ document.addEventListener("click", (event) => {
 
 elements.tabs.forEach((tab) => {
   tab.addEventListener("click", () => showTab(tab.dataset.tab));
+});
+
+elements.appShell.addEventListener(
+  "touchstart",
+  (event) => {
+    if (shouldIgnorePageSwipe(event.target) || event.touches.length !== 1) {
+      state.pageSwipeTracking = false;
+      return;
+    }
+
+    const touch = event.touches[0];
+    if (touch.clientX < 24 || window.innerWidth - touch.clientX < 24) {
+      state.pageSwipeTracking = false;
+      return;
+    }
+
+    state.pageSwipeStartX = touch.clientX;
+    state.pageSwipeStartY = touch.clientY;
+    state.pageSwipeTracking = true;
+  },
+  { passive: true },
+);
+
+elements.appShell.addEventListener(
+  "touchmove",
+  (event) => {
+    if (!state.pageSwipeTracking || event.touches.length !== 1) {
+      return;
+    }
+
+    const touch = event.touches[0];
+    const deltaX = touch.clientX - state.pageSwipeStartX;
+    const deltaY = touch.clientY - state.pageSwipeStartY;
+
+    if (Math.abs(deltaX) > 18 && Math.abs(deltaX) > Math.abs(deltaY) * 1.35) {
+      event.preventDefault();
+    }
+  },
+  { passive: false },
+);
+
+elements.appShell.addEventListener("touchend", (event) => {
+  if (!state.pageSwipeTracking) {
+    return;
+  }
+
+  const touch = event.changedTouches[0];
+  state.pageSwipeTracking = false;
+
+  const deltaX = touch.clientX - state.pageSwipeStartX;
+  const deltaY = touch.clientY - state.pageSwipeStartY;
+
+  if (Math.abs(deltaX) < 58 || Math.abs(deltaX) < Math.abs(deltaY) * 1.4) {
+    return;
+  }
+
+  goToAdjacentTab(deltaX < 0 ? 1 : -1);
+});
+
+elements.appShell.addEventListener("touchcancel", () => {
+  state.pageSwipeTracking = false;
 });
 
 if (elements.installButton) {
@@ -1534,16 +1599,48 @@ function totalForDate(date) {
     .reduce((sum, expense) => sum + expense.amount, 0);
 }
 
-function showTab(name) {
+function showTab(name, { focusCaptureInput = true } = {}) {
   closeMenu();
   closeSettings();
   closeInsightDetail();
   elements.tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === name));
   elements.screens.forEach((screen) => screen.classList.toggle("screen-active", screen.id === `${name}-screen`));
 
-  if (name === "capture") {
+  if (name === "capture" && focusCaptureInput) {
     focusCapture();
   }
+}
+
+function goToAdjacentTab(direction) {
+  const activeTab = Array.from(elements.tabs).find((tab) => tab.classList.contains("active"))?.dataset.tab || tabOrder[0];
+  const activeIndex = tabOrder.indexOf(activeTab);
+  const nextIndex = Math.min(tabOrder.length - 1, Math.max(0, activeIndex + direction));
+
+  if (nextIndex !== activeIndex) {
+    showTab(tabOrder[nextIndex], { focusCaptureInput: false });
+  }
+}
+
+function shouldIgnorePageSwipe(target) {
+  return Boolean(
+    target.closest(
+      [
+        "button",
+        "input",
+        "select",
+        "textarea",
+        "a",
+        ".category-grid",
+        ".category-pagination",
+        ".category-composer",
+        ".category-edit-bar",
+        ".insight-detail-sheet",
+        ".settings-sheet",
+        ".install-guide-sheet",
+        ".install-note",
+      ].join(", "),
+    ),
+  );
 }
 
 function startEdit(expense) {
