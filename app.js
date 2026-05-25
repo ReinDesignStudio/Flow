@@ -5,6 +5,7 @@ const categoryStorageKey = "flow-categories-v1";
 const profileStorageKey = "flow-profile-v1";
 const installNoteStorageKey = "flow-install-note-dismissed-v1";
 const defaultProfileName = "Rein";
+const weeklyInsightMax = 15000;
 const defaultCategories = ["Food", "Gas", "Coffee", "Shopping", "Bills", "Transport"];
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 const supabase = supabaseConfigured ? await createSupabaseClient() : null;
@@ -1385,9 +1386,9 @@ function openInsightDetail(type) {
   const isWeek = type === "week";
   const entries = isWeek ? buildWeekInsightEntries(today) : buildMonthInsightEntries(today);
   const total = entries.reduce((sum, entry) => sum + entry.total, 0);
-  const max = Math.max(...entries.map((entry) => entry.total), 1);
+  const max = isWeek ? weeklyInsightMax : Math.max(...entries.map((entry) => entry.total), 1);
 
-  elements.insightDetailKicker.textContent = isWeek ? "7-day calendar" : "Monthly graph";
+  elements.insightDetailKicker.textContent = isWeek ? `7-day calendar · max ${formatMoney(weeklyInsightMax)}` : "Monthly graph";
   elements.insightDetailTitle.textContent = isWeek ? "This week" : "This month";
   elements.insightDetailTotal.textContent = formatMoney(total);
   elements.insightDetailContent.innerHTML = isWeek
@@ -1448,7 +1449,7 @@ function renderWeekInsightEntries(entries, max) {
     <div class="week-calendar">
       ${entries
         .map((entry) => {
-          const percent = Math.round((entry.total / max) * 100);
+          const percent = Math.min(100, Math.round((entry.total / max) * 100));
           return `
             <article class="week-day-card ${dateKey(entry.date) === dateKey(new Date()) ? "today" : ""}">
               <span>${entry.label}</span>
