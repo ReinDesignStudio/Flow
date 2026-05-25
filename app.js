@@ -741,6 +741,12 @@ if (elements.installButton) {
 
 elements.clearButton.addEventListener("click", () => {
   if (!state.expenses.length) {
+    showToast("No history yet");
+    return;
+  }
+
+  if (!window.confirm("Clear all history? This removes every saved expense.")) {
+    showToast("History kept");
     return;
   }
 
