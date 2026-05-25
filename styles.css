@@ -202,6 +202,73 @@ input {
   font-size: 1.05rem;
 }
 
+.install-guide-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: rgba(12, 6, 6, 0.76);
+  padding: max(18px, env(safe-area-inset-top)) 18px max(18px, env(safe-area-inset-bottom));
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.install-guide-sheet[hidden] {
+  display: none;
+}
+
+.install-guide-sheet.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.install-guide-panel {
+  width: min(100%, 420px);
+  border-radius: 28px;
+  background: #262525;
+  box-shadow: var(--shadow);
+  padding: 20px;
+  transform: translateY(16px) scale(0.98);
+  transition: transform 180ms ease;
+}
+
+.install-guide-sheet.show .install-guide-panel {
+  transform: translateY(0) scale(1);
+}
+
+.install-guide-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.install-guide-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.install-steps {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.install-steps li {
+  color: var(--text);
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.install-steps li::marker {
+  color: var(--accent);
+}
+
 .app-shell {
   position: relative;
   width: min(100%, 480px);

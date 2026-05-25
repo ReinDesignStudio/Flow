@@ -114,6 +114,9 @@ const elements = {
   installNoteCopy: document.querySelector("#install-note-copy"),
   installNoteAction: document.querySelector("#install-note-action"),
   dismissInstallNote: document.querySelector("#dismiss-install-note"),
+  installGuideSheet: document.querySelector("#install-guide-sheet"),
+  installSteps: document.querySelector("#install-steps"),
+  closeInstallGuideButton: document.querySelector("#close-install-guide-button"),
   authScreen: document.querySelector("#auth-screen"),
   appShell: document.querySelector("#app-shell"),
   authActions: document.querySelector("#auth-actions"),
@@ -226,18 +229,43 @@ elements.authSignIn.addEventListener("click", () => {
 
 elements.installNoteAction.addEventListener("click", async () => {
   if (state.deferredInstallPrompt) {
-    state.deferredInstallPrompt.prompt();
-    await state.deferredInstallPrompt.userChoice;
-    state.deferredInstallPrompt = null;
-    dismissInstallNote();
+    try {
+      state.deferredInstallPrompt.prompt();
+      const choice = await state.deferredInstallPrompt.userChoice;
+      state.deferredInstallPrompt = null;
+      if (choice.outcome === "accepted") {
+        dismissInstallNote();
+      } else {
+        openInstallGuide();
+      }
+    } catch {
+      state.deferredInstallPrompt = null;
+      openInstallGuide();
+    }
     return;
   }
 
-  showToast(isIOS() ? "Tap Share, then Add to Home Screen" : "Open browser menu, then Add to Home Screen");
+  openInstallGuide();
 });
 
 elements.dismissInstallNote.addEventListener("click", () => {
   dismissInstallNote();
+});
+
+elements.closeInstallGuideButton.addEventListener("click", () => {
+  closeInstallGuide();
+});
+
+elements.installGuideSheet.addEventListener("click", (event) => {
+  if (event.target === elements.installGuideSheet) {
+    closeInstallGuide();
+  }
+});
+
+elements.installGuideSheet.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeInstallGuide();
+  }
 });
 
 document.querySelectorAll("[data-auth-mode]").forEach((button) => {
@@ -1509,6 +1537,30 @@ function renderInstallNote() {
 function dismissInstallNote() {
   localStorage.setItem(installNoteStorageKey, "true");
   elements.installNote.hidden = true;
+}
+
+function openInstallGuide() {
+  const steps = isIOS()
+    ? ["Open Flow in Safari.", "Tap the Share button.", "Choose Add to Home Screen.", "Tap Add."]
+    : ["Open Flow in Chrome.", "Tap the browser menu.", "Choose Install app or Add to Home Screen.", "Tap Install or Add."];
+
+  elements.installSteps.innerHTML = steps.map((step) => `<li>${escapeHtml(step)}</li>`).join("");
+  elements.installGuideSheet.hidden = false;
+  window.setTimeout(() => {
+    elements.installGuideSheet.classList.add("show");
+    elements.closeInstallGuideButton.focus({ preventScroll: true });
+  }, 20);
+}
+
+function closeInstallGuide() {
+  if (elements.installGuideSheet.hidden) {
+    return;
+  }
+
+  elements.installGuideSheet.classList.remove("show");
+  window.setTimeout(() => {
+    elements.installGuideSheet.hidden = true;
+  }, 180);
 }
 
 function isStandalone() {
