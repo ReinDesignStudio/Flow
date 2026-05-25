@@ -8,11 +8,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Flow" />
     <title>Flow</title>
-    <link rel="manifest" href="./manifest.webmanifest?v=71" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=71" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=71" />
-    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=71" />
-    <link rel="stylesheet" href="./styles.css?v=71" />
+    <link rel="manifest" href="./manifest.webmanifest?v=72" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=72" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=72" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=72" />
+    <link rel="stylesheet" href="./styles.css?v=72" />
   </head>
   <body>
     <div class="install-note" id="install-note" role="status" aria-live="polite" hidden>
@@ -218,6 +218,17 @@
           <span id="success-detail">₱120 Coffee</span>
         </div>
       </div>
+      <div class="clear-confirm" id="clear-confirm" role="dialog" aria-modal="true" aria-labelledby="clear-confirm-title" hidden>
+        <div class="clear-confirm-card">
+          <div class="success-check clear-confirm-icon" aria-hidden="true">×</div>
+          <strong id="clear-confirm-title">Clear history?</strong>
+          <span>This removes every saved expense.</span>
+          <div class="clear-confirm-actions">
+            <button class="clear-keep-button" id="keep-history-button" type="button">Keep</button>
+            <button class="clear-delete-button" id="confirm-clear-button" type="button">Clear</button>
+          </div>
+        </div>
+      </div>
       <div class="insight-detail-sheet" id="insight-detail-sheet" role="dialog" aria-modal="true" aria-labelledby="insight-detail-title" hidden>
         <div class="insight-detail-panel">
           <header class="insight-detail-header">
@@ -304,6 +315,6 @@
       </div>
     </main>
 
-    <script src="./app.js?v=71" type="module"></script>
+    <script src="./app.js?v=72" type="module"></script>
   </body>
 </html>

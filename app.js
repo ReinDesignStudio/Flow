@@ -302,6 +302,9 @@ const elements = {
   successBurst: document.querySelector("#success-burst"),
   successTitle: document.querySelector("#success-title"),
   successDetail: document.querySelector("#success-detail"),
+  clearConfirm: document.querySelector("#clear-confirm"),
+  keepHistoryButton: document.querySelector("#keep-history-button"),
+  confirmClearButton: document.querySelector("#confirm-clear-button"),
   profileButton: document.querySelector("#profile-button"),
   profileAvatar: document.querySelector("#profile-avatar"),
   profileNameDisplay: document.querySelector("#profile-name-display"),
@@ -745,16 +748,30 @@ elements.clearButton.addEventListener("click", () => {
     return;
   }
 
-  if (!window.confirm("Clear all history? This removes every saved expense.")) {
-    showToast("History kept");
-    return;
-  }
+  openClearConfirm();
+});
 
-  state.expenses = [];
-  saveExpenses();
-  clearRemoteExpenses().catch(() => {});
-  renderAll();
-  showToast("Cleared");
+elements.keepHistoryButton.addEventListener("click", () => {
+  closeClearConfirm();
+  showToast("History kept");
+});
+
+elements.confirmClearButton.addEventListener("click", () => {
+  clearHistory();
+});
+
+elements.clearConfirm.addEventListener("click", (event) => {
+  if (event.target === elements.clearConfirm) {
+    closeClearConfirm();
+    showToast("History kept");
+  }
+});
+
+elements.clearConfirm.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeClearConfirm();
+    showToast("History kept");
+  }
 });
 
 elements.addExpenseButton.addEventListener("click", () => {
@@ -1643,6 +1660,7 @@ function shouldIgnorePageSwipe(target) {
         ".insight-detail-sheet",
         ".settings-sheet",
         ".install-guide-sheet",
+        ".clear-confirm",
         ".install-note",
       ].join(", "),
     ),
@@ -1788,6 +1806,35 @@ function showSuccess(message, expense) {
       elements.successBurst.hidden = true;
     }, 220);
   }, 1250);
+}
+
+function openClearConfirm() {
+  elements.clearConfirm.hidden = false;
+  elements.clearConfirm.classList.remove("show");
+  window.requestAnimationFrame(() => {
+    elements.clearConfirm.classList.add("show");
+    elements.keepHistoryButton.focus({ preventScroll: true });
+  });
+}
+
+function closeClearConfirm() {
+  if (elements.clearConfirm.hidden) {
+    return;
+  }
+
+  elements.clearConfirm.classList.remove("show");
+  window.setTimeout(() => {
+    elements.clearConfirm.hidden = true;
+  }, 180);
+}
+
+function clearHistory() {
+  state.expenses = [];
+  saveExpenses();
+  clearRemoteExpenses().catch(() => {});
+  closeClearConfirm();
+  renderAll();
+  showToast("Cleared");
 }
 
 function showToast(message) {

@@ -1189,7 +1189,8 @@ h2 {
   opacity: 0;
 }
 
-.success-burst {
+.success-burst,
+.clear-confirm {
   position: fixed;
   inset: 0;
   z-index: 8;
@@ -1201,15 +1202,22 @@ h2 {
   transition: opacity 180ms ease;
 }
 
-.success-burst[hidden] {
+.clear-confirm {
+  pointer-events: auto;
+}
+
+.success-burst[hidden],
+.clear-confirm[hidden] {
   display: none;
 }
 
-.success-burst.show {
+.success-burst.show,
+.clear-confirm.show {
   opacity: 1;
 }
 
-.success-card {
+.success-card,
+.clear-confirm-card {
   display: grid;
   place-items: center;
   gap: 12px;
@@ -1224,7 +1232,8 @@ h2 {
   transform: translateY(18px) scale(0.94);
 }
 
-.success-burst.show .success-card {
+.success-burst.show .success-card,
+.clear-confirm.show .clear-confirm-card {
   animation: success-pop 780ms cubic-bezier(0.2, 1.25, 0.24, 1) forwards;
 }
 
@@ -1247,10 +1256,48 @@ h2 {
   line-height: 1;
 }
 
-.success-card span {
+.success-card span,
+.clear-confirm-card span {
   color: var(--muted);
   font-size: 1.05rem;
   font-weight: 800;
+}
+
+.clear-confirm-icon {
+  font-size: 4.5rem;
+}
+
+.clear-confirm-card strong {
+  display: block;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.clear-confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.clear-confirm-actions button {
+  min-height: 54px;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.clear-keep-button {
+  border: 0;
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.clear-delete-button {
+  border: 1px solid var(--muted);
+  background: transparent;
+  color: var(--text);
 }
 
 .settings-sheet {
