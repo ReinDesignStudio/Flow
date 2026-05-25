@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0c0606" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Flow" />
+    <title>Flow</title>
+    <link rel="manifest" href="./manifest.webmanifest?v=57" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=57" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=57" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=57" />
+    <link rel="stylesheet" href="./styles.css?v=57" />
+  </head>
+  <body>
+    <div class="install-note" id="install-note" role="status" aria-live="polite" hidden>
+      <div>
+        <strong>Add Flow to Home Screen</strong>
+        <span id="install-note-copy">Open your browser menu, then choose Add to Home Screen.</span>
+      </div>
+      <button id="install-note-action" type="button">Add</button>
+      <button id="dismiss-install-note" type="button" aria-label="Dismiss Home Screen note">×</button>
+    </div>
+
+    <section class="auth-screen" id="auth-screen" aria-labelledby="auth-title">
+      <div class="auth-content">
+        <img class="auth-logo" src="./assets/flow-logo-gradient.png" alt="Flow" />
+        <div class="auth-copy">
+          <h1 id="auth-title">Track money before you forget.</h1>
+          <p>One screen. One number. Done.</p>
+        </div>
+
+        <div class="auth-actions" id="auth-actions">
+          <button class="auth-primary" id="auth-get-started" type="button">Get started</button>
+          <button class="auth-secondary" id="auth-sign-in" type="button">Sign in</button>
+        </div>
+
+        <form class="auth-form" id="signup-form" autocomplete="on" hidden>
+          <header>
+            <p class="kicker">Create account</p>
+            <h2>Start Flow</h2>
+          </header>
+          <input id="signup-name" type="text" placeholder="Name" aria-label="Name" autocomplete="name" />
+          <input id="signup-email" type="email" placeholder="Email" aria-label="Email" autocomplete="email" />
+          <input id="signup-password" type="password" placeholder="Password" aria-label="Password" autocomplete="new-password" />
+          <button class="auth-primary" type="submit">Create account</button>
+          <button class="auth-link" type="button" data-auth-mode="signin">I already have an account</button>
+        </form>
+
+        <form class="auth-form" id="signin-form" autocomplete="on" hidden>
+          <header>
+            <p class="kicker">Welcome back</p>
+            <h2>Sign in</h2>
+          </header>
+          <input id="signin-email" type="email" placeholder="Email" aria-label="Email" autocomplete="email" />
+          <input id="signin-password" type="password" placeholder="Password" aria-label="Password" autocomplete="current-password" />
+          <button class="auth-primary" type="submit">Sign in</button>
+          <button class="auth-link" type="button" data-auth-mode="signup">Create an account</button>
+        </form>
+
+        <p class="auth-message" id="auth-message" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <main class="app-shell" id="app-shell" aria-label="Flow expense tracker" hidden>
+      <section class="screen screen-active" id="capture-screen" aria-labelledby="capture-title">
+        <header class="topbar">
+          <div>
+            <p class="kicker" id="greeting">Good Morning, Rein</p>
+            <h1 id="capture-title">What did you spend?</h1>
+          </div>
+        </header>
+
+        <form class="capture-card" id="expense-form" autocomplete="off">
+          <label class="quick-input">
+            <input
+              id="quick-entry"
+              name="quick-entry"
+              inputmode="decimal"
+              enterkeyhint="done"
+              placeholder="₱ 0"
+              aria-describedby="parse-preview"
+              autofocus
+            />
+          </label>
+
+          <div class="parse-preview" id="parse-preview" aria-live="polite">
+            Try 120 coffee
+          </div>
+
+          <div class="category-grid" id="category-grid" aria-label="Categories"></div>
+          <div class="category-pagination" id="category-pagination" aria-label="Label pages"></div>
+          <div class="category-edit-bar" id="category-edit-bar" hidden>
+            <button id="rename-category-button" type="button">Rename</button>
+            <button id="delete-category-button" type="button">Delete</button>
+            <button id="done-category-button" type="button">Done</button>
+          </div>
+          <div class="category-composer" id="category-composer" hidden>
+            <input id="custom-category-entry" type="text" placeholder="New label" />
+            <div class="icon-picker" id="custom-category-icon-picker" aria-label="Choose label icon"></div>
+            <button id="save-category-button" type="button">Add</button>
+            <button id="cancel-category-button" type="button" aria-label="Cancel new label">×</button>
+          </div>
+
+          <label class="note-field">
+            <span>Note</span>
+            <input id="note-entry" name="note-entry" placeholder="Optional" />
+          </label>
+
+          <div class="form-actions">
+            <button class="save-button" id="save-button" type="submit">Save Expense</button>
+            <button class="cancel-edit-button" id="cancel-edit-button" type="button" hidden>Cancel</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="screen" id="history-screen" aria-labelledby="history-title">
+        <header class="topbar">
+          <div>
+            <p class="kicker">Your money trail</p>
+            <h1 id="history-title">History</h1>
+          </div>
+          <div class="header-actions">
+            <button class="icon-button" id="add-expense-button" type="button" aria-label="Add expense" title="Add expense">
+              <span aria-hidden="true">＋</span>
+            </button>
+            <button class="icon-button" id="clear-button" type="button" aria-label="Clear all expenses" title="Clear all expenses">
+              <span aria-hidden="true">×</span>
+            </button>
+          </div>
+        </header>
+        <div class="history-list" id="history-list"></div>
+      </section>
+
+      <section class="screen" id="insights-screen" aria-labelledby="insights-title">
+        <header class="topbar">
+          <div>
+            <p class="kicker">Spending signals</p>
+            <h1 id="insights-title">Insights</h1>
+          </div>
+          <button class="profile-button" id="profile-button" type="button" aria-label="Open profile settings" title="Profile settings">
+            <span aria-hidden="true">R</span>
+          </button>
+        </header>
+
+        <div class="insight-grid">
+          <button class="metric metric-button" id="week-detail-button" type="button">
+            <span>This week</span>
+            <strong id="insight-week">₱0</strong>
+          </button>
+          <button class="metric metric-button" id="month-detail-button" type="button">
+            <span>This month</span>
+            <strong id="insight-month">₱0</strong>
+          </button>
+          <article class="metric">
+            <span>Daily average</span>
+            <strong id="insight-average">₱0</strong>
+          </article>
+          <article class="metric top-category-metric">
+            <span>Top category</span>
+            <strong id="insight-top">None yet</strong>
+          </article>
+        </div>
+
+        <section class="category-breakdown" aria-label="Category breakdown">
+          <h2>Where money went</h2>
+          <div id="breakdown-list"></div>
+        </section>
+      </section>
+
+      <nav class="tabbar" aria-label="Main navigation">
+        <button class="tab active" type="button" data-tab="capture">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M12 8v8" />
+            <path d="M8 12h8" />
+          </svg>
+          <span>Capture</span>
+        </button>
+        <button class="tab" type="button" data-tab="history">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M7 3h10l2 2v16l-3-2-2 2-2-2-2 2-2-2-3 2V5l2-2Z" />
+            <path d="M9 8h6M9 12h6M9 16h4" />
+          </svg>
+          <span>History</span>
+        </button>
+        <button class="tab" type="button" data-tab="insights">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M4 19h16" />
+            <path d="m5 15 4-4 3 3 6-7" />
+            <path d="M15 7h3v3" />
+          </svg>
+          <span>Insights</span>
+        </button>
+      </nav>
+
+      <div class="toast" id="toast" role="status" aria-live="polite">Saved</div>
+      <div class="success-burst" id="success-burst" role="status" aria-live="polite" hidden>
+        <div class="success-card">
+          <div class="success-check" aria-hidden="true">✓</div>
+          <strong id="success-title">Added to History</strong>
+          <span id="success-detail">₱120 Coffee</span>
+        </div>
+      </div>
+      <div class="insight-detail-sheet" id="insight-detail-sheet" role="dialog" aria-modal="true" aria-labelledby="insight-detail-title" hidden>
+        <div class="insight-detail-panel">
+          <header class="insight-detail-header">
+            <div>
+              <p class="kicker" id="insight-detail-kicker">Spending view</p>
+              <h2 id="insight-detail-title">This week</h2>
+            </div>
+            <button class="icon-button" id="close-insight-detail-button" type="button" aria-label="Close insight detail">
+              <span aria-hidden="true">×</span>
+            </button>
+          </header>
+          <div class="insight-detail-total" id="insight-detail-total">₱0</div>
+          <div class="insight-detail-content" id="insight-detail-content"></div>
+        </div>
+      </div>
+      <div class="settings-sheet" id="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
+        <div class="settings-panel">
+          <img class="settings-logo" src="./assets/flow-logo-gradient.png" alt="Flow" />
+          <header class="settings-header">
+            <div>
+              <p class="kicker">Profile</p>
+              <h2 id="settings-title">Settings</h2>
+            </div>
+            <button class="icon-button" id="close-settings-button" type="button" aria-label="Close settings">
+              <span aria-hidden="true">×</span>
+            </button>
+          </header>
+
+          <section class="profile-summary" aria-label="Profile summary">
+            <div class="profile-avatar" id="profile-avatar" aria-hidden="true">R</div>
+            <div>
+              <strong id="profile-name-display">Rein</strong>
+              <span>Local profile</span>
+            </div>
+          </section>
+
+          <div class="settings-list">
+            <label class="settings-row settings-input-row">
+              <span class="settings-label">
+                <svg class="settings-row-icon" aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+                  <path d="M4 21a8 8 0 0 1 16 0" />
+                </svg>
+                Name
+              </span>
+              <input id="profile-name-input" type="text" value="Rein" autocomplete="name" />
+            </label>
+            <div class="settings-row">
+              <span class="settings-label">
+                <svg class="settings-row-icon" aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M6 7h10a4 4 0 0 1 0 8H8" />
+                  <path d="M8 3v18" />
+                  <path d="M5 11h12" />
+                </svg>
+                Currency
+              </span>
+              <strong>PHP ₱</strong>
+            </div>
+            <div class="settings-row">
+              <span class="settings-label">
+                <svg class="settings-row-icon" aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M4 7c0 2 4 4 8 4s8-2 8-4-4-4-8-4-8 2-8 4Z" />
+                  <path d="M4 7v10c0 2 4 4 8 4s8-2 8-4V7" />
+                  <path d="M4 12c0 2 4 4 8 4s8-2 8-4" />
+                </svg>
+                Storage
+              </span>
+              <strong>Offline</strong>
+            </div>
+            <div class="settings-row">
+              <span class="settings-label">
+                <svg class="settings-row-icon" aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z" />
+                  <path d="m9 12 2 2 4-5" />
+                </svg>
+                Account
+              </span>
+              <strong id="account-email">Local account</strong>
+            </div>
+          </div>
+
+          <button class="logout-button" id="logout-button" type="button">Log out</button>
+        </div>
+      </div>
+    </main>
+
+    <script src="./app.js?v=57" type="module"></script>
+  </body>
+</html>
