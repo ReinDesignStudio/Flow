@@ -1433,7 +1433,7 @@ function buildWeekInsightEntries(today) {
 
 function buildMonthInsightEntries(today) {
   const start = startOfMonth(today);
-  const days = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const days = today.getDate();
   return Array.from({ length: days }, (_, index) => {
     const date = new Date(start);
     date.setDate(index + 1);
