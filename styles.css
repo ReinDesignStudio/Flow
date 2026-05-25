@@ -1064,12 +1064,12 @@ h2 {
 
 .insight-detail-panel {
   width: min(100%, 440px);
-  max-height: min(82vh, 720px);
+  max-height: min(88vh, 760px);
   overflow: hidden;
-  border-radius: 28px;
-  background: #262525;
-  box-shadow: var(--shadow);
-  padding: 20px;
+  border-radius: 0;
+  background: var(--bg);
+  box-shadow: none;
+  padding: 18px 0 20px;
   transform: translateY(16px) scale(0.98);
   transition: transform 180ms ease;
 }
@@ -1084,6 +1084,7 @@ h2 {
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 14px;
+  padding: 0 10px;
 }
 
 .insight-detail-header h2 {
@@ -1092,129 +1093,99 @@ h2 {
 }
 
 .insight-detail-total {
-  margin-bottom: 18px;
+  margin-bottom: 8px;
   color: var(--text);
-  font-size: 2rem;
+  font-size: 3.15rem;
   font-weight: 900;
+  line-height: 1;
+  padding: 0 10px;
 }
 
 .insight-detail-content {
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.insight-detail-content::-webkit-scrollbar {
-  display: none;
-}
-
-.week-calendar {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(74px, 1fr));
-  gap: 8px;
-}
-
-.week-day-card {
-  display: grid;
-  grid-template-rows: auto auto 86px auto;
-  gap: 7px;
-  min-height: 172px;
-  border-radius: 18px;
-  background: var(--bg);
-  padding: 12px 9px;
-  text-align: center;
-}
-
-.week-day-card.today {
-  box-shadow: inset 0 0 0 2px var(--accent);
-}
-
-.week-day-card span,
-.month-bar-item span {
-  color: var(--accent);
-  font-size: 0.72rem;
-  font-weight: 800;
-}
-
-.month-bar-item span {
-  font-size: 0.5rem;
-  line-height: 1;
-}
-
-.week-day-card strong {
-  font-size: 1.1rem;
-}
-
-.week-day-card em {
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-style: normal;
-  font-weight: 800;
-}
-
-.mini-bar-track,
-.month-bar-track {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(187, 189, 191, 0.18);
-}
-
-.mini-bar-fill,
-.month-bar-fill {
+  overflow: visible;
   width: 100%;
-  border-radius: inherit;
+}
+
+.health-chart {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 42px 0 10px;
+}
+
+.health-plot {
+  position: relative;
+  height: 260px;
+  border-left: 1px solid rgba(187, 189, 191, 0.2);
+  border-right: 1px solid rgba(187, 189, 191, 0.2);
+  border-bottom: 1px dashed rgba(187, 189, 191, 0.22);
+}
+
+.health-grid {
+  position: absolute;
+  inset: 0;
+}
+
+.health-grid-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed rgba(187, 189, 191, 0.16);
+}
+
+.health-grid-line span {
+  position: absolute;
+  right: -38px;
+  top: -10px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.health-bars {
+  position: absolute;
+  inset: 0 8px 0;
+  display: grid;
+  grid-template-columns: repeat(var(--bar-count), minmax(0, 1fr));
+  align-items: end;
+  gap: 6px;
+}
+
+.health-bar-slot {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  height: 100%;
+}
+
+.health-bar-fill {
+  width: min(100%, 12px);
+  min-height: 0;
+  border-radius: 999px 999px 0 0;
   background: var(--accent);
 }
 
-.month-chart {
+.week-chart .health-bar-fill {
+  width: min(100%, 22px);
+}
+
+.health-x-labels {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 8px;
-  width: 100%;
-  min-height: 234px;
-}
-
-.month-scale {
-  position: relative;
-  height: 188px;
-  margin-top: 4px;
-}
-
-.month-scale span {
-  position: absolute;
-  right: 0;
-  transform: translateY(50%);
-  color: var(--muted);
-  font-size: 0.62rem;
-  font-weight: 900;
-}
-
-.month-bars {
-  display: grid;
-  grid-template-columns: repeat(31, minmax(0, 1fr));
-  align-items: end;
-  gap: 3px;
-  width: 100%;
-  min-width: 0;
-  min-height: 220px;
-  padding: 4px 0 0;
-}
-
-.month-bar-item {
-  display: grid;
-  grid-template-rows: 188px auto;
+  grid-template-columns: repeat(var(--bar-count), minmax(0, 1fr));
   gap: 6px;
-  min-width: 0;
+  padding: 0 50px 0 18px;
+}
+
+.health-x-labels span {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
   text-align: center;
 }
 
-.month-bar-track {
-  height: 188px;
-  min-width: 0;
+.health-x-labels span.ghost {
+  opacity: 0;
 }
 
 .success-burst {

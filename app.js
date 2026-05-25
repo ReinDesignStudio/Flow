@@ -6,7 +6,7 @@ const profileStorageKey = "flow-profile-v1";
 const installNoteStorageKey = "flow-install-note-dismissed-v1";
 const defaultProfileName = "Rein";
 const weeklyInsightMax = 15000;
-const monthlyInsightBaseMax = 10000;
+const monthlyInsightBaseMax = 15000;
 const defaultCategories = ["Food", "Gas", "Coffee", "Shopping", "Bills", "Transport"];
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 const supabase = supabaseConfigured ? await createSupabaseClient() : null;
@@ -1389,7 +1389,7 @@ function openInsightDetail(type) {
   const total = entries.reduce((sum, entry) => sum + entry.total, 0);
   const max = isWeek ? weeklyInsightMax : monthlyInsightMax(entries);
 
-  elements.insightDetailKicker.textContent = isWeek ? `7-day calendar · max ${formatMoney(weeklyInsightMax)}` : `Monthly graph · max ${formatMoney(max)}`;
+  elements.insightDetailKicker.textContent = isWeek ? weekRangeLabel(entries) : monthRangeLabel(today);
   elements.insightDetailTitle.textContent = isWeek ? "This week" : "This month";
   elements.insightDetailTotal.textContent = formatMoney(total);
   elements.insightDetailContent.innerHTML = isWeek
@@ -1446,48 +1446,46 @@ function buildMonthInsightEntries(today) {
 }
 
 function renderWeekInsightEntries(entries, max) {
-  return `
-    <div class="week-calendar">
-      ${entries
-        .map((entry) => {
-          const percent = Math.min(100, Math.round((entry.total / max) * 100));
-          return `
-            <article class="week-day-card ${dateKey(entry.date) === dateKey(new Date()) ? "today" : ""}">
-              <span>${entry.label}</span>
-              <strong>${entry.day}</strong>
-              <div class="mini-bar-track" aria-hidden="true">
-                <div class="mini-bar-fill" style="height:${Math.max(percent, entry.total ? 10 : 0)}%"></div>
-              </div>
-              <em>${formatMoney(entry.total)}</em>
-            </article>
-          `;
-        })
-        .join("")}
-    </div>
-  `;
+  return renderInsightBarChart(entries, max, "week");
 }
 
 function renderMonthInsightEntries(entries, max) {
-  const markers = monthlyScaleMarkers(max);
+  return renderInsightBarChart(entries, max, "month");
+}
 
+function renderInsightBarChart(entries, max, type) {
+  const markers = insightScaleMarkers(max);
+  const labelIndexes = chartLabelIndexes(entries.length, type);
   return `
-    <div class="month-chart" aria-label="Daily spending this month">
-      <div class="month-scale" aria-hidden="true">
-        ${markers.map((marker) => `<span style="bottom:${Math.round((marker / max) * 100)}%">${formatCompactMoney(marker)}</span>`).join("")}
-      </div>
-      <div class="month-bars">
-        ${entries
-          .map((entry) => {
-            const percent = Math.min(100, Math.round((entry.total / max) * 100));
-            return `
-              <div class="month-bar-item">
-                <div class="month-bar-track" aria-hidden="true">
-                  <div class="month-bar-fill" style="height:${Math.max(percent, entry.total ? 6 : 0)}%"></div>
+    <div class="health-chart ${type === "month" ? "month-chart" : "week-chart"}" style="--bar-count:${entries.length}" aria-label="${type === "month" ? "Daily spending this month" : "Daily spending this week"}">
+      <div class="health-plot">
+        <div class="health-grid" aria-hidden="true">
+          ${markers
+            .map(
+              (marker) => `
+                <div class="health-grid-line" style="bottom:${Math.round((marker / max) * 100)}%">
+                  <span>${formatChartAxis(marker)}</span>
                 </div>
-                <span>${entry.label}</span>
-              </div>
-            `;
-          })
+              `,
+            )
+            .join("")}
+        </div>
+        <div class="health-bars">
+          ${entries
+            .map((entry) => {
+              const percent = Math.min(100, Math.round((entry.total / max) * 100));
+              return `
+                <div class="health-bar-slot">
+                  <div class="health-bar-fill" title="${escapeHtml(entry.label)} ${formatMoney(entry.total)}" style="height:${Math.max(percent, entry.total ? 3 : 0)}%"></div>
+                </div>
+              `;
+            })
+            .join("")}
+        </div>
+      </div>
+      <div class="health-x-labels">
+        ${entries
+          .map((entry, index) => `<span class="${labelIndexes.includes(index) ? "" : "ghost"}">${labelIndexes.includes(index) ? escapeHtml(entry.label) : ""}</span>`)
           .join("")}
       </div>
     </div>
@@ -1499,10 +1497,34 @@ function monthlyInsightMax(entries) {
   return Math.ceil(highest / 5000) * 5000;
 }
 
-function monthlyScaleMarkers(max) {
-  return [1000, 5000, 10000, max]
+function insightScaleMarkers(max) {
+  return [0, 3000, 6000, 9000, 12000, max]
     .filter((marker, index, markers) => marker <= max && markers.indexOf(marker) === index)
     .sort((a, b) => a - b);
+}
+
+function chartLabelIndexes(length, type) {
+  if (type === "week") {
+    return Array.from({ length }, (_, index) => index);
+  }
+
+  return [0, 7, 15, 22, length - 1].filter((index, position, indexes) => {
+    return index >= 0 && index < length && indexes.indexOf(index) === position;
+  });
+}
+
+function weekRangeLabel(entries) {
+  const [start, end] = [entries[0]?.date, entries.at(-1)?.date];
+  if (!start || !end) {
+    return "Weekly graph";
+  }
+
+  const month = start.toLocaleDateString(undefined, { month: "short" });
+  return `${month} ${start.getDate()}-${end.getDate()}, ${end.getFullYear()}`;
+}
+
+function monthRangeLabel(date) {
+  return date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 }
 
 function totalForDate(date) {
@@ -1977,6 +1999,10 @@ function formatMoney(amount) {
 
 function formatCompactMoney(amount) {
   return amount >= 1000 ? `${Math.round(amount / 1000)}k` : formatMoney(amount);
+}
+
+function formatChartAxis(amount) {
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 }).format(amount);
 }
 
 function formatPlainAmount(amount) {
