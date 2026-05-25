@@ -6,6 +6,7 @@ const profileStorageKey = "flow-profile-v1";
 const installNoteStorageKey = "flow-install-note-dismissed-v1";
 const defaultProfileName = "Rein";
 const weeklyInsightMax = 15000;
+const monthlyInsightBaseMax = 10000;
 const defaultCategories = ["Food", "Gas", "Coffee", "Shopping", "Bills", "Transport"];
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 const supabase = supabaseConfigured ? await createSupabaseClient() : null;
@@ -1386,9 +1387,9 @@ function openInsightDetail(type) {
   const isWeek = type === "week";
   const entries = isWeek ? buildWeekInsightEntries(today) : buildMonthInsightEntries(today);
   const total = entries.reduce((sum, entry) => sum + entry.total, 0);
-  const max = isWeek ? weeklyInsightMax : Math.max(...entries.map((entry) => entry.total), 1);
+  const max = isWeek ? weeklyInsightMax : monthlyInsightMax(entries);
 
-  elements.insightDetailKicker.textContent = isWeek ? `7-day calendar · max ${formatMoney(weeklyInsightMax)}` : "Monthly graph";
+  elements.insightDetailKicker.textContent = isWeek ? `7-day calendar · max ${formatMoney(weeklyInsightMax)}` : `Monthly graph · max ${formatMoney(max)}`;
   elements.insightDetailTitle.textContent = isWeek ? "This week" : "This month";
   elements.insightDetailTotal.textContent = formatMoney(total);
   elements.insightDetailContent.innerHTML = isWeek
@@ -1467,23 +1468,41 @@ function renderWeekInsightEntries(entries, max) {
 }
 
 function renderMonthInsightEntries(entries, max) {
+  const markers = monthlyScaleMarkers(max);
+
   return `
-    <div class="month-bars" aria-label="Daily spending this month">
-      ${entries
-        .map((entry) => {
-          const percent = Math.round((entry.total / max) * 100);
-          return `
-            <div class="month-bar-item">
-              <div class="month-bar-track" aria-hidden="true">
-                <div class="month-bar-fill" style="height:${Math.max(percent, entry.total ? 8 : 0)}%"></div>
+    <div class="month-chart" aria-label="Daily spending this month">
+      <div class="month-scale" aria-hidden="true">
+        ${markers.map((marker) => `<span style="bottom:${Math.round((marker / max) * 100)}%">${formatCompactMoney(marker)}</span>`).join("")}
+      </div>
+      <div class="month-bars">
+        ${entries
+          .map((entry) => {
+            const percent = Math.min(100, Math.round((entry.total / max) * 100));
+            return `
+              <div class="month-bar-item">
+                <div class="month-bar-track" aria-hidden="true">
+                  <div class="month-bar-fill" style="height:${Math.max(percent, entry.total ? 6 : 0)}%"></div>
+                </div>
+                <span>${entry.label}</span>
               </div>
-              <span>${entry.label}</span>
-            </div>
-          `;
-        })
-        .join("")}
+            `;
+          })
+          .join("")}
+      </div>
     </div>
   `;
+}
+
+function monthlyInsightMax(entries) {
+  const highest = Math.max(...entries.map((entry) => entry.total), monthlyInsightBaseMax);
+  return Math.ceil(highest / 5000) * 5000;
+}
+
+function monthlyScaleMarkers(max) {
+  return [1000, 5000, 10000, max]
+    .filter((marker, index, markers) => marker <= max && markers.indexOf(marker) === index)
+    .sort((a, b) => a - b);
 }
 
 function totalForDate(date) {
@@ -1954,6 +1973,10 @@ function formatMoney(amount) {
     currency: "PHP",
     maximumFractionDigits: amount % 1 ? 2 : 0,
   }).format(amount);
+}
+
+function formatCompactMoney(amount) {
+  return amount >= 1000 ? `${Math.round(amount / 1000)}k` : formatMoney(amount);
 }
 
 function formatPlainAmount(amount) {
