@@ -9,8 +9,18 @@ const weeklyInsightMax = 15000;
 const monthlyInsightBaseMax = 15000;
 const defaultCategories = ["Food", "Gas", "Coffee", "Shopping", "Bills", "Transport"];
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
-const supabase = supabaseConfigured ? await createSupabaseClient() : null;
-const initialSession = supabase ? await getSupabaseSession() : null;
+let supabase = null;
+let initialSession = null;
+let authStartupError = "";
+
+if (supabaseConfigured) {
+  try {
+    supabase = await createSupabaseClient();
+    initialSession = await getSupabaseSession();
+  } catch (error) {
+    authStartupError = error?.message || "Unable to connect to Supabase.";
+  }
+}
 const tabOrder = ["capture", "history", "insights"];
 const promptExamples = ["120 coffee", "199 lunch", "850 gas", "45 water", "250 dinner"];
 const keywordMap = {
@@ -216,6 +226,7 @@ const iconKeywords = {
 };
 const categoryData = loadCategoryData();
 const profileData = loadProfile();
+let authListenersAttached = false;
 
 const state = {
   expenses: loadExpenses(),
@@ -330,20 +341,29 @@ const elements = {
   screens: document.querySelectorAll(".screen"),
 };
 
-renderCategories();
-renderIconPicker();
-renderProfile();
-renderAll();
-renderEmptyPrompt();
-renderInstallNote();
-if (state.authenticated) {
-  await loadRemoteData();
-  showApp();
-} else {
-  showAuth("welcome");
-  if (!supabaseConfigured) {
-    showAuthMessage("Add Supabase URL and anon key to supabase-config.js.");
+attachAuthListeners();
+
+try {
+  renderCategories();
+  renderIconPicker();
+  renderProfile();
+  renderAll();
+  renderEmptyPrompt();
+  renderInstallNote();
+  if (state.authenticated) {
+    await loadRemoteData();
+    showApp();
+  } else {
+    showAuth("welcome");
+    if (!supabaseConfigured) {
+      showAuthMessage("Add Supabase URL and anon key to supabase-config.js.");
+    } else if (authStartupError) {
+      showAuthMessage("Connection issue. You can still open sign up and try again.");
+    }
   }
+} catch (error) {
+  showAuth("welcome");
+  showAuthMessage(error?.message || "Flow had trouble starting. Please try again.");
 }
 
 window.addEventListener("beforeinstallprompt", (event) => {
@@ -367,14 +387,6 @@ if (supabase) {
     }
   });
 }
-
-elements.authGetStarted.addEventListener("click", () => {
-  showAuth("signup");
-});
-
-elements.authSignIn.addEventListener("click", () => {
-  showAuth("signin");
-});
 
 elements.installNoteAction.addEventListener("click", async () => {
   if (state.deferredInstallPrompt) {
@@ -415,20 +427,6 @@ elements.installGuideSheet.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeInstallGuide();
   }
-});
-
-document.querySelectorAll("[data-auth-mode]").forEach((button) => {
-  button.addEventListener("click", () => showAuth(button.dataset.authMode));
-});
-
-elements.signupForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  createAccount();
-});
-
-elements.signinForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  signIn();
 });
 
 elements.quickEntry.addEventListener("input", () => {
@@ -1390,6 +1388,35 @@ async function registerServiceWorker() {
 
 function getAuthRedirectUrl() {
   return `${window.location.origin}${window.location.pathname}`;
+}
+
+function attachAuthListeners() {
+  if (authListenersAttached) {
+    return;
+  }
+
+  authListenersAttached = true;
+  elements.authGetStarted.addEventListener("click", () => {
+    showAuth("signup");
+  });
+
+  elements.authSignIn.addEventListener("click", () => {
+    showAuth("signin");
+  });
+
+  document.querySelectorAll("[data-auth-mode]").forEach((button) => {
+    button.addEventListener("click", () => showAuth(button.dataset.authMode));
+  });
+
+  elements.signupForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    createAccount();
+  });
+
+  elements.signinForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    signIn();
+  });
 }
 
 function setAuthLoading(loading) {
