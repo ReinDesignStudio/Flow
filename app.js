@@ -260,7 +260,6 @@ const elements = {
   authScreen: document.querySelector("#auth-screen"),
   appShell: document.querySelector("#app-shell"),
   authActions: document.querySelector("#auth-actions"),
-  authGetStarted: document.querySelector("#auth-get-started"),
   authSignIn: document.querySelector("#auth-sign-in"),
   authGoogle: document.querySelector("#auth-google"),
   signupGoogle: document.querySelector("#signup-google"),
@@ -1471,20 +1470,16 @@ function attachAuthListeners() {
   }
 
   authListenersAttached = true;
-  elements.authGetStarted.addEventListener("click", () => {
-    showAuth("signup");
-  });
-
   elements.authSignIn.addEventListener("click", () => {
     showAuth("signin");
   });
 
   [elements.authGoogle, elements.signupGoogle, elements.signinGoogle].forEach((button) => {
-    button.addEventListener("click", () => signInWithGoogle());
+    button?.addEventListener("click", () => signInWithGoogle());
   });
 
-  elements.sendPhoneCode.addEventListener("click", () => sendPhoneCode());
-  elements.verifyPhoneCode.addEventListener("click", () => verifyPhoneCode());
+  elements.sendPhoneCode?.addEventListener("click", () => sendPhoneCode());
+  elements.verifyPhoneCode?.addEventListener("click", () => verifyPhoneCode());
 
   document.querySelectorAll("[data-auth-mode]").forEach((button) => {
     button.addEventListener("click", () => showAuth(button.dataset.authMode));
@@ -1565,7 +1560,9 @@ function setAuthLoading(loading) {
   elements.signupForm.querySelector("button[type='submit']").disabled = loading;
   elements.signinForm.querySelector("button[type='submit']").disabled = loading;
   [elements.authGoogle, elements.signupGoogle, elements.signinGoogle, elements.sendPhoneCode, elements.verifyPhoneCode].forEach((button) => {
-    button.disabled = loading;
+    if (button) {
+      button.disabled = loading;
+    }
   });
 }
 
