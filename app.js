@@ -267,6 +267,8 @@ const elements = {
   signinPassword: document.querySelector("#signin-password"),
   authMessage: document.querySelector("#auth-message"),
   greeting: document.querySelector("#greeting"),
+  streakButton: document.querySelector("#streak-button"),
+  streakCount: document.querySelector("#streak-count"),
   quickEntry: document.querySelector("#quick-entry"),
   noteEntry: document.querySelector("#note-entry"),
   expenseForm: document.querySelector("#expense-form"),
@@ -559,6 +561,10 @@ elements.weekDetailButton.addEventListener("click", () => {
 
 elements.monthDetailButton.addEventListener("click", () => {
   openInsightDetail("month");
+});
+
+elements.streakButton.addEventListener("click", () => {
+  showStreakMessage();
 });
 
 elements.breakdownList.addEventListener("click", (event) => {
@@ -1377,6 +1383,7 @@ async function signOut() {
 
 function renderAll() {
   setGreeting();
+  renderStreak();
   renderHistory();
   renderInsights();
 }
@@ -2181,6 +2188,44 @@ function setGreeting() {
   const hour = new Date().getHours();
   const dayPart = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
   elements.greeting.textContent = `Good ${dayPart}, ${state.profileName || defaultProfileName}`;
+}
+
+function renderStreak() {
+  elements.streakCount.textContent = String(calculateStreak().days);
+}
+
+function showStreakMessage() {
+  const streak = calculateStreak();
+
+  if (!streak.days) {
+    showToast("Start your streak today. One quick log is enough.");
+    return;
+  }
+
+  const label = streak.days === 1 ? "1-day streak" : `${streak.days}-day streak`;
+  const message = streak.loggedToday
+    ? `${label}. You're building the habit.`
+    : `${label}. Log today to keep it alive.`;
+
+  showToast(message);
+}
+
+function calculateStreak() {
+  const loggedDays = new Set(state.expenses.map((expense) => dateKey(new Date(expense.createdAt))));
+  const cursor = startOfDay(new Date());
+  let loggedToday = loggedDays.has(dateKey(cursor));
+
+  if (!loggedToday) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  let days = 0;
+  while (loggedDays.has(dateKey(cursor))) {
+    days += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return { days, loggedToday };
 }
 
 function groupByDay(expenses) {

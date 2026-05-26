@@ -296,6 +296,35 @@ input {
   padding-top: 8px;
 }
 
+.streak-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 54px;
+  height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: #262525;
+  color: var(--accent);
+  padding: 0 12px;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.streak-button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.streak-button:active {
+  transform: scale(0.96);
+}
+
 .kicker,
 .note-field span,
 .metric span {
@@ -1084,6 +1113,8 @@ h2 {
   left: 50%;
   bottom: calc(102px + env(safe-area-inset-bottom));
   z-index: 5;
+  width: max-content;
+  max-width: min(calc(100% - 36px), 360px);
   transform: translate(-50%, 18px);
   opacity: 0;
   pointer-events: none;
@@ -1092,7 +1123,9 @@ h2 {
   background: var(--bg);
   color: var(--accent);
   padding: 12px 18px;
+  text-align: center;
   font-weight: 900;
+  line-height: 1.25;
   transition: 180ms ease;
 }
 
