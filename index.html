@@ -8,11 +8,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Flow" />
     <title>Flow</title>
-    <link rel="manifest" href="./manifest.webmanifest?v=83" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=83" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=83" />
-    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=83" />
-    <link rel="stylesheet" href="./styles.css?v=83" />
+    <link rel="manifest" href="./manifest.webmanifest?v=84" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=84" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=84" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=84" />
+    <link rel="stylesheet" href="./styles.css?v=84" />
   </head>
   <body>
     <div class="install-note" id="install-note" role="status" aria-live="polite" hidden>
@@ -47,6 +47,17 @@
         </div>
 
         <div class="auth-actions" id="auth-actions">
+          <button class="auth-provider" id="auth-google" type="button">
+            <span aria-hidden="true">G</span>
+            Continue with Google
+          </button>
+          <div class="phone-auth" id="phone-auth">
+            <input id="phone-number" type="tel" placeholder="+63 912 345 6789" aria-label="Mobile number" autocomplete="tel" />
+            <button class="auth-primary" id="send-phone-code" type="button">Send code</button>
+            <input id="phone-code" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" aria-label="Verification code" hidden />
+            <button class="auth-primary" id="verify-phone-code" type="button" hidden>Verify code</button>
+          </div>
+          <div class="auth-divider"><span>or</span></div>
           <button class="auth-primary" id="auth-get-started" type="button">Get started</button>
           <button class="auth-secondary" id="auth-sign-in" type="button">Sign in</button>
         </div>
@@ -57,6 +68,12 @@
             <h2>Start Flow</h2>
           </header>
           <input id="signup-name" type="text" placeholder="Name" aria-label="Name" autocomplete="name" />
+          <button class="auth-provider" id="signup-google" type="button">
+            <span aria-hidden="true">G</span>
+            Continue with Google
+          </button>
+          <button class="auth-link" type="button" data-auth-mode="welcome">Use mobile number instead</button>
+          <div class="auth-divider"><span>or email</span></div>
           <input id="signup-email" type="email" placeholder="Email" aria-label="Email" autocomplete="email" />
           <input id="signup-password" type="password" placeholder="Password" aria-label="Password" autocomplete="new-password" />
           <button class="auth-primary" type="submit">Create account</button>
@@ -65,9 +82,15 @@
 
         <form class="auth-form" id="signin-form" autocomplete="on" hidden>
           <header>
-            <p class="kicker">Welcome back</p>
-            <h2>Sign in</h2>
-          </header>
+          <p class="kicker">Welcome back</p>
+          <h2>Sign in</h2>
+        </header>
+          <button class="auth-provider" id="signin-google" type="button">
+            <span aria-hidden="true">G</span>
+            Continue with Google
+          </button>
+          <button class="auth-link" type="button" data-auth-mode="welcome">Use mobile number instead</button>
+          <div class="auth-divider"><span>or email</span></div>
           <input id="signin-email" type="email" placeholder="Email" aria-label="Email" autocomplete="email" />
           <input id="signin-password" type="password" placeholder="Password" aria-label="Password" autocomplete="current-password" />
           <button class="auth-primary" type="submit">Sign in</button>
@@ -356,6 +379,6 @@
       </div>
     </main>
 
-    <script src="./app.js?v=83" type="module"></script>
+    <script src="./app.js?v=84" type="module"></script>
   </body>
 </html>

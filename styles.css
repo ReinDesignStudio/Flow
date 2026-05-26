@@ -108,7 +108,8 @@ input {
 
 .auth-primary,
 .auth-secondary,
-.auth-link {
+.auth-link,
+.auth-provider {
   min-height: 66px;
   border-radius: 999px;
   font-size: 1.2rem;
@@ -127,12 +128,77 @@ input {
   color: var(--text);
 }
 
+.auth-provider {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  background: #ffffff;
+  color: var(--bg);
+}
+
+.auth-provider span {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--bg);
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
 .auth-link {
   min-height: 44px;
   border: 0;
   background: transparent;
   color: var(--muted);
   font-size: 0.95rem;
+}
+
+.phone-auth {
+  display: grid;
+  gap: 10px;
+}
+
+.phone-auth input {
+  width: 100%;
+  min-height: 58px;
+  border: 0;
+  border-radius: 999px;
+  outline: 0;
+  background: #262525;
+  color: var(--text);
+  padding: 0 18px;
+  font-weight: 800;
+}
+
+.phone-auth input::placeholder {
+  color: var(--muted);
+}
+
+.phone-auth input[hidden],
+.phone-auth button[hidden] {
+  display: none;
+}
+
+.auth-divider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  height: 1px;
+  background: rgba(187, 189, 191, 0.3);
 }
 
 .auth-message {

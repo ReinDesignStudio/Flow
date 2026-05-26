@@ -246,6 +246,7 @@ const state = {
   openMenuId: "",
   collapsedDays: new Set(),
   deferredInstallPrompt: null,
+  pendingPhone: "",
 };
 
 const elements = {
@@ -261,6 +262,13 @@ const elements = {
   authActions: document.querySelector("#auth-actions"),
   authGetStarted: document.querySelector("#auth-get-started"),
   authSignIn: document.querySelector("#auth-sign-in"),
+  authGoogle: document.querySelector("#auth-google"),
+  signupGoogle: document.querySelector("#signup-google"),
+  signinGoogle: document.querySelector("#signin-google"),
+  phoneNumber: document.querySelector("#phone-number"),
+  phoneCode: document.querySelector("#phone-code"),
+  sendPhoneCode: document.querySelector("#send-phone-code"),
+  verifyPhoneCode: document.querySelector("#verify-phone-code"),
   signupForm: document.querySelector("#signup-form"),
   signupName: document.querySelector("#signup-name"),
   signupEmail: document.querySelector("#signup-email"),
@@ -1326,6 +1334,89 @@ async function signIn() {
   showApp();
 }
 
+async function signInWithGoogle() {
+  const client = await ensureSupabaseClient();
+  if (!client) {
+    showAuthMessage("Add Supabase keys before using Google sign in.");
+    return;
+  }
+
+  setAuthLoading(true);
+  const { error } = await client.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: getAuthRedirectUrl(),
+    },
+  });
+  setAuthLoading(false);
+
+  if (error) {
+    showAuthMessage(error.message);
+  }
+}
+
+async function sendPhoneCode() {
+  const client = await ensureSupabaseClient();
+  if (!client) {
+    showAuthMessage("Add Supabase keys before using mobile sign in.");
+    return;
+  }
+
+  const phone = normalizePhone(elements.phoneNumber.value);
+  if (!phone) {
+    showAuthMessage("Enter your mobile number with country code.");
+    elements.phoneNumber.focus();
+    return;
+  }
+
+  setAuthLoading(true);
+  const { error } = await client.auth.signInWithOtp({ phone });
+  setAuthLoading(false);
+
+  if (error) {
+    showAuthMessage(error.message);
+    return;
+  }
+
+  state.pendingPhone = phone;
+  elements.phoneCode.hidden = false;
+  elements.verifyPhoneCode.hidden = false;
+  elements.phoneCode.focus();
+  showAuthMessage("Code sent. Check your messages.");
+}
+
+async function verifyPhoneCode() {
+  const client = await ensureSupabaseClient();
+  const phone = state.pendingPhone || normalizePhone(elements.phoneNumber.value);
+  const token = elements.phoneCode.value.trim();
+
+  if (!client || !phone || token.length < 4) {
+    showAuthMessage("Enter the code sent to your phone.");
+    return;
+  }
+
+  setAuthLoading(true);
+  const { data, error } = await client.auth.verifyOtp({
+    phone,
+    token,
+    type: "sms",
+  });
+  setAuthLoading(false);
+
+  if (error) {
+    showAuthMessage(error.message);
+    return;
+  }
+
+  state.user = data.user;
+  state.auth = { email: data.user?.phone || phone };
+  state.authenticated = Boolean(data.session);
+  state.pendingPhone = "";
+  elements.phoneCode.value = "";
+  await loadRemoteData();
+  showApp();
+}
+
 function showAuthMessage(message) {
   elements.authMessage.textContent = message;
 }
@@ -1387,6 +1478,13 @@ function attachAuthListeners() {
   elements.authSignIn.addEventListener("click", () => {
     showAuth("signin");
   });
+
+  [elements.authGoogle, elements.signupGoogle, elements.signinGoogle].forEach((button) => {
+    button.addEventListener("click", () => signInWithGoogle());
+  });
+
+  elements.sendPhoneCode.addEventListener("click", () => sendPhoneCode());
+  elements.verifyPhoneCode.addEventListener("click", () => verifyPhoneCode());
 
   document.querySelectorAll("[data-auth-mode]").forEach((button) => {
     button.addEventListener("click", () => showAuth(button.dataset.authMode));
@@ -1466,6 +1564,9 @@ function registerAuthStateListener() {
 function setAuthLoading(loading) {
   elements.signupForm.querySelector("button[type='submit']").disabled = loading;
   elements.signinForm.querySelector("button[type='submit']").disabled = loading;
+  [elements.authGoogle, elements.signupGoogle, elements.signinGoogle, elements.sendPhoneCode, elements.verifyPhoneCode].forEach((button) => {
+    button.disabled = loading;
+  });
 }
 
 async function signOut() {
@@ -2479,6 +2580,11 @@ function formatChartAxis(amount) {
 
 function formatPlainAmount(amount) {
   return Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
+}
+
+function normalizePhone(value) {
+  const phone = String(value || "").replace(/[^\d+]/g, "");
+  return phone.startsWith("+") ? phone : "";
 }
 
 function titleCase(text) {
