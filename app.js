@@ -371,7 +371,9 @@ window.addEventListener("beforeinstallprompt", (event) => {
   renderInstallNote();
 });
 
-if ("serviceWorker" in navigator) {
+if ("serviceWorker" in navigator && isLocalHost()) {
+  resetLocalServiceWorkers();
+} else if ("serviceWorker" in navigator) {
   registerServiceWorker();
 }
 
@@ -1458,6 +1460,20 @@ async function registerServiceWorker() {
       registration.update();
     }
   });
+}
+
+function isLocalHost() {
+  return ["localhost", "127.0.0.1", ""].includes(window.location.hostname);
+}
+
+async function resetLocalServiceWorkers() {
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  await Promise.all(registrations.map((registration) => registration.unregister()));
+
+  if ("caches" in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => caches.delete(key)));
+  }
 }
 
 function getAuthRedirectUrl() {
