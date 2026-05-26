@@ -1979,15 +1979,26 @@ function loadExpenses() {
 
 function loadCategoryData() {
   try {
-    const saved = JSON.parse(localStorage.getItem(categoryStorageKey)) || [];
-    const order = Array.isArray(saved) ? [...defaultCategories, ...saved] : saved.order || defaultCategories;
-    const categories = order.filter((category, index, all) => {
+    const saved = JSON.parse(localStorage.getItem(categoryStorageKey)) || {};
+    const order = Array.isArray(saved) ? saved : saved.order || defaultCategories;
+    const categories = cleanCategoryOrder(order);
+    return {
+      categories: categories.length ? categories : defaultCategories,
+      icons: saved.icons || {},
+      updatedAt: saved.updatedAt || "",
+    };
+  } catch {
+    return { categories: defaultCategories, icons: {}, updatedAt: "" };
+  }
+}
+
+function cleanCategoryOrder(order) {
+  return (Array.isArray(order) ? order : [])
+    .map((category) => titleCase(String(category).trim()))
+    .filter(Boolean)
+    .filter((category, index, all) => {
       return all.findIndex((item) => item.toLowerCase() === category.toLowerCase()) === index;
     });
-    return { categories: categories.length ? categories : defaultCategories, icons: saved.icons || {} };
-  } catch {
-    return { categories: defaultCategories, icons: {} };
-  }
 }
 
 function loadProfile() {
@@ -2005,11 +2016,13 @@ function saveExpenses() {
 }
 
 function saveCategories() {
+  const updatedAt = new Date().toISOString();
   localStorage.setItem(
     categoryStorageKey,
     JSON.stringify({
       order: state.categories,
       icons: state.categoryIcons,
+      updatedAt,
     }),
   );
   syncCategories().catch(() => {});
@@ -2047,14 +2060,29 @@ async function loadRemoteData() {
   await ensureRemoteProfile();
 
   const [{ data: categories }, { data: expenses }] = await Promise.all([
-    supabase.from("category_settings").select("categories, icons").eq("user_id", state.user.id).maybeSingle(),
+    supabase.from("category_settings").select("categories, icons, updated_at").eq("user_id", state.user.id).maybeSingle(),
     supabase.from("expenses").select("id, amount, category, label, note, created_at").eq("user_id", state.user.id).order("created_at", { ascending: false }),
   ]);
 
   if (categories) {
-    state.categories = categories.categories?.length ? categories.categories : defaultCategories;
-    state.categoryIcons = categories.icons || {};
-    localStorage.setItem(categoryStorageKey, JSON.stringify({ order: state.categories, icons: state.categoryIcons }));
+    const localSaved = loadCategoryData();
+    const localTime = localSaved.updatedAt ? new Date(localSaved.updatedAt).getTime() : 0;
+    const remoteTime = categories.updated_at ? new Date(categories.updated_at).getTime() : 0;
+
+    if (localTime > remoteTime) {
+      await syncCategories();
+    } else {
+      state.categories = cleanCategoryOrder(categories.categories).length ? cleanCategoryOrder(categories.categories) : defaultCategories;
+      state.categoryIcons = categories.icons || {};
+      localStorage.setItem(
+        categoryStorageKey,
+        JSON.stringify({
+          order: state.categories,
+          icons: state.categoryIcons,
+          updatedAt: categories.updated_at || new Date().toISOString(),
+        }),
+      );
+    }
   } else {
     await syncCategories();
   }
