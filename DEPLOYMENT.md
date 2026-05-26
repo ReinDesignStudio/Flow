@@ -13,9 +13,9 @@ For local testing:
 
 After the website is deployed, update these:
 
-- Site URL: `https://your-flow-site.pages.dev`
+- Site URL: `https://your-flow-site.vercel.app`
 - Redirect URLs:
-  - `https://your-flow-site.pages.dev/**`
+  - `https://your-flow-site.vercel.app/**`
   - `http://127.0.0.1:4173/**`
 
 Then create a fresh test account. Old confirmation emails may still point to old redirect settings.
@@ -28,18 +28,18 @@ In Supabase SQL Editor, run:
 
 This creates the profile, category, and expense tables with owner-only security policies.
 
-## 3. Cloudflare Pages Deploy
+## 3. Vercel Deploy
 
-1. Go to Cloudflare Dashboard > Workers & Pages.
-2. Create a Pages project.
-3. Connect the GitHub repository: `ReinDesignStudio/Flow`.
+1. Go to Vercel.
+2. Add a new project.
+3. Import the GitHub repository: `ReinDesignStudio/Flow`.
 4. Use these build settings:
-   - Framework preset: `None`
-   - Build command: `exit 0`
-   - Build output directory: `.`
+   - Framework preset: `Other`
+   - Build command: leave empty
+   - Output directory: `.`
    - Root directory: leave blank
 5. Deploy the `main` branch.
-6. After Cloudflare gives you a `pages.dev` URL, copy it.
+6. After Vercel gives you a `vercel.app` URL, copy it.
 7. Put that URL into Supabase Authentication > URL Configuration.
 8. Sign up with a new test email.
 
