@@ -12,15 +12,7 @@ const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 let supabase = null;
 let initialSession = null;
 let authStartupError = "";
-
-if (supabaseConfigured) {
-  try {
-    supabase = await createSupabaseClient();
-    initialSession = await getSupabaseSession();
-  } catch (error) {
-    authStartupError = error?.message || "Unable to connect to Supabase.";
-  }
-}
+let authStateListenerAttached = false;
 const tabOrder = ["capture", "history", "insights"];
 const promptExamples = ["120 coffee", "199 lunch", "850 gas", "45 water", "250 dinner"];
 const keywordMap = {
@@ -376,17 +368,7 @@ if ("serviceWorker" in navigator) {
   registerServiceWorker();
 }
 
-if (supabase) {
-  supabase.auth.onAuthStateChange(async (_event, session) => {
-    state.authenticated = Boolean(session);
-    state.user = session?.user || null;
-    state.auth = { email: session?.user?.email || "" };
-    if (session) {
-      await loadRemoteData();
-      showApp();
-    }
-  });
-}
+initializeSupabaseAuth();
 
 elements.installNoteAction.addEventListener("click", async () => {
   if (state.deferredInstallPrompt) {
@@ -1263,7 +1245,8 @@ function showApp() {
 }
 
 async function createAccount() {
-  if (!supabase) {
+  const client = await ensureSupabaseClient();
+  if (!client) {
     showAuthMessage("Add Supabase keys before creating accounts.");
     return;
   }
@@ -1278,7 +1261,7 @@ async function createAccount() {
   }
 
   setAuthLoading(true);
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await client.auth.signUp({
     email,
     password,
     options: {
@@ -1312,7 +1295,8 @@ async function createAccount() {
 }
 
 async function signIn() {
-  if (!supabase) {
+  const client = await ensureSupabaseClient();
+  if (!client) {
     showAuthMessage("Add Supabase keys before signing in.");
     return;
   }
@@ -1326,7 +1310,7 @@ async function signIn() {
   }
 
   setAuthLoading(true);
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await client.auth.signInWithPassword({ email, password });
   setAuthLoading(false);
 
   if (error) {
@@ -1416,6 +1400,66 @@ function attachAuthListeners() {
   elements.signinForm.addEventListener("submit", (event) => {
     event.preventDefault();
     signIn();
+  });
+}
+
+async function initializeSupabaseAuth() {
+  const client = await ensureSupabaseClient();
+  if (!client) {
+    return;
+  }
+
+  try {
+    const session = await getSupabaseSession();
+    state.authenticated = Boolean(session);
+    state.user = session?.user || null;
+    state.auth = { email: session?.user?.email || "" };
+
+    if (session) {
+      await loadRemoteData();
+      showApp();
+    }
+  } catch (error) {
+    authStartupError = error?.message || "Unable to connect to Supabase.";
+    if (!state.authenticated) {
+      showAuthMessage("Connection issue. You can still open sign up and try again.");
+    }
+  }
+}
+
+async function ensureSupabaseClient() {
+  if (supabase) {
+    return supabase;
+  }
+
+  if (!supabaseConfigured) {
+    return null;
+  }
+
+  try {
+    supabase = await createSupabaseClient();
+    registerAuthStateListener();
+    return supabase;
+  } catch (error) {
+    authStartupError = error?.message || "Unable to connect to Supabase.";
+    return null;
+  }
+}
+
+function registerAuthStateListener() {
+  if (!supabase || authStateListenerAttached) {
+    return;
+  }
+
+  authStateListenerAttached = true;
+  supabase.auth.onAuthStateChange(async (_event, session) => {
+    state.authenticated = Boolean(session);
+    state.user = session?.user || null;
+    state.auth = { email: session?.user?.email || "" };
+    if (session) {
+      await loadRemoteData();
+      showApp();
+    }
   });
 }
 
