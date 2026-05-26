@@ -13,9 +13,9 @@ For local testing:
 
 After the website is deployed, update these:
 
-- Site URL: `https://your-flow-site.netlify.app`
+- Site URL: `https://your-flow-site.pages.dev`
 - Redirect URLs:
-  - `https://your-flow-site.netlify.app/**`
+  - `https://your-flow-site.pages.dev/**`
   - `http://127.0.0.1:4173/**`
 
 Then create a fresh test account. Old confirmation emails may still point to old redirect settings.
@@ -28,14 +28,20 @@ In Supabase SQL Editor, run:
 
 This creates the profile, category, and expense tables with owner-only security policies.
 
-## 3. Netlify Deploy
+## 3. Cloudflare Pages Deploy
 
-1. Go to Netlify.
-2. Create a new site.
-3. Deploy this project folder.
-4. After Netlify gives you a URL, copy it.
-5. Put that URL into Supabase Authentication > URL Configuration.
-6. Sign up with a new test email.
+1. Go to Cloudflare Dashboard > Workers & Pages.
+2. Create a Pages project.
+3. Connect the GitHub repository: `ReinDesignStudio/Flow`.
+4. Use these build settings:
+   - Framework preset: `None`
+   - Build command: `exit 0`
+   - Build output directory: `.`
+   - Root directory: leave blank
+5. Deploy the `main` branch.
+6. After Cloudflare gives you a `pages.dev` URL, copy it.
+7. Put that URL into Supabase Authentication > URL Configuration.
+8. Sign up with a new test email.
 
 ## 4. Phone Test
 
