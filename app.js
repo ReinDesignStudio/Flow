@@ -1472,6 +1472,9 @@ function renderInsights() {
           <strong class="breakdown-label">${categoryIcon(category)}${escapeHtml(category)}</strong>
           <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${percent}%"></div></div>
           <span>${formatMoney(total)}</span>
+          <svg class="breakdown-chevron" aria-hidden="true" viewBox="0 0 24 24">
+            <path d="m9 6 6 6-6 6" />
+          </svg>
         </button>
       `;
     })

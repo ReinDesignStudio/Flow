@@ -958,23 +958,26 @@ h2 {
 
 .breakdown-row {
   display: grid;
-  grid-template-columns: minmax(104px, 0.9fr) 1fr auto;
+  grid-template-columns: minmax(104px, 0.9fr) 1fr auto 18px;
   align-items: center;
   gap: 12px;
-  min-height: 38px;
+  min-height: 46px;
 }
 
 .breakdown-button {
   width: 100%;
   border: 0;
+  border-bottom: 1px solid rgba(187, 189, 191, 0.22);
   background: transparent;
   color: inherit;
-  padding: 0;
+  padding: 4px 0;
   text-align: left;
+  transition: background 160ms ease, transform 160ms ease;
 }
 
 .breakdown-button:active {
   transform: scale(0.99);
+  background: rgba(135, 215, 0, 0.06);
 }
 
 .breakdown-label {
@@ -986,6 +989,16 @@ h2 {
 
 .breakdown-label .category-icon {
   color: var(--accent);
+}
+
+.breakdown-chevron {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .bar-track {
