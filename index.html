@@ -47,18 +47,7 @@
         </div>
 
         <div class="auth-actions" id="auth-actions">
-          <button class="auth-provider" id="auth-google" type="button">
-            <span aria-hidden="true">G</span>
-            Continue with Google
-          </button>
-          <div class="phone-auth" id="phone-auth">
-            <input id="phone-number" type="tel" placeholder="+63 912 345 6789" aria-label="Mobile number" autocomplete="tel" />
-            <button class="auth-primary" id="send-phone-code" type="button">Send code</button>
-            <input id="phone-code" type="text" inputmode="numeric" maxlength="6" placeholder="6-digit code" aria-label="Verification code" hidden />
-            <button class="auth-primary" id="verify-phone-code" type="button" hidden>Verify code</button>
-          </div>
-          <div class="auth-divider"><span>or</span></div>
-          <button class="auth-secondary" id="auth-sign-in" type="button">Sign in with email</button>
+          <button class="auth-primary" type="button" data-auth-mode="signup">Get Started</button>
         </div>
 
         <form class="auth-form" id="signup-form" autocomplete="on" hidden>
@@ -71,7 +60,6 @@
             <span aria-hidden="true">G</span>
             Continue with Google
           </button>
-          <button class="auth-link" type="button" data-auth-mode="welcome">Use mobile number instead</button>
           <div class="auth-divider"><span>or email</span></div>
           <input id="signup-email" type="email" placeholder="Email" aria-label="Email" autocomplete="email" />
           <input id="signup-password" type="password" placeholder="Password" aria-label="Password" autocomplete="new-password" />
@@ -88,7 +76,6 @@
             <span aria-hidden="true">G</span>
             Continue with Google
           </button>
-          <button class="auth-link" type="button" data-auth-mode="welcome">Use mobile number instead</button>
           <div class="auth-divider"><span>or email</span></div>
           <input id="signin-email" type="email" placeholder="Email" aria-label="Email" autocomplete="email" />
           <input id="signin-password" type="password" placeholder="Password" aria-label="Password" autocomplete="current-password" />

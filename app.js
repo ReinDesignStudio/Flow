@@ -1486,7 +1486,7 @@ function attachAuthListeners() {
   }
 
   authListenersAttached = true;
-  elements.authSignIn.addEventListener("click", () => {
+  elements.authSignIn?.addEventListener("click", () => {
     showAuth("signin");
   });
 
