@@ -783,9 +783,9 @@ elements.qrSheet.addEventListener("click", (event) => {
   }
 });
 
-elements.qrPasteForm.addEventListener("submit", (event) => {
+elements.qrPasteForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const joined = joinCircleFromInvite(elements.qrLinkInput.value);
+  const joined = await joinCircleFromInvite(elements.qrLinkInput.value);
   if (joined) {
     closeQrScanner();
   }
@@ -2413,6 +2413,7 @@ function loadCircleData() {
     return {
       id: saved.id,
       name: saved.name,
+      inviteCode: saved.inviteCode || saved.invite_code || saved.id.slice(0, 8).toUpperCase(),
       createdByUserId: saved.createdByUserId || "local",
       members: Array.isArray(saved.members) && saved.members.length ? saved.members : [saved.createdByUserId || "local"],
       categories: cleanCategoryOrder(saved.categories).length ? cleanCategoryOrder(saved.categories) : defaultCircleCategories,
@@ -2493,9 +2494,11 @@ function createCircle(rawName) {
   }
 
   const memberId = state.user?.id || "local";
+  const inviteCode = createCircleInviteCode();
   state.circle = {
-    id: createCircleId(),
+    id: shortCircleIdToUuid(inviteCode),
     name,
+    inviteCode,
     createdByUserId: memberId,
     members: [memberId],
     categories: [...defaultCircleCategories],
@@ -2537,13 +2540,13 @@ function deleteCircle() {
   showToast("Circle deleted");
 }
 
-function joinCircleFromInvite(raw) {
+async function joinCircleFromInvite(raw) {
   if (!raw) {
     return false;
   }
 
   try {
-    const { circleId, name } = parseCircleInvite(raw);
+    const { circleId, name, inviteCode } = await resolveCircleInvite(raw);
     if (!circleId || !name) {
       showToast("Circle ID not recognized");
       return false;
@@ -2553,6 +2556,7 @@ function joinCircleFromInvite(raw) {
     state.circle = {
       id: circleId,
       name: titleCase(name),
+      inviteCode,
       createdByUserId: "invite",
       members: [memberId],
       categories: [...defaultCircleCategories],
@@ -2571,38 +2575,84 @@ function joinCircleFromInvite(raw) {
   }
 }
 
+async function resolveCircleInvite(raw) {
+  const parsed = parseCircleInvite(raw);
+  if (!parsed.inviteCode || !supabase || !state.user) {
+    return parsed;
+  }
+
+  const { data: circle } = await supabase
+    .from("circles")
+    .select("id, name, invite_code, created_by_user_id, members, categories, icons, updated_at")
+    .eq("invite_code", parsed.inviteCode)
+    .maybeSingle();
+
+  if (!circle) {
+    return parsed;
+  }
+
+  return {
+    circleId: circle.id,
+    name: circle.name,
+    inviteCode: circle.invite_code || parsed.inviteCode,
+    circle,
+  };
+}
+
 function parseCircleInvite(raw) {
   const value = raw.trim();
   if (!value) {
-    return { circleId: "", name: "" };
+    return { circleId: "", name: "", inviteCode: "" };
   }
 
   if (/^https?:\/\//i.test(value)) {
     const url = new URL(value);
+    const circleId = url.searchParams.get("circle") || "";
+    const inviteCode = normalizeCircleInviteCode(url.searchParams.get("code") || circleId.slice(0, 8));
     return {
-      circleId: url.searchParams.get("circle") || "",
+      circleId,
       name: url.searchParams.get("name") || "Circle",
+      inviteCode,
     };
   }
 
-  const code = value.toUpperCase().replace(/\s+/g, "");
-  const shortId = code.replace(/^FLOW-?/, "");
-  if (!/^[A-F0-9]{8}$/.test(shortId)) {
-    return { circleId: "", name: "" };
+  const inviteCode = normalizeCircleInviteCode(value);
+  if (!inviteCode) {
+    return { circleId: "", name: "", inviteCode: "" };
   }
 
   return {
-    circleId: shortCircleIdToUuid(shortId),
-    name: `Circle ${shortId.slice(0, 4)}`,
+    circleId: shortCircleIdToUuid(inviteCode),
+    name: `Circle ${inviteCode.slice(0, 4)}`,
+    inviteCode,
   };
 }
 
 function circleInviteCode() {
-  return state.circle ? `FLOW-${state.circle.id.slice(0, 8).toUpperCase()}` : "";
+  return state.circle ? `FLOW-${ensureCircleInviteCode()}` : "";
+}
+
+function ensureCircleInviteCode() {
+  if (!state.circle) {
+    return "";
+  }
+
+  if (!state.circle.inviteCode) {
+    state.circle.inviteCode = normalizeCircleInviteCode(state.circle.id.slice(0, 8)) || createCircleInviteCode();
+    localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
+    syncCircle().catch(() => {});
+  }
+
+  return state.circle.inviteCode;
 }
 
 function shortCircleIdToUuid(shortId) {
   return `${shortId.toLowerCase()}-0000-4000-8000-000000000000`;
+}
+
+function normalizeCircleInviteCode(value) {
+  const code = String(value || "").toUpperCase().replace(/\s+/g, "").replace(/^FLOW-?/, "");
+  return /^[A-F0-9]{8}$/.test(code) ? code : "";
 }
 
 function createCircleId() {
@@ -2610,6 +2660,12 @@ function createCircleId() {
   crypto.getRandomValues(bytes);
   const shortId = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
   return shortCircleIdToUuid(shortId.toUpperCase());
+}
+
+function createCircleInviteCode() {
+  const bytes = new Uint8Array(4);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
 function circleInviteLink() {
@@ -2620,6 +2676,7 @@ function circleInviteLink() {
   const url = new URL(window.location.href);
   url.hash = "";
   url.searchParams.set("circle", state.circle.id);
+  url.searchParams.set("code", ensureCircleInviteCode());
   url.searchParams.set("name", state.circle.name);
   return url.toString();
 }
@@ -2677,7 +2734,7 @@ async function scanQrFrame() {
   try {
     const codes = await state.qrDetector.detect(elements.qrVideo);
     const value = codes[0]?.rawValue;
-    if (value && joinCircleFromInvite(value)) {
+    if (value && await joinCircleFromInvite(value)) {
       closeQrScanner();
       return;
     }
@@ -2794,7 +2851,7 @@ async function loadRemoteData() {
 
   const invite = new URLSearchParams(window.location.search);
   if (!state.circle && invite.get("circle") && invite.get("name")) {
-    joinCircleFromInvite(window.location.href);
+    await joinCircleFromInvite(window.location.href);
     window.history.replaceState({}, "", window.location.pathname);
   }
 
@@ -2852,7 +2909,7 @@ async function refreshCircleRemoteData() {
   await ensureCircleMembership();
 
   const [{ data: circle }, { data: members }, { data: circleExpensesData }] = await Promise.all([
-    supabase.from("circles").select("id, name, created_by_user_id, members, categories, icons, updated_at").eq("id", state.circle.id).maybeSingle(),
+    supabase.from("circles").select("id, name, invite_code, created_by_user_id, members, categories, icons, updated_at").eq("id", state.circle.id).maybeSingle(),
     supabase.from("circle_members").select("user_id").eq("circle_id", state.circle.id),
     supabase
       .from("expenses")
@@ -2866,6 +2923,7 @@ async function refreshCircleRemoteData() {
     state.circle = {
       ...state.circle,
       name: circle.name || state.circle.name,
+      inviteCode: circle.invite_code || state.circle.inviteCode || state.circle.id.slice(0, 8).toUpperCase(),
       createdByUserId: circle.created_by_user_id || state.circle.createdByUserId,
       members: members?.map((member) => member.user_id) || circle.members || state.circle.members,
       categories: cleanCategoryOrder(circle.categories).length ? cleanCategoryOrder(circle.categories) : state.circle.categories,
@@ -2908,6 +2966,7 @@ async function syncCircle() {
     await supabase.from("circles").upsert({
       id: state.circle.id,
       name: state.circle.name,
+      invite_code: state.circle.inviteCode || state.circle.id.slice(0, 8).toUpperCase(),
       created_by_user_id: isUuid(state.circle.createdByUserId) ? state.circle.createdByUserId : state.user.id,
       members: memberIds,
       categories: state.circle.categories,

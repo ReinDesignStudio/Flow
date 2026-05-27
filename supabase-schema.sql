@@ -17,6 +17,7 @@ create table if not exists public.category_settings (
 create table if not exists public.circles (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  invite_code text unique,
   created_by_user_id uuid not null references auth.users(id) on delete cascade,
   members uuid[] not null default array[]::uuid[],
   categories text[] not null default array['Groceries', 'Bills', 'Rent', 'Gas', 'Food', 'Kids', 'Savings', 'Emergency', 'Others'],
@@ -24,6 +25,13 @@ create table if not exists public.circles (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.circles
+  add column if not exists invite_code text;
+
+create unique index if not exists circles_invite_code_idx
+  on public.circles (invite_code)
+  where invite_code is not null;
 
 create table if not exists public.circle_members (
   circle_id uuid not null references public.circles(id) on delete cascade,
@@ -77,6 +85,13 @@ create policy "Category settings are owner-only"
   with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Circle members can view circles" on public.circles;
+drop policy if exists "Authenticated users can find circles by invite code" on public.circles;
+create policy "Authenticated users can find circles by invite code"
+  on public.circles
+  for select
+  to authenticated
+  using (invite_code is not null);
+
 create policy "Circle members can view circles"
   on public.circles
   for select
