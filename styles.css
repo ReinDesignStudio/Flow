@@ -508,6 +508,11 @@ h2 {
   margin: 4px 0 18px;
 }
 
+.visibility-toggle[hidden],
+.history-filter[hidden] {
+  display: none;
+}
+
 .visibility-toggle button,
 .history-filter button {
   min-height: 42px;
