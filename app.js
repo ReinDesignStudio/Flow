@@ -378,8 +378,12 @@ try {
   renderAll();
   renderEmptyPrompt();
   renderInstallNote();
+
+  if (supabaseConfigured) {
+    await initializeSupabaseAuth();
+  }
+
   if (state.authenticated) {
-    await loadRemoteData();
     showApp();
   } else {
     showAuth("welcome");
@@ -405,8 +409,6 @@ if ("serviceWorker" in navigator && isLocalHost()) {
 } else if ("serviceWorker" in navigator) {
   registerServiceWorker();
 }
-
-initializeSupabaseAuth();
 
 elements.installNoteAction.addEventListener("click", async () => {
   if (state.deferredInstallPrompt) {
@@ -1646,7 +1648,6 @@ async function initializeSupabaseAuth() {
 
     if (session) {
       await loadRemoteData();
-      showApp();
     }
   } catch (error) {
     authStartupError = error?.message || "Unable to connect to Supabase.";
