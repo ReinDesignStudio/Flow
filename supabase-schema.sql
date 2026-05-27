@@ -81,7 +81,15 @@ create policy "Circle members can view circles"
   on public.circles
   for select
   to authenticated
-  using ((select auth.uid()) = created_by_user_id or (select auth.uid()) = any(members));
+  using (
+    (select auth.uid()) = created_by_user_id
+    or (select auth.uid()) = any(members)
+    or exists (
+      select 1 from public.circle_members
+      where circle_members.circle_id = circles.id
+      and circle_members.user_id = (select auth.uid())
+    )
+  );
 
 drop policy if exists "Circle owners can manage circles" on public.circles;
 create policy "Circle owners can manage circles"
@@ -92,24 +100,26 @@ create policy "Circle owners can manage circles"
   with check ((select auth.uid()) = created_by_user_id or (select auth.uid()) = any(members));
 
 drop policy if exists "Circle memberships are visible to members" on public.circle_members;
-create policy "Circle memberships are visible to members"
+drop policy if exists "Circle memberships are visible to authenticated users" on public.circle_members;
+create policy "Circle memberships are visible to authenticated users"
   on public.circle_members
   for select
   to authenticated
-  using (
-    (select auth.uid()) = user_id
-    or exists (
-      select 1 from public.circle_members peer
-      where peer.circle_id = circle_members.circle_id
-      and peer.user_id = (select auth.uid())
-    )
-  );
+  using (true);
 
 drop policy if exists "Users can join circles" on public.circle_members;
 create policy "Users can join circles"
   on public.circle_members
   for insert
   to authenticated
+  with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Users can update their circle membership" on public.circle_members;
+create policy "Users can update their circle membership"
+  on public.circle_members
+  for update
+  to authenticated
+  using ((select auth.uid()) = user_id)
   with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Expenses are owner-only" on public.expenses;
