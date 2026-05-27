@@ -119,7 +119,7 @@
             Try 120 coffee
           </div>
 
-          <div class="visibility-toggle" id="visibility-toggle" aria-label="Expense visibility">
+          <div class="visibility-toggle" id="visibility-toggle" aria-label="Expense visibility" hidden>
             <button class="active" type="button" data-visibility="personal">Personal</button>
             <button type="button" data-visibility="circle">Circle</button>
           </div>
@@ -162,33 +162,6 @@
             <span>Your data is private and secure</span>
           </p>
         </form>
-        <section class="circle-panel" id="circle-panel" aria-label="Circle">
-          <div class="circle-summary">
-            <div>
-              <p class="kicker">Circle</p>
-              <strong id="circle-name-display">Shared expenses</strong>
-              <span id="circle-detail">Create a Circle for family, couples, or roommates.</span>
-            </div>
-          </div>
-          <form class="circle-form" id="circle-form" hidden>
-            <input id="circle-name-input" type="text" placeholder="Falcon Family" aria-label="Circle name" />
-            <button type="submit">Create</button>
-          </form>
-          <div class="circle-actions">
-            <button class="circle-action" id="create-circle-button" type="button">Create Circle</button>
-            <button class="circle-action secondary" id="invite-circle-button" type="button" hidden>Invite</button>
-            <button class="circle-action secondary" id="join-circle-button" type="button">Join</button>
-            <button class="circle-action danger" id="delete-circle-button" type="button" hidden>Delete</button>
-          </div>
-          <div class="circle-invite" id="circle-invite" hidden>
-            <img id="circle-qr" alt="Circle invite QR code" />
-            <div>
-              <strong id="circle-invite-code">FLOW</strong>
-              <span id="circle-invite-link">Share this Circle ID to join.</span>
-              <button id="copy-circle-link-button" type="button">Copy Circle ID</button>
-            </div>
-          </div>
-        </section>
       </section>
 
       <section class="screen" id="history-screen" aria-labelledby="history-title">
@@ -206,7 +179,7 @@
             </button>
           </div>
         </header>
-        <div class="history-filter" id="history-filter" aria-label="History filter">
+        <div class="history-filter" id="history-filter" aria-label="History filter" hidden>
           <button class="active" type="button" data-history-filter="all">All</button>
           <button type="button" data-history-filter="personal">Personal</button>
           <button type="button" data-history-filter="circle">Circle</button>
@@ -371,6 +344,38 @@
             <div>
               <strong id="profile-name-display">Rein</strong>
               <span>Local profile</span>
+            </div>
+          </section>
+
+          <section class="circle-panel" id="circle-panel" aria-label="Circle">
+            <div class="circle-summary">
+              <div>
+                <p class="kicker">Circle</p>
+                <strong id="circle-name-display">Shared expenses</strong>
+                <span id="circle-detail">Create a Circle for family, couples, or roommates.</span>
+              </div>
+            </div>
+            <div class="circle-orbit" aria-hidden="true">
+              <span></span>
+              <span></span>
+            </div>
+            <form class="circle-form" id="circle-form" hidden>
+              <input id="circle-name-input" type="text" placeholder="Falcon Family" aria-label="Circle name" />
+              <button type="submit">Create</button>
+            </form>
+            <div class="circle-actions">
+              <button class="circle-action" id="create-circle-button" type="button">Create Circle</button>
+              <button class="circle-action secondary" id="invite-circle-button" type="button" hidden>Invite</button>
+              <button class="circle-action secondary" id="join-circle-button" type="button">Join</button>
+              <button class="circle-action danger" id="delete-circle-button" type="button" hidden>Delete</button>
+            </div>
+            <div class="circle-invite" id="circle-invite" hidden>
+              <img id="circle-qr" alt="Circle invite QR code" />
+              <div>
+                <strong id="circle-invite-code">FLOW</strong>
+                <span id="circle-invite-link">Share this Circle ID to join.</span>
+                <button id="copy-circle-link-button" type="button">Copy Circle ID</button>
+              </div>
             </div>
           </section>
 
