@@ -318,12 +318,15 @@ const elements = {
   historyList: document.querySelector("#history-list"),
   circlePanel: document.querySelector("#circle-panel"),
   createCircleButton: document.querySelector("#create-circle-button"),
+  inviteCircleButton: document.querySelector("#invite-circle-button"),
+  deleteCircleButton: document.querySelector("#delete-circle-button"),
   circleForm: document.querySelector("#circle-form"),
   circleNameInput: document.querySelector("#circle-name-input"),
   circleNameDisplay: document.querySelector("#circle-name-display"),
   circleDetail: document.querySelector("#circle-detail"),
   circleInvite: document.querySelector("#circle-invite"),
   circleQr: document.querySelector("#circle-qr"),
+  circleInviteCode: document.querySelector("#circle-invite-code"),
   circleInviteLink: document.querySelector("#circle-invite-link"),
   copyCircleLinkButton: document.querySelector("#copy-circle-link-button"),
   joinCircleButton: document.querySelector("#join-circle-button"),
@@ -738,14 +741,16 @@ elements.visibilityToggle.addEventListener("click", (event) => {
 });
 
 elements.createCircleButton.addEventListener("click", () => {
-  if (state.circle) {
-    elements.circleInvite.hidden = false;
-    showToast("Invite link ready");
-    return;
-  }
-
   elements.circleForm.hidden = false;
   window.setTimeout(() => elements.circleNameInput.focus(), 60);
+});
+
+elements.inviteCircleButton.addEventListener("click", () => {
+  elements.circleInvite.hidden = !elements.circleInvite.hidden;
+});
+
+elements.deleteCircleButton.addEventListener("click", () => {
+  deleteCircle();
 });
 
 elements.circleForm.addEventListener("submit", (event) => {
@@ -1741,13 +1746,15 @@ function renderCircle() {
   elements.circleDetail.textContent = hasCircle
     ? `${state.circle.members.length} member${state.circle.members.length === 1 ? "" : "s"} · ${circleExpenses().length} shared`
     : "Create a Circle for family, couples, or roommates.";
-  elements.createCircleButton.textContent = hasCircle ? "Invite" : "Create Circle";
+  elements.createCircleButton.hidden = hasCircle;
+  elements.inviteCircleButton.hidden = !hasCircle;
+  elements.deleteCircleButton.hidden = !hasCircle;
   elements.circleForm.hidden = true;
   elements.circleInvite.hidden = !hasCircle;
-  elements.joinCircleButton.hidden = hasCircle;
 
   if (hasCircle) {
     const link = circleInviteLink();
+    elements.circleInviteCode.textContent = circleInviteCode();
     elements.circleInviteLink.textContent = link;
     elements.circleQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}`;
   }
@@ -2497,6 +2504,32 @@ function createCircle(rawName) {
   showToast("Circle created");
 }
 
+function deleteCircle() {
+  if (!state.circle) {
+    return;
+  }
+
+  if (!window.confirm(`Delete ${state.circle.name}? Circle expenses stay in history as personal records.`)) {
+    return;
+  }
+
+  const deletedCircleId = state.circle.id;
+  state.expenses.forEach((expense) => {
+    if (expense.circleId === deletedCircleId) {
+      expense.circleId = null;
+      expense.expenseVisibility = "personal";
+    }
+  });
+  state.circle = null;
+  state.expenseVisibility = "personal";
+  state.historyFilter = "all";
+  localStorage.removeItem(circleStorageKey);
+  saveExpenses();
+  renderCategories();
+  renderAll();
+  showToast("Circle deleted");
+}
+
 function joinCircleFromInvite(raw) {
   if (!raw) {
     return false;
@@ -2532,6 +2565,10 @@ function joinCircleFromInvite(raw) {
   }
 }
 
+function circleInviteCode() {
+  return state.circle ? `FLOW-${state.circle.id.slice(0, 8).toUpperCase()}` : "";
+}
+
 function circleInviteLink() {
   if (!state.circle) {
     return "";
@@ -2558,24 +2595,31 @@ function setExpenseVisibility(visibility) {
 async function openQrScanner() {
   elements.qrSheet.hidden = false;
   elements.qrSheet.classList.add("show");
-  elements.qrMessage.textContent = "Point your camera at a Flow Circle QR code.";
+  elements.qrMessage.textContent = "Opening camera...";
   elements.qrLinkInput.value = "";
 
-  if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) {
-    elements.qrMessage.textContent = "Camera scanning is not available here. Paste the invite link instead.";
+  if (!navigator.mediaDevices?.getUserMedia) {
+    elements.qrMessage.textContent = "Camera access is not available here. Paste the invite link instead.";
     window.setTimeout(() => elements.qrLinkInput.focus(), 60);
     return;
   }
 
   try {
-    state.qrDetector = new BarcodeDetector({ formats: ["qr_code"] });
+    if ("BarcodeDetector" in window) {
+      state.qrDetector = new BarcodeDetector({ formats: ["qr_code"] });
+    }
     state.qrStream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: "environment" },
       audio: false,
     });
     elements.qrVideo.srcObject = state.qrStream;
     await elements.qrVideo.play();
-    scanQrFrame();
+    elements.qrMessage.textContent = state.qrDetector
+      ? "Point your camera at a Flow Circle QR code."
+      : "Camera is open. This browser cannot read QR codes automatically, so paste the invite link below.";
+    if (state.qrDetector) {
+      scanQrFrame();
+    }
   } catch {
     elements.qrMessage.textContent = "Camera permission is needed to scan. You can paste the invite link instead.";
     window.setTimeout(() => elements.qrLinkInput.focus(), 60);

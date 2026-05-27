@@ -186,20 +186,25 @@
               <strong id="circle-name-display">Shared expenses</strong>
               <span id="circle-detail">Create a Circle for family, couples, or roommates.</span>
             </div>
-            <button class="circle-action" id="create-circle-button" type="button">Create Circle</button>
           </div>
           <form class="circle-form" id="circle-form" hidden>
             <input id="circle-name-input" type="text" placeholder="Falcon Family" aria-label="Circle name" />
             <button type="submit">Create</button>
           </form>
+          <div class="circle-actions">
+            <button class="circle-action" id="create-circle-button" type="button">Create Circle</button>
+            <button class="circle-action secondary" id="invite-circle-button" type="button" hidden>Invite</button>
+            <button class="circle-action secondary" id="join-circle-button" type="button">Join</button>
+            <button class="circle-action danger" id="delete-circle-button" type="button" hidden>Delete</button>
+          </div>
           <div class="circle-invite" id="circle-invite" hidden>
             <img id="circle-qr" alt="Circle invite QR code" />
             <div>
+              <strong id="circle-invite-code">FLOW</strong>
               <span id="circle-invite-link"></span>
               <button id="copy-circle-link-button" type="button">Copy invite</button>
             </div>
           </div>
-          <button class="circle-link-button" id="join-circle-button" type="button">Join via QR</button>
         </section>
         <div class="history-filter" id="history-filter" aria-label="History filter">
           <button class="active" type="button" data-history-filter="all">All</button>

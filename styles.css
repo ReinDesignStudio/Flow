@@ -941,8 +941,7 @@ h2 {
 
 .circle-action,
 .circle-form button,
-.circle-invite button,
-.circle-link-button {
+.circle-invite button {
   min-height: 42px;
   border: 0;
   border-radius: 999px;
@@ -953,11 +952,22 @@ h2 {
   white-space: nowrap;
 }
 
-.circle-link-button {
-  justify-self: start;
+.circle-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.circle-action.secondary {
+  border: 1px solid var(--line);
   background: transparent;
-  color: var(--accent);
-  padding: 0;
+  color: var(--text);
+}
+
+.circle-action.danger {
+  border: 1px solid rgba(255, 126, 126, 0.45);
+  background: transparent;
+  color: #ff9a9a;
 }
 
 .circle-form {
@@ -968,7 +978,7 @@ h2 {
 
 .circle-form[hidden],
 .circle-invite[hidden],
-.circle-link-button[hidden] {
+.circle-action[hidden] {
   display: none;
 }
 
@@ -987,6 +997,18 @@ h2 {
   grid-template-columns: 88px minmax(0, 1fr);
   gap: 12px;
   align-items: center;
+}
+
+.circle-invite strong {
+  display: inline-block;
+  width: fit-content;
+  margin-bottom: 6px;
+  border-radius: 999px;
+  background: rgba(202, 255, 66, 0.12);
+  color: var(--accent);
+  padding: 5px 10px;
+  font-size: 0.9rem;
+  letter-spacing: 0;
 }
 
 .circle-invite img {
