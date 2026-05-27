@@ -11,6 +11,7 @@ const monthlyInsightBaseMax = 15000;
 const defaultCategories = ["Food", "Gas", "Coffee", "Shopping", "Bills", "Transport"];
 const defaultCircleCategories = ["Groceries", "Bills", "Rent", "Gas", "Food", "Kids", "Savings", "Emergency", "Others"];
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+const authStartupTimeoutMs = 2500;
 let supabase = null;
 let initialSession = null;
 let authStartupError = "";
@@ -383,7 +384,7 @@ try {
   renderInstallNote();
 
   if (supabaseConfigured) {
-    await initializeSupabaseAuth();
+    await withTimeout(initializeSupabaseAuth(), authStartupTimeoutMs);
   }
 
   if (state.authenticated) {
@@ -3032,6 +3033,20 @@ function slugify(value) {
 
 function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value));
+}
+
+async function withTimeout(promise, timeoutMs) {
+  let timeoutId = 0;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((resolve) => {
+        timeoutId = window.setTimeout(resolve, timeoutMs);
+      }),
+    ]);
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 }
 
 function dayLabel(date) {
