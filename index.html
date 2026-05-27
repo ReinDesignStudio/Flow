@@ -326,6 +326,28 @@
           <div class="insight-detail-content" id="insight-detail-content"></div>
         </div>
       </div>
+      <div class="qr-sheet" id="qr-sheet" role="dialog" aria-modal="true" aria-labelledby="qr-title" hidden>
+        <div class="qr-panel">
+          <header class="insight-detail-header">
+            <div>
+              <p class="kicker">Circle invite</p>
+              <h2 id="qr-title">Join via QR</h2>
+            </div>
+            <button class="icon-button" id="close-qr-button" type="button" aria-label="Close QR scanner">
+              <span aria-hidden="true">×</span>
+            </button>
+          </header>
+          <div class="qr-reader">
+            <video id="qr-video" playsinline muted></video>
+            <div class="qr-frame" aria-hidden="true"></div>
+          </div>
+          <p class="qr-message" id="qr-message">Point your camera at a Flow Circle QR code.</p>
+          <form class="qr-paste-form" id="qr-paste-form">
+            <input id="qr-link-input" type="url" placeholder="Paste invite link" aria-label="Circle invite link" />
+            <button type="submit">Join</button>
+          </form>
+        </div>
+      </div>
       <div class="settings-sheet" id="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
         <div class="settings-panel">
           <img class="settings-logo" src="./assets/flow-logo-gradient.png" alt="Flow" />

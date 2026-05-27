@@ -253,6 +253,9 @@ const state = {
   collapsedDays: new Set(),
   deferredInstallPrompt: null,
   pendingPhone: "",
+  qrStream: null,
+  qrScanTimer: 0,
+  qrDetector: null,
 };
 
 const elements = {
@@ -324,6 +327,12 @@ const elements = {
   circleInviteLink: document.querySelector("#circle-invite-link"),
   copyCircleLinkButton: document.querySelector("#copy-circle-link-button"),
   joinCircleButton: document.querySelector("#join-circle-button"),
+  qrSheet: document.querySelector("#qr-sheet"),
+  qrVideo: document.querySelector("#qr-video"),
+  qrMessage: document.querySelector("#qr-message"),
+  qrPasteForm: document.querySelector("#qr-paste-form"),
+  qrLinkInput: document.querySelector("#qr-link-input"),
+  closeQrButton: document.querySelector("#close-qr-button"),
   historyFilter: document.querySelector("#history-filter"),
   insightWeek: document.querySelector("#insight-week"),
   insightMonth: document.querySelector("#insight-month"),
@@ -753,8 +762,25 @@ elements.copyCircleLinkButton.addEventListener("click", async () => {
 });
 
 elements.joinCircleButton.addEventListener("click", () => {
-  const raw = window.prompt("Paste Circle invite link");
-  joinCircleFromInvite(raw);
+  openQrScanner();
+});
+
+elements.closeQrButton.addEventListener("click", () => {
+  closeQrScanner();
+});
+
+elements.qrSheet.addEventListener("click", (event) => {
+  if (event.target === elements.qrSheet) {
+    closeQrScanner();
+  }
+});
+
+elements.qrPasteForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const joined = joinCircleFromInvite(elements.qrLinkInput.value);
+  if (joined) {
+    closeQrScanner();
+  }
 });
 
 elements.historyFilter.addEventListener("click", (event) => {
@@ -2472,7 +2498,7 @@ function createCircle(rawName) {
 
 function joinCircleFromInvite(raw) {
   if (!raw) {
-    return;
+    return false;
   }
 
   try {
@@ -2481,7 +2507,7 @@ function joinCircleFromInvite(raw) {
     const name = url.searchParams.get("name");
     if (!circleId || !name) {
       showToast("Invite link not recognized");
-      return;
+      return false;
     }
 
     const memberId = state.user?.id || "local";
@@ -2498,8 +2524,10 @@ function joinCircleFromInvite(raw) {
     renderCategories();
     renderAll();
     showToast("Joined Circle");
+    return true;
   } catch {
     showToast("Invite link not recognized");
+    return false;
   }
 }
 
@@ -2524,6 +2552,64 @@ function setExpenseVisibility(visibility) {
   renderCircle();
   renderPreview(parseEntry(elements.quickEntry.value));
   focusCapture();
+}
+
+async function openQrScanner() {
+  elements.qrSheet.hidden = false;
+  elements.qrSheet.classList.add("show");
+  elements.qrMessage.textContent = "Point your camera at a Flow Circle QR code.";
+  elements.qrLinkInput.value = "";
+
+  if (!("BarcodeDetector" in window) || !navigator.mediaDevices?.getUserMedia) {
+    elements.qrMessage.textContent = "Camera scanning is not available here. Paste the invite link instead.";
+    window.setTimeout(() => elements.qrLinkInput.focus(), 60);
+    return;
+  }
+
+  try {
+    state.qrDetector = new BarcodeDetector({ formats: ["qr_code"] });
+    state.qrStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment" },
+      audio: false,
+    });
+    elements.qrVideo.srcObject = state.qrStream;
+    await elements.qrVideo.play();
+    scanQrFrame();
+  } catch {
+    elements.qrMessage.textContent = "Camera permission is needed to scan. You can paste the invite link instead.";
+    window.setTimeout(() => elements.qrLinkInput.focus(), 60);
+  }
+}
+
+async function scanQrFrame() {
+  if (elements.qrSheet.hidden || !state.qrDetector || !elements.qrVideo.srcObject) {
+    return;
+  }
+
+  try {
+    const codes = await state.qrDetector.detect(elements.qrVideo);
+    const value = codes[0]?.rawValue;
+    if (value && joinCircleFromInvite(value)) {
+      closeQrScanner();
+      return;
+    }
+  } catch {
+    elements.qrMessage.textContent = "Still looking for the QR code.";
+  }
+
+  state.qrScanTimer = window.setTimeout(scanQrFrame, 450);
+}
+
+function closeQrScanner() {
+  window.clearTimeout(state.qrScanTimer);
+  state.qrScanTimer = 0;
+  state.qrDetector = null;
+  state.qrStream?.getTracks().forEach((track) => track.stop());
+  state.qrStream = null;
+  elements.qrVideo.pause();
+  elements.qrVideo.srcObject = null;
+  elements.qrSheet.classList.remove("show");
+  elements.qrSheet.hidden = true;
 }
 
 function filteredExpenses() {
