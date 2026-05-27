@@ -760,12 +760,12 @@ elements.circleForm.addEventListener("submit", (event) => {
 });
 
 elements.copyCircleLinkButton.addEventListener("click", async () => {
-  const link = circleInviteLink();
+  const invite = circleInviteCode();
   try {
-    await navigator.clipboard.writeText(link);
-    showToast("Invite copied");
+    await navigator.clipboard.writeText(invite);
+    showToast("Circle ID copied");
   } catch {
-    showToast(link);
+    showToast(invite);
   }
 });
 
@@ -1756,7 +1756,7 @@ function renderCircle() {
   if (hasCircle) {
     const link = circleInviteLink();
     elements.circleInviteCode.textContent = circleInviteCode();
-    elements.circleInviteLink.textContent = link;
+    elements.circleInviteLink.textContent = "Share this Circle ID to join.";
     elements.circleQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}`;
   }
 
@@ -2488,7 +2488,7 @@ function createCircle(rawName) {
 
   const memberId = state.user?.id || "local";
   state.circle = {
-    id: crypto.randomUUID(),
+    id: createCircleId(),
     name,
     createdByUserId: memberId,
     members: [memberId],
@@ -2537,11 +2537,9 @@ function joinCircleFromInvite(raw) {
   }
 
   try {
-    const url = new URL(raw);
-    const circleId = url.searchParams.get("circle");
-    const name = url.searchParams.get("name");
+    const { circleId, name } = parseCircleInvite(raw);
     if (!circleId || !name) {
-      showToast("Invite link not recognized");
+      showToast("Circle ID not recognized");
       return false;
     }
 
@@ -2561,13 +2559,50 @@ function joinCircleFromInvite(raw) {
     showToast("Joined Circle");
     return true;
   } catch {
-    showToast("Invite link not recognized");
+    showToast("Circle ID not recognized");
     return false;
   }
 }
 
+function parseCircleInvite(raw) {
+  const value = raw.trim();
+  if (!value) {
+    return { circleId: "", name: "" };
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    const url = new URL(value);
+    return {
+      circleId: url.searchParams.get("circle") || "",
+      name: url.searchParams.get("name") || "Circle",
+    };
+  }
+
+  const code = value.toUpperCase().replace(/\s+/g, "");
+  const shortId = code.replace(/^FLOW-?/, "");
+  if (!/^[A-F0-9]{8}$/.test(shortId)) {
+    return { circleId: "", name: "" };
+  }
+
+  return {
+    circleId: shortCircleIdToUuid(shortId),
+    name: `Circle ${shortId.slice(0, 4)}`,
+  };
+}
+
 function circleInviteCode() {
   return state.circle ? `FLOW-${state.circle.id.slice(0, 8).toUpperCase()}` : "";
+}
+
+function shortCircleIdToUuid(shortId) {
+  return `${shortId.toLowerCase()}-0000-4000-8000-000000000000`;
+}
+
+function createCircleId() {
+  const bytes = new Uint8Array(4);
+  crypto.getRandomValues(bytes);
+  const shortId = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return shortCircleIdToUuid(shortId.toUpperCase());
 }
 
 function circleInviteLink() {
