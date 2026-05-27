@@ -1743,6 +1743,14 @@ function renderProfile({ syncInput = true } = {}) {
 
 function renderCircle() {
   const hasCircle = Boolean(state.circle);
+  elements.visibilityToggle.hidden = !hasCircle;
+  elements.historyFilter.hidden = !hasCircle;
+
+  if (!hasCircle) {
+    state.expenseVisibility = "personal";
+    state.historyFilter = "all";
+  }
+
   elements.circleNameDisplay.textContent = hasCircle ? state.circle.name : "Shared expenses";
   elements.circleDetail.textContent = hasCircle
     ? `${state.circle.members.length} member${state.circle.members.length === 1 ? "" : "s"} · ${circleExpenses().length} shared`
