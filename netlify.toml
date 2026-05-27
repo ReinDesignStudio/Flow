@@ -1,6 +1,12 @@
 [build]
   publish = "."
 
+[[redirects]]
+  from = "/*"
+  to = "https://get-flow-tracker.vercel.app/:splat"
+  status = 301
+  force = true
+
 [[headers]]
   for = "/"
   [headers.values]
