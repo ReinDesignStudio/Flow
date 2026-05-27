@@ -58,6 +58,11 @@ input {
   text-align: center;
 }
 
+.auth-screen[data-auth-mode="signup"] .auth-copy,
+.auth-screen[data-auth-mode="signin"] .auth-copy {
+  display: none;
+}
+
 .auth-copy h1 {
   max-width: 11ch;
   margin: 0 auto;

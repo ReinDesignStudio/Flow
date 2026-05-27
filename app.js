@@ -258,6 +258,7 @@ const elements = {
   installSteps: document.querySelector("#install-steps"),
   closeInstallGuideButton: document.querySelector("#close-install-guide-button"),
   authScreen: document.querySelector("#auth-screen"),
+  authCopy: document.querySelector("#auth-copy"),
   appShell: document.querySelector("#app-shell"),
   authActions: document.querySelector("#auth-actions"),
   authSignIn: document.querySelector("#auth-sign-in"),
@@ -1231,6 +1232,8 @@ function buildExpense(parsed) {
 function showAuth(mode = "welcome") {
   elements.appShell.hidden = true;
   elements.authScreen.hidden = false;
+  elements.authScreen.dataset.authMode = mode;
+  elements.authCopy.hidden = mode !== "welcome";
   elements.authActions.hidden = mode !== "welcome";
   elements.signupForm.hidden = mode !== "signup";
   elements.signinForm.hidden = mode !== "signin";

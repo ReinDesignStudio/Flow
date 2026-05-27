@@ -38,10 +38,10 @@
       </div>
     </div>
 
-    <section class="auth-screen" id="auth-screen" aria-labelledby="auth-title">
+    <section class="auth-screen" id="auth-screen" aria-label="Flow">
       <div class="auth-content">
         <img class="auth-logo" src="./assets/flow-logo-gradient.png" alt="Flow" />
-        <div class="auth-copy">
+        <div class="auth-copy" id="auth-copy">
           <h1 id="auth-title">Track money before you forget.</h1>
           <p>Track expenses in 5 seconds.</p>
         </div>
@@ -55,12 +55,12 @@
             <p class="kicker">Create account</p>
             <h2>Start Flow</h2>
           </header>
-          <input id="signup-name" type="text" placeholder="Name" aria-label="Name" autocomplete="name" />
           <button class="auth-provider" id="signup-google" type="button">
             <span aria-hidden="true">G</span>
             Continue with Google
           </button>
           <div class="auth-divider"><span>or email</span></div>
+          <input id="signup-name" type="text" placeholder="Name" aria-label="Name" autocomplete="name" />
           <input id="signup-email" type="email" placeholder="Email" aria-label="Email" autocomplete="email" />
           <input id="signup-password" type="password" placeholder="Password" aria-label="Password" autocomplete="new-password" />
           <button class="auth-primary" type="submit">Create account</button>
