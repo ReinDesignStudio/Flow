@@ -2,12 +2,14 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
+const circleStorageKey = "flow-circle-v1";
 const profileStorageKey = "flow-profile-v1";
 const installNoteStorageKey = "flow-install-note-dismissed-v1";
 const defaultProfileName = "Rein";
 const weeklyInsightMax = 15000;
 const monthlyInsightBaseMax = 15000;
 const defaultCategories = ["Food", "Gas", "Coffee", "Shopping", "Bills", "Transport"];
+const defaultCircleCategories = ["Groceries", "Bills", "Rent", "Gas", "Food", "Kids", "Savings", "Emergency", "Others"];
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 let supabase = null;
 let initialSession = null;
@@ -217,6 +219,7 @@ const iconKeywords = {
   "water bill": iconPaths.water,
 };
 const categoryData = loadCategoryData();
+const circleData = loadCircleData();
 const profileData = loadProfile();
 let authListenersAttached = false;
 
@@ -224,6 +227,9 @@ const state = {
   expenses: loadExpenses(),
   categories: categoryData.categories,
   categoryIcons: categoryData.icons,
+  circle: circleData,
+  expenseVisibility: "personal",
+  historyFilter: "all",
   profileName: profileData.name,
   auth: { email: initialSession?.user?.email || "" },
   authenticated: Boolean(initialSession),
@@ -292,6 +298,7 @@ const elements = {
   noteEntry: document.querySelector("#note-entry"),
   expenseForm: document.querySelector("#expense-form"),
   parsePreview: document.querySelector("#parse-preview"),
+  visibilityToggle: document.querySelector("#visibility-toggle"),
   categoryGrid: document.querySelector("#category-grid"),
   categoryPagination: document.querySelector("#category-pagination"),
   categoryEditBar: document.querySelector("#category-edit-bar"),
@@ -306,6 +313,18 @@ const elements = {
   saveButton: document.querySelector("#save-button"),
   cancelEditButton: document.querySelector("#cancel-edit-button"),
   historyList: document.querySelector("#history-list"),
+  circlePanel: document.querySelector("#circle-panel"),
+  createCircleButton: document.querySelector("#create-circle-button"),
+  circleForm: document.querySelector("#circle-form"),
+  circleNameInput: document.querySelector("#circle-name-input"),
+  circleNameDisplay: document.querySelector("#circle-name-display"),
+  circleDetail: document.querySelector("#circle-detail"),
+  circleInvite: document.querySelector("#circle-invite"),
+  circleQr: document.querySelector("#circle-qr"),
+  circleInviteLink: document.querySelector("#circle-invite-link"),
+  copyCircleLinkButton: document.querySelector("#copy-circle-link-button"),
+  joinCircleButton: document.querySelector("#join-circle-button"),
+  historyFilter: document.querySelector("#history-filter"),
   insightWeek: document.querySelector("#insight-week"),
   insightMonth: document.querySelector("#insight-month"),
   insightAverage: document.querySelector("#insight-average"),
@@ -692,6 +711,62 @@ elements.expenseForm.addEventListener("submit", (event) => {
   notifySaved(wasEditing ? "Updated" : "Saved", expense);
 });
 
+elements.visibilityToggle.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-visibility]");
+  if (!button) {
+    return;
+  }
+
+  if (button.dataset.visibility === "circle" && !state.circle) {
+    showToast("Create a Circle first");
+    showTab("history", { focusCaptureInput: false });
+    return;
+  }
+
+  setExpenseVisibility(button.dataset.visibility);
+});
+
+elements.createCircleButton.addEventListener("click", () => {
+  if (state.circle) {
+    elements.circleInvite.hidden = false;
+    showToast("Invite link ready");
+    return;
+  }
+
+  elements.circleForm.hidden = false;
+  window.setTimeout(() => elements.circleNameInput.focus(), 60);
+});
+
+elements.circleForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  createCircle(elements.circleNameInput.value);
+});
+
+elements.copyCircleLinkButton.addEventListener("click", async () => {
+  const link = circleInviteLink();
+  try {
+    await navigator.clipboard.writeText(link);
+    showToast("Invite copied");
+  } catch {
+    showToast(link);
+  }
+});
+
+elements.joinCircleButton.addEventListener("click", () => {
+  const raw = window.prompt("Paste Circle invite link");
+  joinCircleFromInvite(raw);
+});
+
+elements.historyFilter.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-history-filter]");
+  if (!button) {
+    return;
+  }
+
+  state.historyFilter = button.dataset.historyFilter;
+  renderHistory();
+});
+
 document.addEventListener("click", (event) => {
   if (!event.target.closest(".expense-menu")) {
     closeMenu();
@@ -855,9 +930,10 @@ elements.historyList.addEventListener("click", (event) => {
 });
 
 function renderCategories() {
+  const categories = activeCategories();
   elements.categoryGrid.classList.toggle("category-grid-editing", state.categoryEditMode);
   elements.categoryGrid.innerHTML = [
-    ...state.categories.map(
+    ...categories.map(
       (category) => `
         <div class="category-wrap ${state.categoryEditTarget === category ? "editing" : ""}" draggable="${state.categoryEditMode}" data-category="${escapeHtml(category)}">
           <button class="category-pill" type="button" data-category="${escapeHtml(category)}">
@@ -947,8 +1023,8 @@ function renderCategories() {
     showCategoryComposer();
   });
 
-  if (!state.categories.includes(state.selectedCategory)) {
-    state.selectedCategory = state.categories[0] || "Other";
+  if (!categories.includes(state.selectedCategory)) {
+    state.selectedCategory = categories[0] || "Other";
   }
 
   selectCategory(state.selectedCategory);
@@ -958,7 +1034,7 @@ function renderCategories() {
 
 function categoryIcon(category) {
   const key = category.toLowerCase();
-  const customIcon = state.categoryIcons[category];
+  const customIcon = activeCategoryIcons()[category];
   const paths =
     iconPaths[customIcon] ||
     iconPaths[key] ||
@@ -992,12 +1068,14 @@ function addCustomCategory(rawCategory) {
     return;
   }
 
-  const exists = state.categories.some((item) => item.toLowerCase() === category.toLowerCase());
+  const categories = activeCategories();
+  const icons = activeCategoryIcons();
+  const exists = categories.some((item) => item.toLowerCase() === category.toLowerCase());
   if (!exists) {
-    state.categories.push(category);
+    categories.push(category);
   }
-  state.categoryIcons[category] = state.iconManuallyPicked ? state.newCategoryIcon : inferCategoryIcon(category);
-  saveCategories();
+  icons[category] = state.iconManuallyPicked ? state.newCategoryIcon : inferCategoryIcon(category);
+  saveActiveCategories();
 
   hideCategoryComposer();
   renderCategories();
@@ -1037,7 +1115,7 @@ function renderIconPicker() {
 }
 
 function categoryPageCount() {
-  return Math.max(1, Math.ceil((state.categories.length + 1) / 6));
+  return Math.max(1, Math.ceil((activeCategories().length + 1) / 6));
 }
 
 function renderCategoryPagination() {
@@ -1107,15 +1185,17 @@ function renameCategory() {
     return;
   }
 
-  const exists = state.categories.some((category) => category.toLowerCase() === next.toLowerCase());
+  const categories = activeCategories();
+  const icons = activeCategoryIcons();
+  const exists = categories.some((category) => category.toLowerCase() === next.toLowerCase());
   if (exists) {
     showToast("Label already exists");
     return;
   }
 
-  state.categories = state.categories.map((category) => (category === current ? next : category));
-  state.categoryIcons[next] = state.categoryIcons[current] || inferCategoryIcon(next);
-  delete state.categoryIcons[current];
+  replaceActiveCategories(categories.map((category) => (category === current ? next : category)));
+  icons[next] = icons[current] || inferCategoryIcon(next);
+  delete icons[current];
   state.expenses.forEach((expense) => {
     if (expense.category === current) {
       expense.category = next;
@@ -1123,7 +1203,7 @@ function renameCategory() {
   });
   state.selectedCategory = state.selectedCategory === current ? next : state.selectedCategory;
   state.categoryEditTarget = next;
-  saveCategories();
+  saveActiveCategories();
   saveExpenses();
   renderCategories();
   renderAll();
@@ -1131,7 +1211,9 @@ function renameCategory() {
 
 function deleteCategory() {
   const current = state.categoryEditTarget;
-  if (!current || state.categories.length <= 1) {
+  const categories = activeCategories();
+  const icons = activeCategoryIcons();
+  if (!current || categories.length <= 1) {
     return;
   }
 
@@ -1139,39 +1221,41 @@ function deleteCategory() {
     return;
   }
 
-  state.categories = state.categories.filter((category) => category !== current);
-  delete state.categoryIcons[current];
-  state.selectedCategory = state.categories[0] || "Other";
+  replaceActiveCategories(categories.filter((category) => category !== current));
+  delete icons[current];
+  state.selectedCategory = activeCategories()[0] || "Other";
   state.categoryEditTarget = state.selectedCategory;
-  saveCategories();
+  saveActiveCategories();
   renderCategories();
 }
 
 function moveCategory(category, direction) {
-  const index = state.categories.indexOf(category);
+  const categories = activeCategories();
+  const index = categories.indexOf(category);
   const nextIndex = index + direction;
 
-  if (index < 0 || nextIndex < 0 || nextIndex >= state.categories.length) {
+  if (index < 0 || nextIndex < 0 || nextIndex >= categories.length) {
     return;
   }
 
-  const [item] = state.categories.splice(index, 1);
-  state.categories.splice(nextIndex, 0, item);
+  const [item] = categories.splice(index, 1);
+  categories.splice(nextIndex, 0, item);
   state.categoryEditTarget = item;
-  saveCategories();
+  saveActiveCategories();
   renderCategories();
 }
 
 function moveCategoryBefore(source, target) {
-  const sourceIndex = state.categories.indexOf(source);
-  const targetIndex = state.categories.indexOf(target);
+  const categories = activeCategories();
+  const sourceIndex = categories.indexOf(source);
+  const targetIndex = categories.indexOf(target);
   if (sourceIndex < 0 || targetIndex < 0) {
     return;
   }
 
-  const [item] = state.categories.splice(sourceIndex, 1);
-  state.categories.splice(state.categories.indexOf(target), 0, item);
-  saveCategories();
+  const [item] = categories.splice(sourceIndex, 1);
+  categories.splice(categories.indexOf(target), 0, item);
+  saveActiveCategories();
   renderCategories();
 }
 
@@ -1197,10 +1281,11 @@ function parseEntry(raw) {
     .split(/\s+/)
     .filter(Boolean);
   const typedLabel = words.join(" ");
+  const categories = activeCategories();
   const category =
     words.map((word) => keywordMap[word]).find(Boolean) ||
-    state.categories.find((item) => item.toLowerCase() === typedLabel) ||
-    state.categories.find((item) => words.includes(item.toLowerCase())) ||
+    categories.find((item) => item.toLowerCase() === typedLabel) ||
+    categories.find((item) => words.includes(item.toLowerCase())) ||
     "";
   const label = words.length ? titleCase(words.join(" ")) : "";
 
@@ -1221,9 +1306,15 @@ function renderPreview(parsed) {
 }
 
 function buildExpense(parsed) {
+  const visibility = state.expenseVisibility === "circle" && state.circle ? "circle" : "personal";
+  const category = parsed.category || state.selectedCategory;
   return {
     amount: parsed.amount,
-    category: parsed.category || state.selectedCategory,
+    category,
+    categoryId: slugify(category),
+    expenseVisibility: visibility,
+    circleId: visibility === "circle" ? state.circle.id : null,
+    createdByUserId: state.user?.id || "local",
     label: parsed.label || parsed.category || state.selectedCategory,
     note: elements.noteEntry.value.trim(),
   };
@@ -1600,6 +1691,7 @@ async function signOut() {
 
 function renderAll() {
   setGreeting();
+  renderCircle();
   renderStreak();
   renderHistory();
   renderInsights();
@@ -1616,14 +1708,44 @@ function renderProfile({ syncInput = true } = {}) {
   elements.accountEmail.textContent = state.auth.email || "Local account";
 }
 
+function renderCircle() {
+  const hasCircle = Boolean(state.circle);
+  elements.circleNameDisplay.textContent = hasCircle ? state.circle.name : "Shared expenses";
+  elements.circleDetail.textContent = hasCircle
+    ? `${state.circle.members.length} member${state.circle.members.length === 1 ? "" : "s"} · ${circleExpenses().length} shared`
+    : "Create a Circle for family, couples, or roommates.";
+  elements.createCircleButton.textContent = hasCircle ? "Invite" : "Create Circle";
+  elements.circleForm.hidden = true;
+  elements.circleInvite.hidden = !hasCircle;
+  elements.joinCircleButton.hidden = hasCircle;
+
+  if (hasCircle) {
+    const link = circleInviteLink();
+    elements.circleInviteLink.textContent = link;
+    elements.circleQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}`;
+  }
+
+  elements.visibilityToggle.querySelectorAll("button").forEach((button) => {
+    const active = button.dataset.visibility === state.expenseVisibility;
+    button.classList.toggle("active", active);
+    button.disabled = button.dataset.visibility === "circle" && !hasCircle;
+  });
+
+  elements.historyFilter.querySelectorAll("button").forEach((button) => {
+    button.classList.toggle("active", button.dataset.historyFilter === state.historyFilter);
+    button.disabled = button.dataset.historyFilter === "circle" && !hasCircle;
+  });
+}
+
 function renderHistory() {
-  if (!state.expenses.length) {
+  const expenses = filteredExpenses();
+  if (!expenses.length) {
     elements.historyList.innerHTML =
-      '<div class="empty-state">No expenses yet.<br />Your first log takes five seconds.</div>';
+      `<div class="empty-state">${state.historyFilter === "circle" ? "No Circle expenses yet." : "No expenses yet."}<br />Your first log takes five seconds.</div>`;
     return;
   }
 
-  const groups = groupByDay(state.expenses);
+  const groups = groupByDay(expenses);
   elements.historyList.innerHTML = Object.values(groups)
     .map((group) => {
       const collapsed = state.collapsedDays.has(group.key);
@@ -1634,6 +1756,7 @@ function renderHistory() {
               <div class="expense-main">
                 <div>
                   <strong>${categoryIcon(expense.category)}${escapeHtml(expense.label)}</strong>
+                  ${expense.expenseVisibility === "circle" ? `<small>${escapeHtml(state.circle?.name || "Circle")}</small>` : ""}
                   ${expense.note ? `<span>${escapeHtml(expense.note)}</span>` : ""}
                 </div>
                 <em>${formatMoney(expense.amount)}</em>
@@ -1669,8 +1792,9 @@ function renderHistory() {
 function renderInsights() {
   const weekStart = startOfWeek(new Date());
   const monthStart = startOfMonth(new Date());
-  const weekExpenses = state.expenses.filter((expense) => new Date(expense.createdAt) >= weekStart);
-  const monthExpenses = state.expenses.filter((expense) => new Date(expense.createdAt) >= monthStart);
+  const insightExpenses = filteredExpenses();
+  const weekExpenses = insightExpenses.filter((expense) => new Date(expense.createdAt) >= weekStart);
+  const monthExpenses = insightExpenses.filter((expense) => new Date(expense.createdAt) >= monthStart);
   const weekTotal = weekExpenses.reduce((total, expense) => total + expense.amount, 0);
   const monthTotal = monthExpenses.reduce((total, expense) => total + expense.amount, 0);
   const activeDays = new Set(weekExpenses.map((expense) => dateKey(new Date(expense.createdAt)))).size || 1;
@@ -2238,6 +2362,38 @@ function loadProfile() {
   }
 }
 
+function loadCircleData() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(circleStorageKey));
+    if (!saved?.id || !saved?.name) {
+      return null;
+    }
+
+    return {
+      id: saved.id,
+      name: saved.name,
+      createdByUserId: saved.createdByUserId || "local",
+      members: Array.isArray(saved.members) && saved.members.length ? saved.members : [saved.createdByUserId || "local"],
+      categories: cleanCategoryOrder(saved.categories).length ? cleanCategoryOrder(saved.categories) : defaultCircleCategories,
+      icons: saved.icons || {},
+      updatedAt: saved.updatedAt || "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveCircle() {
+  if (!state.circle) {
+    localStorage.removeItem(circleStorageKey);
+    return;
+  }
+
+  state.circle.updatedAt = new Date().toISOString();
+  localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
+  syncCircle().catch(() => {});
+}
+
 function saveExpenses() {
   localStorage.setItem(storageKey, JSON.stringify(state.expenses));
   syncExpenses().catch(() => {});
@@ -2259,6 +2415,144 @@ function saveCategories() {
 function saveProfile() {
   localStorage.setItem(profileStorageKey, JSON.stringify({ name: state.profileName }));
   ensureRemoteProfile().catch(() => {});
+}
+
+function activeCategories() {
+  return state.expenseVisibility === "circle" && state.circle ? state.circle.categories : state.categories;
+}
+
+function activeCategoryIcons() {
+  return state.expenseVisibility === "circle" && state.circle ? state.circle.icons : state.categoryIcons;
+}
+
+function replaceActiveCategories(categories) {
+  if (state.expenseVisibility === "circle" && state.circle) {
+    state.circle.categories = categories;
+    return;
+  }
+
+  state.categories = categories;
+}
+
+function saveActiveCategories() {
+  if (state.expenseVisibility === "circle" && state.circle) {
+    saveCircle();
+    return;
+  }
+
+  saveCategories();
+}
+
+function createCircle(rawName) {
+  const name = titleCase(rawName.trim());
+  if (!name) {
+    elements.circleNameInput.focus();
+    pulse(elements.circleNameInput);
+    return;
+  }
+
+  const memberId = state.user?.id || "local";
+  state.circle = {
+    id: crypto.randomUUID(),
+    name,
+    createdByUserId: memberId,
+    members: [memberId],
+    categories: [...defaultCircleCategories],
+    icons: {},
+    updatedAt: new Date().toISOString(),
+  };
+  state.expenseVisibility = "circle";
+  state.selectedCategory = state.circle.categories[0];
+  saveCircle();
+  elements.circleNameInput.value = "";
+  renderCategories();
+  renderAll();
+  showToast("Circle created");
+}
+
+function joinCircleFromInvite(raw) {
+  if (!raw) {
+    return;
+  }
+
+  try {
+    const url = new URL(raw);
+    const circleId = url.searchParams.get("circle");
+    const name = url.searchParams.get("name");
+    if (!circleId || !name) {
+      showToast("Invite link not recognized");
+      return;
+    }
+
+    const memberId = state.user?.id || "local";
+    state.circle = {
+      id: circleId,
+      name: titleCase(name),
+      createdByUserId: "invite",
+      members: [memberId],
+      categories: [...defaultCircleCategories],
+      icons: {},
+      updatedAt: new Date().toISOString(),
+    };
+    saveCircle();
+    renderCategories();
+    renderAll();
+    showToast("Joined Circle");
+  } catch {
+    showToast("Invite link not recognized");
+  }
+}
+
+function circleInviteLink() {
+  if (!state.circle) {
+    return "";
+  }
+
+  const url = new URL(window.location.href);
+  url.hash = "";
+  url.searchParams.set("circle", state.circle.id);
+  url.searchParams.set("name", state.circle.name);
+  return url.toString();
+}
+
+function setExpenseVisibility(visibility) {
+  state.expenseVisibility = visibility;
+  state.categoryEditMode = false;
+  state.categoryEditTarget = "";
+  state.selectedCategory = activeCategories()[0] || "Other";
+  renderCategories();
+  renderCircle();
+  renderPreview(parseEntry(elements.quickEntry.value));
+  focusCapture();
+}
+
+function filteredExpenses() {
+  if (state.historyFilter === "personal") {
+    return state.expenses.filter((expense) => (expense.expenseVisibility || "personal") === "personal");
+  }
+
+  if (state.historyFilter === "circle") {
+    return circleExpenses();
+  }
+
+  return state.expenses;
+}
+
+function circleExpenses() {
+  return state.expenses.filter((expense) => expense.expenseVisibility === "circle" && expense.circleId === state.circle?.id);
+}
+
+function mergeRemoteExpenses(rows) {
+  if (!rows.length) {
+    return;
+  }
+
+  const byId = new Map(state.expenses.map((expense) => [expense.id, expense]));
+  rows.map(fromExpenseRow).forEach((expense) => {
+    byId.set(expense.id, { ...byId.get(expense.id), ...expense });
+  });
+  state.expenses = Array.from(byId.values()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  localStorage.setItem(storageKey, JSON.stringify(state.expenses));
 }
 
 async function createSupabaseClient() {
@@ -2289,7 +2583,11 @@ async function loadRemoteData() {
 
   const [{ data: categories }, { data: expenses }] = await Promise.all([
     supabase.from("category_settings").select("categories, icons, updated_at").eq("user_id", state.user.id).maybeSingle(),
-    supabase.from("expenses").select("id, amount, category, label, note, created_at").eq("user_id", state.user.id).order("created_at", { ascending: false }),
+    supabase
+      .from("expenses")
+      .select("*")
+      .eq("user_id", state.user.id)
+      .order("created_at", { ascending: false }),
   ]);
 
   if (categories) {
@@ -2320,12 +2618,28 @@ async function loadRemoteData() {
     localStorage.setItem(storageKey, JSON.stringify(state.expenses));
   }
 
+  const invite = new URLSearchParams(window.location.search);
+  if (!state.circle && invite.get("circle") && invite.get("name")) {
+    joinCircleFromInvite(window.location.href);
+    window.history.replaceState({}, "", window.location.pathname);
+  }
+
+  if (state.circle) {
+    const { data: circleExpensesData } = await supabase
+      .from("expenses")
+      .select("*")
+      .eq("circle_id", state.circle.id)
+      .eq("expense_visibility", "circle")
+      .order("created_at", { ascending: false });
+    mergeRemoteExpenses(circleExpensesData || []);
+  }
+
   renderCategories();
   renderAll();
 }
 
 async function syncAllRemote() {
-  await Promise.all([ensureRemoteProfile(), syncCategories(), syncExpenses()]);
+  await Promise.all([ensureRemoteProfile(), syncCategories(), syncCircle(), syncExpenses()]);
 }
 
 async function ensureRemoteProfile() {
@@ -2362,6 +2676,34 @@ async function syncExpenses() {
   await supabase.from("expenses").upsert(state.expenses.map(toExpenseRow));
 }
 
+async function syncCircle() {
+  if (!supabase || !state.user || !state.circle) {
+    return;
+  }
+
+  const memberIds = state.circle.members.filter(isUuid);
+  if (!memberIds.includes(state.user.id)) {
+    memberIds.push(state.user.id);
+  }
+
+  await supabase.from("circles").upsert({
+    id: state.circle.id,
+    name: state.circle.name,
+    created_by_user_id: isUuid(state.circle.createdByUserId) ? state.circle.createdByUserId : state.user.id,
+    members: memberIds,
+    categories: state.circle.categories,
+    icons: state.circle.icons,
+    updated_at: new Date().toISOString(),
+  });
+
+  await supabase.from("circle_members").upsert({
+    circle_id: state.circle.id,
+    user_id: state.user.id,
+    role: state.circle.createdByUserId === state.user.id ? "owner" : "member",
+    joined_at: new Date().toISOString(),
+  });
+}
+
 async function deleteRemoteExpense(id) {
   if (!supabase || !state.user) {
     return;
@@ -2384,6 +2726,10 @@ function toExpenseRow(expense) {
     user_id: state.user.id,
     amount: expense.amount,
     category: expense.category,
+    category_id: expense.categoryId || slugify(expense.category),
+    circle_id: expense.circleId || null,
+    created_by_user_id: isUuid(expense.createdByUserId) ? expense.createdByUserId : state.user.id,
+    expense_visibility: expense.expenseVisibility || "personal",
     label: expense.label,
     note: expense.note || "",
     created_at: expense.createdAt,
@@ -2396,6 +2742,10 @@ function fromExpenseRow(row) {
     id: row.id,
     amount: Number(row.amount),
     category: row.category,
+    categoryId: row.category_id || slugify(row.category),
+    circleId: row.circle_id || null,
+    createdByUserId: row.created_by_user_id || row.user_id || "",
+    expenseVisibility: row.expense_visibility || "personal",
     label: row.label,
     note: row.note || "",
     createdAt: row.created_at,
@@ -2539,6 +2889,18 @@ function totalByCategory(expenses) {
     totals[expense.category] = (totals[expense.category] || 0) + expense.amount;
     return totals;
   }, {});
+}
+
+function slugify(value) {
+  return String(value || "other")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "other";
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value));
 }
 
 function dayLabel(date) {

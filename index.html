@@ -119,6 +119,11 @@
             Try 120 coffee
           </div>
 
+          <div class="visibility-toggle" id="visibility-toggle" aria-label="Expense visibility">
+            <button class="active" type="button" data-visibility="personal">Personal</button>
+            <button type="button" data-visibility="circle">Circle</button>
+          </div>
+
           <div class="category-grid" id="category-grid" aria-label="Categories"></div>
           <div class="category-pagination" id="category-pagination" aria-label="Label pages"></div>
           <p class="category-hint">Swipe labels • Hold to rearrange</p>
@@ -174,6 +179,33 @@
             </button>
           </div>
         </header>
+        <section class="circle-panel" id="circle-panel" aria-label="Circle">
+          <div class="circle-summary">
+            <div>
+              <p class="kicker">Circle</p>
+              <strong id="circle-name-display">Shared expenses</strong>
+              <span id="circle-detail">Create a Circle for family, couples, or roommates.</span>
+            </div>
+            <button class="circle-action" id="create-circle-button" type="button">Create Circle</button>
+          </div>
+          <form class="circle-form" id="circle-form" hidden>
+            <input id="circle-name-input" type="text" placeholder="Falcon Family" aria-label="Circle name" />
+            <button type="submit">Create</button>
+          </form>
+          <div class="circle-invite" id="circle-invite" hidden>
+            <img id="circle-qr" alt="Circle invite QR code" />
+            <div>
+              <span id="circle-invite-link"></span>
+              <button id="copy-circle-link-button" type="button">Copy invite</button>
+            </div>
+          </div>
+          <button class="circle-link-button" id="join-circle-button" type="button">Join via QR</button>
+        </section>
+        <div class="history-filter" id="history-filter" aria-label="History filter">
+          <button class="active" type="button" data-history-filter="all">All</button>
+          <button type="button" data-history-filter="personal">Personal</button>
+          <button type="button" data-history-filter="circle">Circle</button>
+        </div>
         <div class="history-list" id="history-list"></div>
       </section>
 
