@@ -260,6 +260,7 @@ const state = {
   editingId: "",
   openMenuId: "",
   collapsedDays: new Set(),
+  expandedDays: new Set(),
   deferredInstallPrompt: null,
   pendingPhone: "",
   qrStream: null,
@@ -1822,9 +1823,10 @@ function renderHistory() {
   }
 
   const groups = groupByDay(expenses);
+  const todayKey = dateKey(new Date());
   elements.historyList.innerHTML = Object.values(groups)
     .map((group) => {
-      const collapsed = state.collapsedDays.has(group.key);
+      const collapsed = state.collapsedDays.has(group.key) || (group.key !== todayKey && !state.expandedDays.has(group.key));
       const rows = group.expenses
         .map(
           (expense) => `
@@ -2209,10 +2211,15 @@ function toggleMenu(id) {
 }
 
 function toggleDay(day) {
-  if (state.collapsedDays.has(day)) {
+  const todayKey = dateKey(new Date());
+  const collapsed = state.collapsedDays.has(day) || (day !== todayKey && !state.expandedDays.has(day));
+
+  if (collapsed) {
     state.collapsedDays.delete(day);
+    state.expandedDays.add(day);
   } else {
     state.collapsedDays.add(day);
+    state.expandedDays.delete(day);
   }
 
   closeMenu();
