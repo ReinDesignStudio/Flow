@@ -461,15 +461,23 @@ h2 {
   gap: 20px;
 }
 
+.amount-entry-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
 .quick-input {
   display: block;
+  min-width: 0;
 }
 
 .quick-input input {
   width: 100%;
   height: 96px;
   border: 0;
-  border-bottom: 1px solid var(--line);
   border-radius: 0;
   outline: 0;
   background: transparent;
@@ -495,40 +503,47 @@ h2 {
   color: var(--accent);
 }
 
-.payment-methods {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: -8px;
+.payment-select-label {
+  position: relative;
+  display: block;
+  margin-bottom: 17px;
 }
 
-.payment-methods button {
-  display: grid;
-  place-items: center;
-  gap: 5px;
-  min-height: 68px;
-  border: 1px solid transparent;
-  border-radius: 14px;
+.payment-select-label::after {
+  content: "";
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  color: var(--bg);
+  pointer-events: none;
+  transform: translateY(-65%) rotate(45deg);
+}
+
+.payment-select-label select {
+  min-width: 108px;
+  height: 42px;
+  border: 0;
+  border-radius: 999px;
   background: #262525;
   color: var(--text);
-  font-size: 0.72rem;
-  font-weight: 850;
+  appearance: none;
+  outline: 0;
+  padding: 0 34px 0 14px;
+  font-size: 0.82rem;
+  font-weight: 900;
 }
 
-.payment-methods button.active {
-  border-color: rgba(122, 231, 0, 0.5);
+.payment-select-label select:focus {
+  box-shadow: 0 0 0 2px rgba(122, 231, 0, 0.28);
+}
+
+.payment-select-label select:valid {
   background: var(--accent);
   color: var(--bg);
-}
-
-.payment-methods svg {
-  width: 22px;
-  height: 22px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .visibility-toggle,

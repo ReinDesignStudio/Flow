@@ -310,7 +310,7 @@ const elements = {
   noteEntry: document.querySelector("#note-entry"),
   expenseForm: document.querySelector("#expense-form"),
   parsePreview: document.querySelector("#parse-preview"),
-  paymentMethods: document.querySelector("#payment-methods"),
+  paymentMethodSelect: document.querySelector("#payment-method-select"),
   visibilityToggle: document.querySelector("#visibility-toggle"),
   categoryGrid: document.querySelector("#category-grid"),
   categoryPagination: document.querySelector("#category-pagination"),
@@ -472,13 +472,8 @@ elements.quickEntry.addEventListener("input", () => {
   renderPreview(parsed);
 });
 
-elements.paymentMethods.addEventListener("click", (event) => {
-  const button = event.target.closest("button[data-payment-method]");
-  if (!button) {
-    return;
-  }
-
-  selectPaymentMethod(button.dataset.paymentMethod);
+elements.paymentMethodSelect.addEventListener("change", () => {
+  selectPaymentMethod(elements.paymentMethodSelect.value);
 });
 
 elements.categoryGrid.addEventListener("scroll", () => {
@@ -1332,9 +1327,7 @@ function selectPaymentMethod(method) {
 }
 
 function renderPaymentMethods() {
-  elements.paymentMethods.querySelectorAll("button[data-payment-method]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.paymentMethod === state.selectedPaymentMethod);
-  });
+  elements.paymentMethodSelect.value = state.selectedPaymentMethod;
 }
 
 function paymentMethodLabel(method) {
