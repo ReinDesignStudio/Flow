@@ -224,12 +224,20 @@ const circleData = loadCircleData();
 const profileData = loadProfile();
 let authListenersAttached = false;
 
+const paymentMethods = {
+  cash: "Cash",
+  "credit-card": "Credit Card",
+  debit: "Debit",
+  "e-wallet": "E-Wallet",
+};
+
 const state = {
   expenses: loadExpenses(),
   categories: categoryData.categories,
   categoryIcons: categoryData.icons,
   circle: circleData,
   expenseVisibility: "personal",
+  selectedPaymentMethod: "cash",
   historyFilter: "all",
   profileName: profileData.name,
   auth: { email: initialSession?.user?.email || "" },
@@ -302,6 +310,7 @@ const elements = {
   noteEntry: document.querySelector("#note-entry"),
   expenseForm: document.querySelector("#expense-form"),
   parsePreview: document.querySelector("#parse-preview"),
+  paymentMethods: document.querySelector("#payment-methods"),
   visibilityToggle: document.querySelector("#visibility-toggle"),
   categoryGrid: document.querySelector("#category-grid"),
   categoryPagination: document.querySelector("#category-pagination"),
@@ -461,6 +470,15 @@ elements.quickEntry.addEventListener("input", () => {
     selectCategory(parsed.category);
   }
   renderPreview(parsed);
+});
+
+elements.paymentMethods.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-payment-method]");
+  if (!button) {
+    return;
+  }
+
+  selectPaymentMethod(button.dataset.paymentMethod);
 });
 
 elements.categoryGrid.addEventListener("scroll", () => {
@@ -1304,6 +1322,25 @@ function selectCategory(category) {
   });
 }
 
+function selectPaymentMethod(method) {
+  if (!paymentMethods[method]) {
+    return;
+  }
+
+  state.selectedPaymentMethod = method;
+  renderPaymentMethods();
+}
+
+function renderPaymentMethods() {
+  elements.paymentMethods.querySelectorAll("button[data-payment-method]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.paymentMethod === state.selectedPaymentMethod);
+  });
+}
+
+function paymentMethodLabel(method) {
+  return paymentMethods[method] || paymentMethods.cash;
+}
+
 function parseEntry(raw) {
   const text = raw.trim();
   const amountMatch = text.match(/(?:₱|php)?\s*(\d+(?:[,.]\d{1,2})?)/i);
@@ -1351,6 +1388,7 @@ function buildExpense(parsed) {
     createdByUserId: state.user?.id || "local",
     label: parsed.label || parsed.category || state.selectedCategory,
     note: elements.noteEntry.value.trim(),
+    paymentMethod: state.selectedPaymentMethod,
   };
 }
 
@@ -1774,6 +1812,8 @@ function renderCircle() {
     button.disabled = button.dataset.visibility === "circle" && !hasCircle;
   });
 
+  renderPaymentMethods();
+
   elements.historyFilter.querySelectorAll("button").forEach((button) => {
     button.classList.toggle("active", button.dataset.historyFilter === state.historyFilter);
     button.disabled = button.dataset.historyFilter === "circle" && !hasCircle;
@@ -1800,6 +1840,7 @@ function renderHistory() {
                 <div>
                   <strong>${categoryIcon(expense.category)}${escapeHtml(expense.label)}</strong>
                   ${expense.expenseVisibility === "circle" ? `<small>${escapeHtml(state.circle?.name || "Circle")}</small>` : ""}
+                  <small>${escapeHtml(paymentMethodLabel(expense.paymentMethod))}</small>
                   ${expense.note ? `<span>${escapeHtml(expense.note)}</span>` : ""}
                 </div>
                 <em>${formatMoney(expense.amount)}</em>
@@ -2017,7 +2058,7 @@ function renderCategoryExpenseList(expenses) {
             <article class="category-detail-row">
               <div>
                 <strong>${categoryIcon(expense.category)}${escapeHtml(expense.label)}</strong>
-                <span>${expense.note ? escapeHtml(expense.note) : detailDateLabel(date)}</span>
+                <span>${expense.note ? escapeHtml(expense.note) : detailDateLabel(date)} · ${escapeHtml(paymentMethodLabel(expense.paymentMethod))}</span>
               </div>
               <em>${formatMoney(expense.amount)}</em>
             </article>
@@ -2126,6 +2167,7 @@ function startEdit(expense) {
   state.editingId = expense.id;
   elements.quickEntry.value = `${formatPlainAmount(expense.amount)} ${expense.label}`;
   elements.noteEntry.value = expense.note || "";
+  selectPaymentMethod(expense.paymentMethod || "cash");
   selectCategory(expense.category);
   renderPreview(parseEntry(elements.quickEntry.value));
   setSaveButtonLabel("Update Flow");
@@ -2152,6 +2194,7 @@ function resetCapture() {
   state.editingId = "";
   elements.quickEntry.value = "";
   elements.noteEntry.value = "";
+  selectPaymentMethod("cash");
   setSaveButtonLabel("Save to Flow");
   elements.cancelEditButton.hidden = true;
   renderPreview(parseEntry(""));
@@ -2372,7 +2415,10 @@ function pulse(element) {
 
 function loadExpenses() {
   try {
-    return JSON.parse(localStorage.getItem(storageKey)) || [];
+    return (JSON.parse(localStorage.getItem(storageKey)) || []).map((expense) => ({
+      ...expense,
+      paymentMethod: expense.paymentMethod || "cash",
+    }));
   } catch {
     return [];
   }
@@ -2906,7 +2952,14 @@ async function syncExpenses() {
     return;
   }
 
-  await supabase.from("expenses").upsert(state.expenses.map(toExpenseRow));
+  const rows = state.expenses.map(toExpenseRow);
+  const { error } = await supabase.from("expenses").upsert(rows);
+  if (!error) {
+    return;
+  }
+
+  const fallbackRows = rows.map(({ payment_method, ...row }) => row);
+  await supabase.from("expenses").upsert(fallbackRows);
 }
 
 async function refreshCircleRemoteData() {
@@ -3012,6 +3065,7 @@ function toExpenseRow(expense) {
     circle_id: expense.circleId || null,
     created_by_user_id: isUuid(expense.createdByUserId) ? expense.createdByUserId : state.user.id,
     expense_visibility: expense.expenseVisibility || "personal",
+    payment_method: expense.paymentMethod || "cash",
     label: expense.label,
     note: expense.note || "",
     created_at: expense.createdAt,
@@ -3028,6 +3082,7 @@ function fromExpenseRow(row) {
     circleId: row.circle_id || null,
     createdByUserId: row.created_by_user_id || row.user_id || "",
     expenseVisibility: row.expense_visibility || "personal",
+    paymentMethod: row.payment_method || "cash",
     label: row.label,
     note: row.note || "",
     createdAt: row.created_at,

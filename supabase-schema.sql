@@ -50,6 +50,7 @@ create table if not exists public.expenses (
   circle_id uuid references public.circles(id) on delete set null,
   created_by_user_id uuid references auth.users(id) on delete set null,
   expense_visibility text not null default 'personal' check (expense_visibility in ('personal', 'circle')),
+  payment_method text not null default 'cash' check (payment_method in ('cash', 'credit-card', 'debit', 'e-wallet')),
   label text not null,
   note text not null default '',
   created_at timestamptz not null default now(),
@@ -60,7 +61,8 @@ alter table public.expenses
   add column if not exists category_id text,
   add column if not exists circle_id uuid references public.circles(id) on delete set null,
   add column if not exists created_by_user_id uuid references auth.users(id) on delete set null,
-  add column if not exists expense_visibility text not null default 'personal' check (expense_visibility in ('personal', 'circle'));
+  add column if not exists expense_visibility text not null default 'personal' check (expense_visibility in ('personal', 'circle')),
+  add column if not exists payment_method text not null default 'cash' check (payment_method in ('cash', 'credit-card', 'debit', 'e-wallet'));
 
 alter table public.profiles enable row level security;
 alter table public.category_settings enable row level security;
