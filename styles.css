@@ -1543,6 +1543,13 @@ h2 {
   justify-self: center;
 }
 
+.streak-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.streak-close,
 .streak-share {
   display: grid;
   place-items: center;
@@ -1552,7 +1559,12 @@ h2 {
   border-radius: 50%;
   background: #262525;
   color: var(--text);
-  justify-self: end;
+}
+
+.streak-close {
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 1;
 }
 
 .streak-share svg {

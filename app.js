@@ -305,6 +305,7 @@ const elements = {
   streakRowDays: document.querySelector("#streak-row-days"),
   streakYearDays: document.querySelector("#streak-year-days"),
   streakWeek: document.querySelector("#streak-week"),
+  closeStreakButton: document.querySelector("#close-streak-button"),
   streakShareButton: document.querySelector("#streak-share-button"),
   whyStreaksButton: document.querySelector("#why-streaks-button"),
   quickEntry: document.querySelector("#quick-entry"),
@@ -611,6 +612,10 @@ elements.monthDetailButton.addEventListener("click", () => {
 
 elements.streakButton.addEventListener("click", () => {
   openStreakSheet();
+});
+
+elements.closeStreakButton.addEventListener("click", () => {
+  closeStreakSheet();
 });
 
 elements.streakShareButton.addEventListener("click", () => {
