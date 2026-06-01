@@ -2292,19 +2292,52 @@ h2 {
 @media (min-width: 680px) {
   body {
     display: grid;
-    place-items: center;
+    place-items: start center;
+    background:
+      radial-gradient(circle at 8% 12%, rgba(135, 215, 0, 0.1), transparent 28%),
+      radial-gradient(circle at 92% 18%, rgba(255, 255, 255, 0.06), transparent 30%),
+      var(--bg);
     padding: 24px;
   }
 
   .app-shell {
-    min-height: min(860px, calc(100vh - 48px));
+    width: min(100%, 820px);
+    min-height: calc(100vh - 48px);
+    padding: 44px 44px calc(126px + env(safe-area-inset-bottom));
     border: 1px solid var(--line);
     border-radius: 36px;
     box-shadow: var(--shadow);
   }
+
+  h1 {
+    max-width: 13ch;
+    font-size: clamp(3.2rem, 7vw, 4.8rem);
+  }
+
+  .capture-card,
+  .history-list,
+  .category-breakdown {
+    border: 1px solid rgba(187, 189, 191, 0.24);
+    border-radius: 28px;
+    background: rgba(21, 20, 20, 0.72);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
+  }
+
+  .capture-card {
+    padding: 28px;
+  }
+
+  .history-list,
+  .category-breakdown {
+    padding: 18px 24px;
+  }
+
+  .tabbar {
+    width: min(calc(100% - 64px), 620px);
+  }
 }
 
-@media (min-width: 900px) {
+@media (min-width: 1040px) {
   body {
     align-items: stretch;
     background:
@@ -2357,15 +2390,6 @@ h2 {
   #insights-screen h1 {
     max-width: none;
     font-size: clamp(3.2rem, 5vw, 4.8rem);
-  }
-
-  .capture-card,
-  .history-list,
-  .category-breakdown {
-    border: 1px solid rgba(187, 189, 191, 0.28);
-    border-radius: 28px;
-    background: rgba(21, 20, 20, 0.72);
-    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
   }
 
   .capture-card {
