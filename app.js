@@ -306,17 +306,6 @@ const elements = {
   authMessage: document.querySelector("#auth-message"),
   greeting: document.querySelector("#greeting"),
   dailySpendLine: document.querySelector("#daily-spend-line"),
-  streakButton: document.querySelector("#streak-button"),
-  streakCount: document.querySelector("#streak-count"),
-  streakSheet: document.querySelector("#streak-sheet"),
-  streakSheetCount: document.querySelector("#streak-sheet-count"),
-  streakBest: document.querySelector("#streak-best"),
-  streakRowDays: document.querySelector("#streak-row-days"),
-  streakYearDays: document.querySelector("#streak-year-days"),
-  streakWeek: document.querySelector("#streak-week"),
-  closeStreakButton: document.querySelector("#close-streak-button"),
-  streakShareButton: document.querySelector("#streak-share-button"),
-  whyStreaksButton: document.querySelector("#why-streaks-button"),
   amountEntryRow: document.querySelector(".amount-entry-row"),
   quickEntry: document.querySelector("#quick-entry"),
   noteEntry: document.querySelector("#note-entry"),
@@ -664,35 +653,6 @@ elements.weekDetailButton.addEventListener("click", () => {
 
 elements.monthDetailButton.addEventListener("click", () => {
   openInsightDetail("month");
-});
-
-elements.streakButton.addEventListener("click", () => {
-  openStreakSheet();
-});
-
-elements.closeStreakButton.addEventListener("click", () => {
-  closeStreakSheet();
-});
-
-elements.streakShareButton.addEventListener("click", () => {
-  const streak = calculateStreak();
-  showToast(`${streak.days} days in Flow. Keep it going.`);
-});
-
-elements.whyStreaksButton.addEventListener("click", () => {
-  showToast("Small daily logs build real money awareness.");
-});
-
-elements.streakSheet.addEventListener("click", (event) => {
-  if (event.target === elements.streakSheet) {
-    closeStreakSheet();
-  }
-});
-
-elements.streakSheet.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    closeStreakSheet();
-  }
 });
 
 elements.breakdownList.addEventListener("click", (event) => {
@@ -1885,7 +1845,6 @@ function renderAll() {
   setGreeting();
   renderDailySpendLine();
   renderCircle();
-  renderStreak();
   renderHistory();
   renderInsights();
 }
@@ -2321,7 +2280,6 @@ function shouldIgnorePageSwipe(target) {
         ".insight-detail-sheet",
         ".settings-sheet",
         ".install-guide-sheet",
-        ".streak-sheet",
         ".clear-confirm",
         ".install-note",
       ].join(", "),
@@ -3560,121 +3518,6 @@ function setGreeting() {
 function renderDailySpendLine() {
   const total = totalForDate(new Date());
   elements.dailySpendLine.textContent = `${formatMoney(total)} spent today`;
-}
-
-function renderStreak() {
-  elements.streakCount.textContent = String(calculateStreak().days);
-}
-
-function openStreakSheet() {
-  renderStreakSheet();
-  elements.streakSheet.hidden = false;
-  elements.streakSheet.classList.remove("show");
-  window.requestAnimationFrame(() => {
-    elements.streakSheet.classList.add("show");
-    elements.streakShareButton.focus({ preventScroll: true });
-  });
-}
-
-function closeStreakSheet() {
-  if (elements.streakSheet.hidden) {
-    return;
-  }
-
-  elements.streakSheet.classList.remove("show");
-  window.setTimeout(() => {
-    elements.streakSheet.hidden = true;
-  }, 180);
-}
-
-function renderStreakSheet() {
-  const streak = calculateStreak();
-  const rowCopy = streak.days === 1 ? "1 day in a row" : `${streak.days} days in a row`;
-  const yearCopy = streak.yearDays === 1 ? "1 day in Flow this year" : `${streak.yearDays} days in Flow this year`;
-
-  elements.streakSheetCount.textContent = String(streak.days);
-  elements.streakBest.textContent = `Best: ${streak.best}`;
-  elements.streakRowDays.textContent = rowCopy;
-  elements.streakYearDays.textContent = yearCopy;
-  elements.streakWeek.innerHTML = renderStreakWeek(streak.loggedDays);
-}
-
-function calculateStreak() {
-  const loggedDays = new Set(state.expenses.map((expense) => dateKey(new Date(expense.createdAt))));
-  const cursor = startOfDay(new Date());
-  let loggedToday = loggedDays.has(dateKey(cursor));
-
-  if (!loggedToday) {
-    cursor.setDate(cursor.getDate() - 1);
-  }
-
-  let days = 0;
-  while (loggedDays.has(dateKey(cursor))) {
-    days += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-
-  return {
-    days,
-    best: calculateBestStreak(loggedDays),
-    yearDays: daysLoggedThisYear(loggedDays),
-    loggedToday,
-    loggedDays,
-  };
-}
-
-function calculateBestStreak(loggedDays) {
-  const sortedDays = Array.from(loggedDays)
-    .map((key) => {
-      const [year, month, day] = key.split("-").map(Number);
-      return new Date(year, month, day);
-    })
-    .sort((a, b) => a - b);
-
-  let best = 0;
-  let current = 0;
-  let previous = null;
-
-  sortedDays.forEach((day) => {
-    if (previous) {
-      const next = new Date(previous);
-      next.setDate(next.getDate() + 1);
-      current = dateKey(next) === dateKey(day) ? current + 1 : 1;
-    } else {
-      current = 1;
-    }
-
-    best = Math.max(best, current);
-    previous = day;
-  });
-
-  return best;
-}
-
-function daysLoggedThisYear(loggedDays) {
-  const year = new Date().getFullYear();
-  return Array.from(loggedDays).filter((key) => Number(key.split("-")[0]) === year).length;
-}
-
-function renderStreakWeek(loggedDays) {
-  const start = startOfWeek(new Date());
-  const todayKey = dateKey(new Date());
-
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(start);
-    date.setDate(start.getDate() + index);
-    const key = dateKey(date);
-    const weekday = date.toLocaleDateString(undefined, { weekday: "short" });
-    const active = key === todayKey;
-    const logged = loggedDays.has(key);
-
-    return `
-      <div class="streak-day ${active ? "active" : ""} ${logged ? "logged" : ""}">
-        <strong>${weekday}</strong>
-        <span>${date.getDate()}</span>
-      </div>
-    `;
-  }).join("");
 }
 
 function groupByDay(expenses) {

@@ -8,11 +8,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Flow" />
     <title>Flow</title>
-    <link rel="manifest" href="./manifest.webmanifest?v=93" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=93" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=93" />
-    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=93" />
-    <link rel="stylesheet" href="./styles.css?v=93" />
+    <link rel="manifest" href="./manifest.webmanifest?v=94" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=94" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=94" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=94" />
+    <link rel="stylesheet" href="./styles.css?v=94" />
   </head>
   <body>
     <div class="install-note" id="install-note" role="status" aria-live="polite" hidden>
@@ -105,7 +105,7 @@
                 name="quick-entry"
                 inputmode="decimal"
                 enterkeyhint="done"
-                placeholder="₱ 0"
+                placeholder="0"
                 aria-describedby="parse-preview"
                 autofocus
               />
@@ -253,12 +253,6 @@
             <span>Insights</span>
           </button>
         </div>
-        <button class="streak-button" id="streak-button" type="button" aria-label="View spending streak">
-          <svg aria-hidden="true" viewBox="0 0 24 24">
-            <path d="m13 2-9 12h7l-1 8 10-13h-7l0-7Z" />
-          </svg>
-          <span id="streak-count">0</span>
-        </button>
       </nav>
 
       <div class="toast" id="toast" role="status" aria-live="polite">Saved</div>
@@ -278,31 +272,6 @@
             <button class="clear-keep-button" id="keep-history-button" type="button">Keep</button>
             <button class="clear-delete-button" id="confirm-clear-button" type="button">Clear</button>
           </div>
-        </div>
-      </div>
-      <div class="streak-sheet" id="streak-sheet" role="dialog" aria-modal="true" aria-labelledby="streak-title" hidden>
-        <div class="streak-panel">
-          <div class="sheet-handle" aria-hidden="true"></div>
-          <div class="streak-actions">
-            <button class="streak-close" id="close-streak-button" type="button" aria-label="Close streaks">×</button>
-            <button class="streak-share" id="streak-share-button" type="button" aria-label="Share streak">
-              <svg aria-hidden="true" viewBox="0 0 24 24">
-                <path d="M12 3v12" />
-                <path d="m7 8 5-5 5 5" />
-                <path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6" />
-              </svg>
-            </button>
-          </div>
-          <h2 id="streak-title">Streaks help you build your daily money habit.</h2>
-          <section class="streak-card" aria-label="App streak">
-            <span>App Streak</span>
-            <strong><span id="streak-sheet-count">0</span> <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m13 2-9 12h7l-1 8 10-13h-7l0-7Z" /></svg></strong>
-            <em id="streak-best">Best: 0</em>
-          </section>
-          <p id="streak-row-days">0 days in a row</p>
-          <p id="streak-year-days">0 days in Flow this year</p>
-          <button class="why-streaks-button" id="why-streaks-button" type="button">Why Streaks?</button>
-          <div class="streak-week" id="streak-week" aria-label="This week's streak"></div>
         </div>
       </div>
       <div class="insight-detail-sheet" id="insight-detail-sheet" role="dialog" aria-modal="true" aria-labelledby="insight-detail-title" hidden>
@@ -446,6 +415,6 @@
       </div>
     </main>
 
-    <script src="./app.js?v=93" type="module"></script>
+    <script src="./app.js?v=94" type="module"></script>
   </body>
 </html>

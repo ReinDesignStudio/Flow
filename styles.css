@@ -376,38 +376,6 @@ input {
   line-height: 1.25;
 }
 
-.streak-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  width: 76px;
-  height: 76px;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(7, 29, 32, 0.82);
-  color: var(--accent);
-  box-shadow: inset 0 0 0 1px rgba(127, 230, 255, 0.18), 0 18px 36px rgba(0, 0, 0, 0.34);
-  padding: 0;
-  font-size: 1rem;
-  font-weight: 900;
-  backdrop-filter: blur(20px);
-}
-
-.streak-button svg {
-  width: 28px;
-  height: 28px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.streak-button:active {
-  transform: scale(0.96);
-}
-
 .kicker,
 .note-field span,
 .metric span {
@@ -474,58 +442,80 @@ h2 {
 .amount-entry-row {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: end;
-  gap: 10px;
-  border-bottom: 1px solid var(--line);
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  border: 0;
   cursor: text;
-  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .amount-entry-row:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 2px 0 var(--accent);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .quick-input {
   display: block;
   min-width: 0;
   position: relative;
+  border: 1px solid rgba(187, 189, 191, 0.16);
+  border-radius: 20px;
+  background: #141313;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
   cursor: text;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.quick-input::before {
+  content: "₱";
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(187, 189, 191, 0.46);
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.quick-input:focus-within {
+  border-color: rgba(135, 215, 0, 0.46);
+  box-shadow: inset 0 0 0 1px rgba(135, 215, 0, 0.18);
 }
 
 .quick-input input {
   width: 100%;
-  height: 96px;
+  height: 94px;
   border: 0;
-  border-radius: 0;
+  border-radius: 20px;
   outline: 0;
   background: transparent;
   color: var(--text);
   caret-color: var(--accent);
   cursor: text;
-  font-size: clamp(2.15rem, 12vw, 3.9rem);
+  padding: 0 20px 0 58px;
+  font-size: clamp(3rem, 14vw, 4.5rem);
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0;
 }
 
 .quick-input input::placeholder {
-  color: rgba(135, 215, 0, 0.72);
+  color: var(--text);
   opacity: 1;
 }
 
 .quick-input:focus-within input::placeholder {
-  color: var(--accent);
+  color: var(--text);
 }
 
 .quick-input:focus-within::after {
   content: "";
   position: absolute;
-  left: 4px;
-  bottom: 13px;
-  width: min(42%, 170px);
-  height: 3px;
+  left: 58px;
+  top: 24px;
+  width: 3px;
+  height: 52px;
   border-radius: 999px;
   background: var(--accent);
   animation: amount-cursor-blink 980ms steps(2, start) infinite;
@@ -534,6 +524,10 @@ h2 {
 
 .quick-input input.input-prompted {
   text-shadow: 0 0 18px rgba(135, 215, 0, 0.24);
+}
+
+.quick-input:has(input:not(:placeholder-shown))::after {
+  display: none;
 }
 
 @keyframes amount-cursor-blink {
@@ -556,7 +550,8 @@ h2 {
 .payment-select-label {
   position: relative;
   display: block;
-  margin-bottom: 17px;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .payment-select-label::after {
@@ -1558,9 +1553,7 @@ h2 {
   bottom: calc(12px + env(safe-area-inset-bottom));
   z-index: 4;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 76px;
   align-items: center;
-  gap: 10px;
   width: min(calc(100% - 32px), 448px);
   min-height: 76px;
   transform: translateX(-50%);
@@ -1646,198 +1639,6 @@ h2 {
 .toast.show {
   transform: translate(-50%, 0);
   opacity: 1;
-}
-
-.streak-sheet {
-  position: fixed;
-  inset: 0;
-  z-index: 10;
-  display: grid;
-  align-items: end;
-  background: rgba(12, 6, 6, 0.72);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 180ms ease;
-}
-
-.streak-sheet[hidden] {
-  display: none;
-}
-
-.streak-sheet.show {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.streak-panel {
-  position: relative;
-  display: grid;
-  gap: 24px;
-  width: min(100%, 480px);
-  max-height: calc(100svh - 34px);
-  margin: 0 auto;
-  border-radius: 34px 34px 0 0;
-  background: #151515;
-  color: var(--text);
-  padding: 12px 28px max(38px, env(safe-area-inset-bottom));
-  overflow-y: auto;
-  transform: translateY(34px);
-  transition: transform 220ms ease;
-}
-
-.streak-sheet.show .streak-panel {
-  transform: translateY(0);
-}
-
-.sheet-handle {
-  width: 48px;
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(187, 189, 191, 0.42);
-  justify-self: center;
-}
-
-.streak-actions {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.streak-close,
-.streak-share {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  border: 0;
-  border-radius: 50%;
-  background: #262525;
-  color: var(--text);
-}
-
-.streak-close {
-  font-size: 2rem;
-  font-weight: 400;
-  line-height: 1;
-}
-
-.streak-share svg {
-  width: 30px;
-  height: 30px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.streak-panel h2 {
-  max-width: 10ch;
-  justify-self: center;
-  text-align: center;
-  font-size: clamp(2.5rem, 10vw, 4rem);
-  line-height: 1.08;
-}
-
-.streak-card {
-  display: grid;
-  gap: 14px;
-  min-height: 150px;
-  border: 1px solid rgba(187, 189, 191, 0.38);
-  border-radius: 22px;
-  padding: 22px;
-}
-
-.streak-card span,
-.streak-card em {
-  color: var(--text);
-  font-style: normal;
-  font-size: 1rem;
-  font-weight: 850;
-}
-
-.streak-card strong {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 3.3rem;
-  line-height: 1;
-}
-
-.streak-card svg {
-  width: 34px;
-  height: 34px;
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.streak-panel p {
-  margin: 0;
-  color: var(--text);
-  text-align: center;
-  font-size: 1.25rem;
-  font-weight: 850;
-}
-
-.why-streaks-button {
-  justify-self: center;
-  min-height: 48px;
-  border: 1px solid rgba(187, 189, 191, 0.42);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--text);
-  padding: 0 24px;
-  font-weight: 900;
-}
-
-.streak-week {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.streak-day {
-  display: grid;
-  justify-items: center;
-  gap: 12px;
-  min-width: 0;
-  color: var(--muted);
-}
-
-.streak-day strong {
-  font-size: 0.96rem;
-  font-weight: 800;
-}
-
-.streak-day span {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  color: rgba(187, 189, 191, 0.48);
-  font-size: 0.85rem;
-  font-weight: 900;
-}
-
-.streak-day.logged span::before {
-  content: "";
-  position: absolute;
-  width: 5px;
-  height: 5px;
-  margin-top: -32px;
-  border-radius: 50%;
-  background: var(--muted);
-}
-
-.streak-day.active span {
-  background: var(--accent);
-  color: var(--bg);
 }
 
 .insight-detail-sheet {
@@ -2594,11 +2395,6 @@ h2 {
   .tab {
     min-height: 78px;
     font-size: 0.82rem;
-  }
-
-  .streak-button {
-    width: 76px;
-    height: 76px;
   }
 
   .toast {
