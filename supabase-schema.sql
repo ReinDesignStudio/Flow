@@ -136,11 +136,6 @@ create policy "Circle memberships are visible to authenticated users"
   using (true);
 
 drop policy if exists "Users can join circles" on public.circle_members;
-create policy "Users can join circles"
-  on public.circle_members
-  for insert
-  to authenticated
-  with check ((select auth.uid()) = user_id);
 
 drop policy if exists "Circle owners can add accepted members" on public.circle_members;
 create policy "Circle owners can add accepted members"

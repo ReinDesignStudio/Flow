@@ -2745,9 +2745,14 @@ async function joinCircleFromInvite(raw) {
       requestedAt: new Date().toISOString(),
     };
 
-    await requestCircleJoin(request);
+    const requestStatus = await requestCircleJoin(request);
+    if (requestStatus === "accepted") {
+      await refreshAcceptedCircleJoin(request.circleId);
+      return true;
+    }
+
     savePendingCircleJoin(request);
-    showToast("Request sent. Waiting for approval.");
+    showToast(requestStatus === "pending" ? "Request sent. Waiting for approval." : "Circle request updated");
     return true;
   } catch {
     showToast("Circle request could not be sent");
@@ -2756,6 +2761,25 @@ async function joinCircleFromInvite(raw) {
 }
 
 async function requestCircleJoin(request) {
+  const { data: existing, error: existingError } = await supabase
+    .from("circle_join_requests")
+    .select("status")
+    .eq("circle_id", request.circleId)
+    .eq("requester_user_id", state.user.id)
+    .maybeSingle();
+
+  if (existingError) {
+    throw existingError;
+  }
+
+  if (existing?.status === "accepted") {
+    return "accepted";
+  }
+
+  if (existing?.status === "pending") {
+    return "pending";
+  }
+
   const { error } = await supabase.from("circle_join_requests").upsert(
     {
       circle_id: request.circleId,
@@ -2770,6 +2794,8 @@ async function requestCircleJoin(request) {
   if (error) {
     throw error;
   }
+
+  return "pending";
 }
 
 async function handleCircleJoinRequest(action, requesterUserId = "") {
@@ -2803,24 +2829,37 @@ async function acceptCircleJoinRequest(requesterUserId) {
   }
 
   const now = new Date().toISOString();
-  await supabase.from("circle_join_requests")
+  const { error: requestError } = await supabase.from("circle_join_requests")
     .update({ status: "accepted", updated_at: now })
     .eq("circle_id", state.circle.id)
     .eq("requester_user_id", requesterUserId);
-  await supabase.from("circle_members").upsert({
+  if (requestError) {
+    showToast("Could not accept request");
+    return;
+  }
+
+  const { error: memberError } = await supabase.from("circle_members").upsert({
     circle_id: state.circle.id,
     user_id: requesterUserId,
     role: "member",
     joined_at: now,
   });
+  if (memberError) {
+    showToast("Could not add member");
+    return;
+  }
 
   if (!state.circle.members.includes(requesterUserId)) {
     state.circle.members.push(requesterUserId);
   }
 
-  await supabase.from("circles")
+  const { error: circleError } = await supabase.from("circles")
     .update({ members: state.circle.members.filter(isUuid), updated_at: now })
     .eq("id", state.circle.id);
+  if (circleError) {
+    showToast("Member added, but Circle sync failed");
+    return;
+  }
   localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
   await refreshCircleRemoteData();
   renderAll();
@@ -2876,9 +2915,13 @@ async function refreshPendingCircleJoin() {
     return;
   }
 
+  await refreshAcceptedCircleJoin(request.circle_id);
+}
+
+async function refreshAcceptedCircleJoin(circleId) {
   const [{ data: circle }, { data: members }] = await Promise.all([
-    supabase.from("circles").select("id, name, invite_code, created_by_user_id, members, categories, icons, updated_at").eq("id", request.circle_id).maybeSingle(),
-    supabase.from("circle_members").select("user_id").eq("circle_id", request.circle_id),
+    supabase.from("circles").select("id, name, invite_code, created_by_user_id, members, categories, icons, updated_at").eq("id", circleId).maybeSingle(),
+    supabase.from("circle_members").select("user_id").eq("circle_id", circleId),
   ]);
 
   if (!circle) {
@@ -3194,6 +3237,10 @@ async function loadRemoteData() {
     window.history.replaceState({}, "", window.location.pathname);
   }
 
+  if (!state.circle) {
+    await restoreRemoteCircleMembership();
+  }
+
   if (state.circle) {
     await refreshCircleRemoteData();
   } else if (state.pendingCircleJoin) {
@@ -3206,6 +3253,36 @@ async function loadRemoteData() {
 
 async function syncAllRemote() {
   await Promise.all([ensureRemoteProfile(), syncCategories(), syncCircle(), syncExpenses()]);
+}
+
+async function restoreRemoteCircleMembership() {
+  if (!supabase || !state.user) {
+    return false;
+  }
+
+  const { data: memberships, error } = await supabase
+    .from("circle_members")
+    .select("circle_id, joined_at")
+    .eq("user_id", state.user.id)
+    .order("joined_at", { ascending: false })
+    .limit(1);
+
+  if (error || !memberships?.length) {
+    return false;
+  }
+
+  const circleId = memberships[0].circle_id;
+  const [{ data: circle }, { data: members }] = await Promise.all([
+    supabase.from("circles").select("id, name, invite_code, created_by_user_id, members, categories, icons, updated_at").eq("id", circleId).maybeSingle(),
+    supabase.from("circle_members").select("user_id").eq("circle_id", circleId),
+  ]);
+
+  if (!circle) {
+    return false;
+  }
+
+  joinAcceptedCircle(circle, members || []);
+  return true;
 }
 
 async function ensureRemoteProfile() {
