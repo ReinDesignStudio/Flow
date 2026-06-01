@@ -8,11 +8,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Flow" />
     <title>Flow</title>
-    <link rel="manifest" href="./manifest.webmanifest?v=97" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=97" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=97" />
-    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=97" />
-    <link rel="stylesheet" href="./styles.css?v=97" />
+    <link rel="manifest" href="./manifest.webmanifest?v=98" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=98" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=98" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=98" />
+    <link rel="stylesheet" href="./styles.css?v=98" />
   </head>
   <body>
     <div class="install-note" id="install-note" role="status" aria-live="polite" hidden>
@@ -371,6 +371,18 @@
               </span>
               <input id="profile-name-input" type="text" value="Rein" autocomplete="name" />
             </label>
+            <div class="settings-row theme-settings-row">
+              <span class="settings-label">
+                <svg class="settings-row-icon" aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z" />
+                </svg>
+                Theme
+              </span>
+              <div class="theme-toggle" id="theme-toggle" aria-label="Theme">
+                <button type="button" data-theme="dark">Dark</button>
+                <button type="button" data-theme="light">Light</button>
+              </div>
+            </div>
             <div class="settings-row">
               <span class="settings-label">
                 <svg class="settings-row-icon" aria-hidden="true" viewBox="0 0 24 24">
@@ -410,6 +422,6 @@
       </div>
     </main>
 
-    <script src="./app.js?v=97" type="module"></script>
+    <script src="./app.js?v=98" type="module"></script>
   </body>
 </html>

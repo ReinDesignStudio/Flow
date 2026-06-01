@@ -13,6 +13,16 @@
     sans-serif;
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f7f9f2;
+  --panel: #ffffff;
+  --text: #11140d;
+  --muted: #5f6659;
+  --line: rgba(17, 20, 13, 0.18);
+  --shadow: 0 24px 70px rgba(33, 47, 18, 0.14);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -1016,13 +1026,14 @@ h2 {
   min-height: 190px;
   margin: 4px 0 18px;
   padding: 22px;
-  border: 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 22px;
   background:
-    radial-gradient(circle at 84% 20%, rgba(202, 255, 66, 0.34), transparent 30%),
-    radial-gradient(circle at 70% 94%, rgba(150, 215, 95, 0.34), transparent 42%),
-    linear-gradient(135deg, #073324 0%, #0f4b33 54%, #618a48 100%);
+    radial-gradient(circle at 84% 14%, rgba(255, 255, 255, 0.72), transparent 17%),
+    radial-gradient(circle at 74% 88%, rgba(12, 6, 6, 0.18), transparent 40%),
+    linear-gradient(135deg, #87d700 0%, #b8ff28 42%, #ffffff 100%);
   color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), 0 20px 50px rgba(68, 124, 0, 0.2);
 }
 
 .circle-summary {
@@ -1041,6 +1052,7 @@ h2 {
 }
 
 .circle-summary strong {
+  color: #0c0606;
   font-size: 1.65rem;
   line-height: 1.05;
 }
@@ -1049,7 +1061,7 @@ h2 {
 .circle-invite span,
 .circle-request-card span {
   margin-top: 8px;
-  color: rgba(255, 255, 255, 0.76);
+  color: rgba(12, 6, 6, 0.72);
   font-size: 0.86rem;
   line-height: 1.3;
   overflow-wrap: anywhere;
@@ -1058,22 +1070,23 @@ h2 {
 .circle-panel .kicker {
   position: relative;
   z-index: 1;
-  color: rgba(255, 255, 255, 0.66);
+  color: rgba(12, 6, 6, 0.56);
 }
 
 .circle-orbit {
   position: absolute;
-  inset: auto -20px -46px auto;
-  width: 190px;
-  height: 190px;
-  opacity: 0.34;
+  inset: auto -26px -54px auto;
+  width: 210px;
+  height: 210px;
+  opacity: 0.74;
   pointer-events: none;
 }
 
 .circle-orbit span {
   position: absolute;
-  border: 18px solid rgba(255, 255, 255, 0.5);
+  border: 2px solid rgba(12, 6, 6, 0.26);
   border-radius: 50%;
+  box-shadow: 0 0 0 12px rgba(255, 255, 255, 0.16);
 }
 
 .circle-orbit span:first-child {
@@ -1081,10 +1094,10 @@ h2 {
 }
 
 .circle-orbit span:last-child {
-  right: 18px;
-  top: 24px;
-  width: 72px;
-  height: 72px;
+  right: 30px;
+  top: 32px;
+  width: 86px;
+  height: 86px;
 }
 
 .circle-action,
@@ -1095,8 +1108,8 @@ h2 {
   min-height: 42px;
   border: 0;
   border-radius: 999px;
-  background: #ffffff;
-  color: #0f2d22;
+  background: #0c0606;
+  color: #ffffff;
   padding: 0 14px;
   font-weight: 900;
   white-space: nowrap;
@@ -1109,15 +1122,15 @@ h2 {
 }
 
 .circle-action.secondary {
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  border: 1px solid rgba(12, 6, 6, 0.22);
+  background: rgba(255, 255, 255, 0.24);
+  color: #0c0606;
 }
 
 .circle-action.danger {
-  border: 1px solid rgba(255, 213, 213, 0.44);
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffe0e0;
+  border: 1px solid rgba(110, 0, 0, 0.24);
+  background: rgba(255, 255, 255, 0.3);
+  color: #5c0808;
 }
 
 .circle-form {
@@ -1159,8 +1172,8 @@ h2 {
   width: fit-content;
   margin-bottom: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-  color: #ffffff;
+  background: rgba(12, 6, 6, 0.12);
+  color: #0c0606;
   padding: 5px 10px;
   font-size: 0.9rem;
   letter-spacing: 0;
@@ -2131,6 +2144,41 @@ h2 {
   font-weight: 900;
 }
 
+.theme-settings-row {
+  min-height: 66px;
+}
+
+.theme-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  width: min(176px, 52%);
+  min-width: 148px;
+  border: 1px solid rgba(187, 189, 191, 0.36);
+  border-radius: 999px;
+  background: #262525;
+  padding: 4px;
+}
+
+.theme-toggle button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.theme-toggle button.active {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+:root[data-theme="light"] .theme-toggle button.active {
+  color: #0c0606;
+}
+
 .logout-button {
   width: 100%;
   min-height: 58px;
@@ -2139,6 +2187,66 @@ h2 {
   background: #262525;
   color: var(--accent);
   font-weight: 900;
+}
+
+:root[data-theme="light"] .auth-form input,
+:root[data-theme="light"] .quick-entry,
+:root[data-theme="light"] .note-field input,
+:root[data-theme="light"] .category-composer,
+:root[data-theme="light"] .category-composer input,
+:root[data-theme="light"] .history-filter,
+:root[data-theme="light"] .visibility-toggle,
+:root[data-theme="light"] .insight-detail-panel,
+:root[data-theme="light"] .settings-panel,
+:root[data-theme="light"] .settings-input-row input,
+:root[data-theme="light"] .logout-button,
+:root[data-theme="light"] .theme-toggle {
+  background: #ffffff;
+  color: var(--text);
+}
+
+:root[data-theme="light"] .app-shell {
+  background:
+    radial-gradient(circle at 14% 4%, rgba(135, 215, 0, 0.12), transparent 22%),
+    var(--bg);
+}
+
+:root[data-theme="light"] .install-note,
+:root[data-theme="light"] .install-guide-panel,
+:root[data-theme="light"] .profile-summary,
+:root[data-theme="light"] .settings-row,
+:root[data-theme="light"] .metric,
+:root[data-theme="light"] .insight-breakdown,
+:root[data-theme="light"] .empty-state,
+:root[data-theme="light"] .history-item,
+:root[data-theme="light"] .breakdown-row,
+:root[data-theme="light"] .category-pill,
+:root[data-theme="light"] .tabbar-main,
+:root[data-theme="light"] .icon-button,
+:root[data-theme="light"] .category-edit-bar button,
+:root[data-theme="light"] .cancel-edit-button,
+:root[data-theme="light"] .qr-panel {
+  background: #ffffff;
+  color: var(--text);
+}
+
+:root[data-theme="light"] .settings-sheet {
+  background: rgba(247, 249, 242, 0.96);
+}
+
+:root[data-theme="light"] .tabbar-main {
+  box-shadow: 0 20px 50px rgba(33, 47, 18, 0.16);
+}
+
+:root[data-theme="light"] .category-pill,
+:root[data-theme="light"] .settings-row,
+:root[data-theme="light"] .profile-summary,
+:root[data-theme="light"] .history-item,
+:root[data-theme="light"] .metric,
+:root[data-theme="light"] .insight-breakdown,
+:root[data-theme="light"] .quick-entry,
+:root[data-theme="light"] .note-field input {
+  border: 1px solid rgba(17, 20, 13, 0.08);
 }
 
 @media (min-width: 680px) {

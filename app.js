@@ -5,6 +5,7 @@ const categoryStorageKey = "flow-categories-v1";
 const circleStorageKey = "flow-circle-v1";
 const circleJoinRequestStorageKey = "flow-circle-join-request-v1";
 const profileStorageKey = "flow-profile-v1";
+const themeStorageKey = "flow-theme-v1";
 const installNoteStorageKey = "flow-install-note-dismissed-v1";
 const defaultProfileName = "Rein";
 const productionAppUrl = "https://dailyflow.pro/";
@@ -223,6 +224,7 @@ const iconKeywords = {
 const categoryData = loadCategoryData();
 const circleData = loadCircleData();
 const profileData = loadProfile();
+const savedTheme = loadTheme();
 let authListenersAttached = false;
 
 const paymentMethods = {
@@ -243,6 +245,7 @@ const state = {
   selectedPaymentMethod: "cash",
   historyFilter: "all",
   profileName: profileData.name,
+  theme: savedTheme,
   auth: { email: initialSession?.user?.email || "" },
   authenticated: Boolean(initialSession),
   user: initialSession?.user || null,
@@ -369,6 +372,7 @@ const elements = {
   profileAvatar: document.querySelector("#profile-avatar"),
   profileNameDisplay: document.querySelector("#profile-name-display"),
   profileNameInput: document.querySelector("#profile-name-input"),
+  themeToggle: document.querySelector("#theme-toggle"),
   accountEmail: document.querySelector("#account-email"),
   settingsSheet: document.querySelector("#settings-sheet"),
   closeSettingsButton: document.querySelector("#close-settings-button"),
@@ -383,6 +387,7 @@ const elements = {
 attachAuthListeners();
 
 try {
+  renderTheme();
   renderCategories();
   renderIconPicker();
   renderProfile();
@@ -661,6 +666,15 @@ elements.profileNameInput.addEventListener("keydown", (event) => {
     event.preventDefault();
     elements.profileNameInput.blur();
   }
+});
+
+elements.themeToggle.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-theme]");
+  if (!button) {
+    return;
+  }
+
+  setTheme(button.dataset.theme);
 });
 
 elements.closeSettingsButton.addEventListener("click", () => {
@@ -1806,6 +1820,26 @@ function renderProfile({ syncInput = true } = {}) {
   elements.accountEmail.textContent = state.auth.email || "Local account";
 }
 
+function renderTheme() {
+  const theme = state.theme === "light" ? "light" : "dark";
+  document.documentElement.dataset.theme = theme;
+  const themeColor = theme === "light" ? "#f7f9f2" : "#0c0606";
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor);
+
+  elements.themeToggle.querySelectorAll("button[data-theme]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.theme === theme);
+    button.setAttribute("aria-pressed", button.dataset.theme === theme ? "true" : "false");
+  });
+}
+
+function setTheme(theme) {
+  state.theme = theme === "light" ? "light" : "dark";
+  try {
+    localStorage.setItem(themeStorageKey, state.theme);
+  } catch {}
+  renderTheme();
+}
+
 function renderCircle() {
   const hasCircle = Boolean(state.circle);
   const hasPendingJoin = Boolean(state.pendingCircleJoin && !hasCircle);
@@ -2569,6 +2603,14 @@ function loadProfile() {
     return { name: cleanProfileName(saved.name) };
   } catch {
     return { name: defaultProfileName };
+  }
+}
+
+function loadTheme() {
+  try {
+    return localStorage.getItem(themeStorageKey) === "light" ? "light" : "dark";
+  } catch {
+    return "dark";
   }
 }
 
