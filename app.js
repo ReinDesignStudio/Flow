@@ -350,6 +350,7 @@ const elements = {
   insightTop: document.querySelector("#insight-top"),
   weekDetailButton: document.querySelector("#week-detail-button"),
   monthDetailButton: document.querySelector("#month-detail-button"),
+  todayDetailButton: document.querySelector("#today-detail-button"),
   insightDetailSheet: document.querySelector("#insight-detail-sheet"),
   insightDetailKicker: document.querySelector("#insight-detail-kicker"),
   insightDetailTitle: document.querySelector("#insight-detail-title"),
@@ -611,6 +612,10 @@ elements.weekDetailButton.addEventListener("click", () => {
 
 elements.monthDetailButton.addEventListener("click", () => {
   openInsightDetail("month");
+});
+
+elements.todayDetailButton.addEventListener("click", () => {
+  openTodayInsightDetail();
 });
 
 elements.breakdownList.addEventListener("click", (event) => {
@@ -1945,15 +1950,16 @@ function renderInsights() {
   const insightExpenses = filteredExpenses();
   const weekExpenses = insightExpenses.filter((expense) => new Date(expense.createdAt) >= weekStart);
   const monthExpenses = insightExpenses.filter((expense) => new Date(expense.createdAt) >= monthStart);
+  const todayExpenses = expensesForDate(new Date(), insightExpenses);
   const weekTotal = weekExpenses.reduce((total, expense) => total + expense.amount, 0);
   const monthTotal = monthExpenses.reduce((total, expense) => total + expense.amount, 0);
-  const activeDays = new Set(weekExpenses.map((expense) => dateKey(new Date(expense.createdAt)))).size || 1;
+  const todayTotal = todayExpenses.reduce((total, expense) => total + expense.amount, 0);
   const byCategory = totalByCategory(weekExpenses);
   const topCategory = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0];
 
   elements.insightWeek.textContent = formatMoney(weekTotal);
   elements.insightMonth.textContent = formatMoney(monthTotal);
-  elements.insightAverage.textContent = formatMoney(weekTotal / activeDays);
+  elements.insightAverage.textContent = formatMoney(todayTotal);
   elements.insightTop.textContent = topCategory ? topCategory[0] : "None yet";
 
   if (!weekExpenses.length) {
@@ -2012,6 +2018,26 @@ function closeInsightDetail() {
     elements.insightDetailSheet.hidden = true;
     state.insightDetailCloseTimer = 0;
   }, 180);
+}
+
+function openTodayInsightDetail() {
+  const today = new Date();
+  const expenses = expensesForDate(today, filteredExpenses());
+  const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+  window.clearTimeout(state.insightDetailCloseTimer);
+  elements.insightDetailKicker.textContent = detailDateLabel(today);
+  elements.insightDetailTitle.textContent = "Spent today";
+  elements.insightDetailTotal.textContent = formatMoney(total);
+  elements.insightDetailContent.innerHTML = expenses.length
+    ? renderCategoryExpenseList(expenses)
+    : '<div class="empty-state">No expenses logged today.</div>';
+
+  elements.insightDetailSheet.hidden = false;
+  window.setTimeout(() => {
+    elements.insightDetailSheet.classList.add("show");
+    elements.closeInsightDetailButton.focus({ preventScroll: true });
+  }, 20);
 }
 
 function buildWeekInsightEntries(today) {
@@ -2171,10 +2197,14 @@ function monthRangeLabel(date) {
 }
 
 function totalForDate(date) {
+  return expensesForDate(date).reduce((sum, expense) => sum + expense.amount, 0);
+}
+
+function expensesForDate(date, expenses = state.expenses) {
   const key = dateKey(date);
-  return state.expenses
+  return expenses
     .filter((expense) => dateKey(new Date(expense.createdAt)) === key)
-    .reduce((sum, expense) => sum + expense.amount, 0);
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
 function showTab(name, { focusCaptureInput = true } = {}) {
