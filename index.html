@@ -8,11 +8,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Flow" />
     <title>Flow</title>
-    <link rel="manifest" href="./manifest.webmanifest?v=94" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=94" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=94" />
-    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=94" />
-    <link rel="stylesheet" href="./styles.css?v=94" />
+    <link rel="manifest" href="./manifest.webmanifest?v=95" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=95" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=95" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=95" />
+    <link rel="stylesheet" href="./styles.css?v=95" />
   </head>
   <body>
     <div class="install-note" id="install-note" role="status" aria-live="polite" hidden>
@@ -106,7 +106,6 @@
                 inputmode="decimal"
                 enterkeyhint="done"
                 placeholder="0"
-                aria-describedby="parse-preview"
                 autofocus
               />
             </label>
@@ -120,9 +119,7 @@
             </label>
           </div>
 
-          <div class="parse-preview" id="parse-preview" aria-live="polite">
-            Try 120 coffee
-          </div>
+          <div class="parse-preview" id="parse-preview" aria-live="polite"></div>
 
           <div class="visibility-toggle" id="visibility-toggle" aria-label="Expense visibility" hidden>
             <button class="active" type="button" data-visibility="personal">Personal</button>
@@ -131,7 +128,6 @@
 
           <div class="category-grid" id="category-grid" aria-label="Categories"></div>
           <div class="category-pagination" id="category-pagination" aria-label="Label pages"></div>
-          <p class="category-hint" id="category-hint" aria-live="polite" hidden>Swipe labels</p>
           <div class="category-edit-bar" id="category-edit-bar" hidden>
             <button id="rename-category-button" type="button">Rename</button>
             <button id="delete-category-button" type="button">Delete</button>
@@ -144,9 +140,8 @@
             <button id="cancel-category-button" type="button" aria-label="Cancel new label">×</button>
           </div>
 
-          <label class="note-field">
-            <span>Note</span>
-            <input id="note-entry" name="note-entry" placeholder="Optional" />
+          <label class="note-field" aria-label="Note">
+            <input id="note-entry" name="note-entry" placeholder="Note" />
           </label>
 
           <div class="form-actions">
@@ -415,6 +410,6 @@
       </div>
     </main>
 
-    <script src="./app.js?v=94" type="module"></script>
+    <script src="./app.js?v=95" type="module"></script>
   </body>
 </html>

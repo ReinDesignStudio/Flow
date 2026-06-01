@@ -6,7 +6,6 @@ const circleStorageKey = "flow-circle-v1";
 const circleJoinRequestStorageKey = "flow-circle-join-request-v1";
 const profileStorageKey = "flow-profile-v1";
 const installNoteStorageKey = "flow-install-note-dismissed-v1";
-const categoryHintStorageKey = "flow-category-hint-dismissed-v1";
 const defaultProfileName = "Rein";
 const productionAppUrl = "https://dailyflow.pro/";
 const weeklyInsightMax = 15000;
@@ -20,7 +19,6 @@ let initialSession = null;
 let authStartupError = "";
 let authStateListenerAttached = false;
 const tabOrder = ["capture", "history", "insights"];
-const promptExamples = ["120 coffee", "199 lunch", "850 gas", "45 water", "250 dinner"];
 const keywordMap = {
   coffee: "Coffee",
   latte: "Coffee",
@@ -249,9 +247,6 @@ const state = {
   authenticated: Boolean(initialSession),
   user: initialSession?.user || null,
   categoryPage: 0,
-  categoryHintDismissed: loadCategoryHintDismissed(),
-  categorySwipeStartScrollLeft: 0,
-  categorySwipeTracking: false,
   categoryEditMode: false,
   categoryEditTarget: "",
   dragCategory: "",
@@ -315,7 +310,6 @@ const elements = {
   visibilityToggle: document.querySelector("#visibility-toggle"),
   categoryGrid: document.querySelector("#category-grid"),
   categoryPagination: document.querySelector("#category-pagination"),
-  categoryHint: document.querySelector("#category-hint"),
   categoryEditBar: document.querySelector("#category-edit-bar"),
   renameCategoryButton: document.querySelector("#rename-category-button"),
   deleteCategoryButton: document.querySelector("#delete-category-button"),
@@ -488,41 +482,7 @@ elements.paymentMethodSelect.addEventListener("change", () => {
 });
 
 elements.categoryGrid.addEventListener("scroll", () => {
-  if (
-    state.categorySwipeTracking &&
-    !state.categoryHintDismissed &&
-    Math.abs(elements.categoryGrid.scrollLeft - state.categorySwipeStartScrollLeft) > 12
-  ) {
-    dismissCategoryHint();
-  }
-
   window.requestAnimationFrame(syncCategoryPage);
-});
-
-elements.categoryGrid.addEventListener("pointerdown", (event) => {
-  if (event.pointerType !== "touch" && event.pointerType !== "pen") {
-    return;
-  }
-
-  state.categorySwipeTracking = true;
-  state.categorySwipeStartScrollLeft = elements.categoryGrid.scrollLeft;
-});
-
-elements.categoryGrid.addEventListener("touchstart", () => {
-  state.categorySwipeTracking = true;
-  state.categorySwipeStartScrollLeft = elements.categoryGrid.scrollLeft;
-});
-
-["pointerup", "pointercancel", "pointerleave"].forEach((eventName) => {
-  elements.categoryGrid.addEventListener(eventName, () => {
-    state.categorySwipeTracking = false;
-  });
-});
-
-elements.categoryGrid.addEventListener("wheel", (event) => {
-  if (Math.abs(event.deltaX) > Math.abs(event.deltaY) && Math.abs(event.deltaX) > 8) {
-    dismissCategoryHint();
-  }
 });
 
 elements.categoryGrid.addEventListener("dragstart", (event) => {
@@ -580,13 +540,11 @@ elements.categoryGrid.addEventListener(
 elements.categoryGrid.addEventListener("touchend", () => {
   state.touchDragCategory = "";
   state.touchDragLastTarget = "";
-  state.categorySwipeTracking = false;
 });
 
 elements.categoryGrid.addEventListener("touchcancel", () => {
   state.touchDragCategory = "";
   state.touchDragLastTarget = "";
-  state.categorySwipeTracking = false;
 });
 
 elements.categoryPagination.addEventListener("click", (event) => {
@@ -1113,7 +1071,6 @@ function renderCategories() {
   selectCategory(state.selectedCategory);
   renderCategoryPagination();
   renderCategoryEditBar();
-  renderCategoryHint();
 }
 
 function categoryIcon(category) {
@@ -1199,7 +1156,7 @@ function renderIconPicker() {
 }
 
 function categoryPageCount() {
-  return Math.max(1, Math.ceil((activeCategories().length + 1) / 6));
+  return Math.max(3, Math.ceil((activeCategories().length + 1) / 6));
 }
 
 function renderCategoryPagination() {
@@ -1221,22 +1178,6 @@ function syncCategoryPage() {
 
   state.categoryPage = nextPage;
   renderCategoryPagination();
-}
-
-function renderCategoryHint() {
-  const showHint = !state.categoryHintDismissed && !state.categoryEditMode && categoryPageCount() > 1;
-  elements.categoryHint.hidden = !showHint;
-  elements.categoryGrid.classList.toggle("category-grid-onboarding", showHint);
-}
-
-function dismissCategoryHint() {
-  if (state.categoryHintDismissed) {
-    return;
-  }
-
-  state.categoryHintDismissed = true;
-  localStorage.setItem(categoryHintStorageKey, "true");
-  renderCategoryHint();
 }
 
 function scrollCategoryPage(page) {
@@ -2418,8 +2359,7 @@ function getSettingsFocusable() {
 }
 
 function renderEmptyPrompt() {
-  const example = promptExamples[new Date().getSeconds() % promptExamples.length];
-  elements.parsePreview.textContent = `Try ${example}`;
+  elements.parsePreview.textContent = "";
 }
 
 function focusCapture({ immediate = false } = {}) {
@@ -2631,10 +2571,6 @@ function loadPendingCircleJoin() {
   } catch {
     return null;
   }
-}
-
-function loadCategoryHintDismissed() {
-  return localStorage.getItem(categoryHintStorageKey) === "true";
 }
 
 function savePendingCircleJoin(request) {
