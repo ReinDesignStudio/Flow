@@ -469,63 +469,6 @@ h2 {
   border-bottom: 1px solid var(--line);
 }
 
-.today-strip {
-  display: grid;
-  grid-template-columns: 1fr repeat(2, minmax(72px, auto));
-  gap: 10px;
-  margin: -10px 0 22px;
-  padding: 14px;
-  border: 1px solid rgba(187, 189, 191, 0.2);
-  border-radius: 22px;
-  background: #171616;
-}
-
-.today-total,
-.today-stat {
-  display: grid;
-  align-content: center;
-  min-width: 0;
-}
-
-.today-total span,
-.today-stat span {
-  display: block;
-  margin-bottom: 5px;
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 800;
-}
-
-.today-total strong,
-.today-stat strong {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--text);
-  font-size: 1.28rem;
-  line-height: 1;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.today-total strong {
-  color: var(--accent);
-  font-size: 1.8rem;
-}
-
-.today-last {
-  grid-column: 1 / -1;
-  min-width: 0;
-  overflow: hidden;
-  border-top: 1px solid rgba(187, 189, 191, 0.18);
-  color: var(--muted);
-  padding-top: 11px;
-  font-size: 0.82rem;
-  font-weight: 800;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .quick-input {
   display: block;
   min-width: 0;
@@ -1390,14 +1333,6 @@ h2 {
 }
 
 @media (max-width: 390px) {
-  .today-strip {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .today-total {
-    grid-column: 1 / -1;
-  }
-
   .category-composer {
     grid-template-columns: 1fr auto auto;
   }
