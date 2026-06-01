@@ -311,6 +311,10 @@ const elements = {
   closeStreakButton: document.querySelector("#close-streak-button"),
   streakShareButton: document.querySelector("#streak-share-button"),
   whyStreaksButton: document.querySelector("#why-streaks-button"),
+  todayTotal: document.querySelector("#today-total"),
+  todayCount: document.querySelector("#today-count"),
+  todayTop: document.querySelector("#today-top"),
+  todayLast: document.querySelector("#today-last"),
   quickEntry: document.querySelector("#quick-entry"),
   noteEntry: document.querySelector("#note-entry"),
   expenseForm: document.querySelector("#expense-form"),
@@ -1709,6 +1713,7 @@ async function initializeSupabaseAuth() {
 
     if (session) {
       await loadRemoteData();
+      cleanAuthUrl();
     }
   } catch (error) {
     authStartupError = error?.message || "Unable to connect to Supabase.";
@@ -1749,6 +1754,7 @@ function registerAuthStateListener() {
     state.auth = { email: session?.user?.email || "" };
     if (session) {
       await loadRemoteData();
+      cleanAuthUrl();
       showApp();
     }
   });
@@ -1762,6 +1768,35 @@ function setAuthLoading(loading) {
       button.disabled = loading;
     }
   });
+}
+
+function cleanAuthUrl() {
+  const url = new URL(window.location.href);
+  const authParams = [
+    "access_token",
+    "code",
+    "error",
+    "error_code",
+    "error_description",
+    "expires_at",
+    "expires_in",
+    "provider_refresh_token",
+    "provider_token",
+    "refresh_token",
+    "state",
+    "token_type",
+    "type",
+  ];
+  const hasAuthSearch = authParams.some((param) => url.searchParams.has(param));
+  const hasAuthHash = /(?:^|[&#])(access_token|code|error|refresh_token|state)=/.test(url.hash);
+
+  if (!hasAuthSearch && !hasAuthHash) {
+    return;
+  }
+
+  authParams.forEach((param) => url.searchParams.delete(param));
+  url.hash = "";
+  window.history.replaceState({}, "", `${url.pathname}${url.search}`);
 }
 
 async function signOut() {
@@ -1780,9 +1815,25 @@ async function signOut() {
 function renderAll() {
   setGreeting();
   renderCircle();
+  renderTodaySummary();
   renderStreak();
   renderHistory();
   renderInsights();
+}
+
+function renderTodaySummary() {
+  const expenses = expensesForDate(new Date());
+  const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  const byCategory = totalByCategory(expenses);
+  const topCategory = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0];
+  const latest = expenses[0];
+
+  elements.todayTotal.textContent = formatMoney(total);
+  elements.todayCount.textContent = String(expenses.length);
+  elements.todayTop.textContent = topCategory ? topCategory[0] : "None";
+  elements.todayLast.textContent = latest
+    ? `${latest.label} · ${formatMoney(latest.amount)}`
+    : "No entries yet";
 }
 
 function renderProfile({ syncInput = true } = {}) {
@@ -2166,10 +2217,14 @@ function monthRangeLabel(date) {
 }
 
 function totalForDate(date) {
+  return expensesForDate(date).reduce((sum, expense) => sum + expense.amount, 0);
+}
+
+function expensesForDate(date) {
   const key = dateKey(date);
   return state.expenses
     .filter((expense) => dateKey(new Date(expense.createdAt)) === key)
-    .reduce((sum, expense) => sum + expense.amount, 0);
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 
 function showTab(name, { focusCaptureInput = true } = {}) {
