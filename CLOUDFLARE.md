@@ -14,24 +14,23 @@ Cloudflare will serve the static files from the repository root.
 
 ## After The First Deploy
 
-Cloudflare will give you a `pages.dev` URL, usually like:
+Cloudflare will serve the production app at:
 
-`https://get-flow-tracker.pages.dev`
+`https://dailyflow.pro`
 
 Add that URL to Supabase:
 
 - Authentication > URL Configuration > Site URL:
-  - `https://get-flow-tracker.pages.dev`
+  - `https://dailyflow.pro`
 - Authentication > URL Configuration > Redirect URLs:
-  - `https://get-flow-tracker.pages.dev/**`
-  - `https://get-flow-tracker.vercel.app/**`
+  - `https://dailyflow.pro/**`
   - `http://localhost:4173/**`
   - `http://127.0.0.1:4173/**`
 
 Add this origin to the Google OAuth client:
 
 - Authorized JavaScript origins:
-  - `https://get-flow-tracker.pages.dev`
+  - `https://dailyflow.pro`
 
 Keep this Google redirect URI:
 
