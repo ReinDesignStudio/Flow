@@ -462,16 +462,26 @@ h2 {
 }
 
 .amount-entry-row {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: 10px;
   border-bottom: 1px solid var(--line);
+  cursor: text;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.amount-entry-row:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 2px 0 var(--accent);
 }
 
 .quick-input {
   display: block;
   min-width: 0;
+  position: relative;
+  cursor: text;
 }
 
 .quick-input input {
@@ -482,6 +492,8 @@ h2 {
   outline: 0;
   background: transparent;
   color: var(--text);
+  caret-color: var(--accent);
+  cursor: text;
   font-size: clamp(2.15rem, 12vw, 3.9rem);
   font-weight: 800;
   line-height: 1;
@@ -489,7 +501,35 @@ h2 {
 }
 
 .quick-input input::placeholder {
-  color: var(--muted);
+  color: rgba(135, 215, 0, 0.72);
+  opacity: 1;
+}
+
+.quick-input:focus-within input::placeholder {
+  color: var(--accent);
+}
+
+.quick-input:focus-within::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  bottom: 13px;
+  width: min(42%, 170px);
+  height: 3px;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: amount-cursor-blink 980ms steps(2, start) infinite;
+  pointer-events: none;
+}
+
+.quick-input input.input-prompted {
+  text-shadow: 0 0 18px rgba(135, 215, 0, 0.24);
+}
+
+@keyframes amount-cursor-blink {
+  50% {
+    opacity: 0.22;
+  }
 }
 
 .parse-preview {

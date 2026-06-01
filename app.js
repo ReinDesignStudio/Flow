@@ -312,6 +312,7 @@ const elements = {
   closeStreakButton: document.querySelector("#close-streak-button"),
   streakShareButton: document.querySelector("#streak-share-button"),
   whyStreaksButton: document.querySelector("#why-streaks-button"),
+  amountEntryRow: document.querySelector(".amount-entry-row"),
   quickEntry: document.querySelector("#quick-entry"),
   noteEntry: document.querySelector("#note-entry"),
   expenseForm: document.querySelector("#expense-form"),
@@ -477,6 +478,14 @@ elements.quickEntry.addEventListener("input", () => {
     selectCategory(parsed.category);
   }
   renderPreview(parsed);
+});
+
+elements.amountEntryRow.addEventListener("click", (event) => {
+  if (event.target.closest(".payment-select-label")) {
+    return;
+  }
+
+  focusCapture({ immediate: true });
 });
 
 elements.paymentMethodSelect.addEventListener("change", () => {
@@ -2395,8 +2404,19 @@ function renderEmptyPrompt() {
   elements.parsePreview.textContent = `Try ${example}`;
 }
 
-function focusCapture() {
-  window.setTimeout(() => elements.quickEntry.focus(), 80);
+function focusCapture({ immediate = false } = {}) {
+  const focus = () => {
+    elements.quickEntry.focus({ preventScroll: true });
+    elements.quickEntry.classList.add("input-prompted");
+    window.setTimeout(() => elements.quickEntry.classList.remove("input-prompted"), 700);
+  };
+
+  if (immediate) {
+    focus();
+    return;
+  }
+
+  window.setTimeout(focus, 80);
 }
 
 function notifySaved(message = "Saved", expense = null) {
