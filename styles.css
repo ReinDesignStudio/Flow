@@ -370,7 +370,7 @@ input {
 }
 
 .daily-spend-line {
-  margin: -2px 0 12px;
+  margin: 12px 0 0;
   color: var(--muted);
   font-size: 0.88rem;
   font-weight: 500;
