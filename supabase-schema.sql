@@ -41,6 +41,16 @@ create table if not exists public.circle_members (
   primary key (circle_id, user_id)
 );
 
+create table if not exists public.circle_join_requests (
+  circle_id uuid not null references public.circles(id) on delete cascade,
+  requester_user_id uuid not null references auth.users(id) on delete cascade,
+  requester_name text not null default 'Someone',
+  status text not null default 'pending' check (status in ('pending', 'accepted', 'declined', 'cancelled')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (circle_id, requester_user_id)
+);
+
 create table if not exists public.expenses (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -68,6 +78,7 @@ alter table public.profiles enable row level security;
 alter table public.category_settings enable row level security;
 alter table public.circles enable row level security;
 alter table public.circle_members enable row level security;
+alter table public.circle_join_requests enable row level security;
 alter table public.expenses enable row level security;
 
 drop policy if exists "Profiles are owner-only" on public.profiles;
@@ -131,6 +142,19 @@ create policy "Users can join circles"
   to authenticated
   with check ((select auth.uid()) = user_id);
 
+drop policy if exists "Circle owners can add accepted members" on public.circle_members;
+create policy "Circle owners can add accepted members"
+  on public.circle_members
+  for insert
+  to authenticated
+  with check (
+    exists (
+      select 1 from public.circles
+      where circles.id = circle_members.circle_id
+      and circles.created_by_user_id = (select auth.uid())
+    )
+  );
+
 drop policy if exists "Users can update their circle membership" on public.circle_members;
 create policy "Users can update their circle membership"
   on public.circle_members
@@ -138,6 +162,49 @@ create policy "Users can update their circle membership"
   to authenticated
   using ((select auth.uid()) = user_id)
   with check ((select auth.uid()) = user_id);
+
+drop policy if exists "Circle join requests are visible to requester and owner" on public.circle_join_requests;
+create policy "Circle join requests are visible to requester and owner"
+  on public.circle_join_requests
+  for select
+  to authenticated
+  using (
+    requester_user_id = (select auth.uid())
+    or exists (
+      select 1 from public.circles
+      where circles.id = circle_join_requests.circle_id
+      and circles.created_by_user_id = (select auth.uid())
+    )
+  );
+
+drop policy if exists "Users can request to join circles" on public.circle_join_requests;
+create policy "Users can request to join circles"
+  on public.circle_join_requests
+  for insert
+  to authenticated
+  with check (requester_user_id = (select auth.uid()) and status = 'pending');
+
+drop policy if exists "Requester and owner can update join requests" on public.circle_join_requests;
+create policy "Requester and owner can update join requests"
+  on public.circle_join_requests
+  for update
+  to authenticated
+  using (
+    requester_user_id = (select auth.uid())
+    or exists (
+      select 1 from public.circles
+      where circles.id = circle_join_requests.circle_id
+      and circles.created_by_user_id = (select auth.uid())
+    )
+  )
+  with check (
+    (requester_user_id = (select auth.uid()) and status in ('pending', 'cancelled'))
+    or exists (
+      select 1 from public.circles
+      where circles.id = circle_join_requests.circle_id
+      and circles.created_by_user_id = (select auth.uid())
+    )
+  );
 
 drop policy if exists "Expenses are owner-only" on public.expenses;
 create policy "Expenses are owner-only"
