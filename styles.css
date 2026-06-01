@@ -7,6 +7,7 @@
   --line: #bbbdbf;
   --accent: #87d700;
   --shadow: 0 24px 70px #0c0606;
+  --tabbar-clearance: calc(112px + env(safe-area-inset-bottom));
   font-family:
     "Intro", Intro, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -345,7 +346,7 @@ input {
   width: min(100%, 480px);
   min-height: 100svh;
   margin: 0 auto;
-  padding: max(36px, env(safe-area-inset-top)) 18px calc(126px + env(safe-area-inset-bottom));
+  padding: max(36px, env(safe-area-inset-top)) 18px calc(var(--tabbar-clearance) + 20px);
   overflow-x: hidden;
 }
 
@@ -365,6 +366,14 @@ input {
   gap: 18px;
   min-height: 104px;
   padding-top: 8px;
+}
+
+.daily-spend-line {
+  margin: -2px 0 12px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.25;
 }
 
 .streak-button {
@@ -459,6 +468,7 @@ h2 {
 .capture-card {
   display: grid;
   gap: 20px;
+  padding-bottom: var(--tabbar-clearance);
 }
 
 .amount-entry-row {

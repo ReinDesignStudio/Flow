@@ -305,6 +305,7 @@ const elements = {
   signinPassword: document.querySelector("#signin-password"),
   authMessage: document.querySelector("#auth-message"),
   greeting: document.querySelector("#greeting"),
+  dailySpendLine: document.querySelector("#daily-spend-line"),
   streakButton: document.querySelector("#streak-button"),
   streakCount: document.querySelector("#streak-count"),
   streakSheet: document.querySelector("#streak-sheet"),
@@ -1882,6 +1883,7 @@ async function signOut() {
 
 function renderAll() {
   setGreeting();
+  renderDailySpendLine();
   renderCircle();
   renderStreak();
   renderHistory();
@@ -3553,6 +3555,11 @@ function setGreeting() {
   const hour = new Date().getHours();
   const dayPart = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
   elements.greeting.textContent = `Good ${dayPart}, ${state.profileName || defaultProfileName}`;
+}
+
+function renderDailySpendLine() {
+  const total = totalForDate(new Date());
+  elements.dailySpendLine.textContent = `${formatMoney(total)} spent today`;
 }
 
 function renderStreak() {
