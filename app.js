@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=101";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -1428,7 +1428,7 @@ function showApp() {
 async function createAccount() {
   const client = await ensureSupabaseClient();
   if (!client) {
-    showAuthMessage("Add Supabase keys before creating accounts.");
+    showAuthMessage(supabaseUnavailableMessage("creating accounts"));
     return;
   }
 
@@ -1478,7 +1478,7 @@ async function createAccount() {
 async function signIn() {
   const client = await ensureSupabaseClient();
   if (!client) {
-    showAuthMessage("Add Supabase keys before signing in.");
+    showAuthMessage(supabaseUnavailableMessage("signing in"));
     return;
   }
 
@@ -1510,7 +1510,7 @@ async function signIn() {
 async function signInWithGoogle() {
   const client = await ensureSupabaseClient();
   if (!client) {
-    showAuthMessage("Add Supabase keys before using Google sign in.");
+    showAuthMessage(supabaseUnavailableMessage("using Google sign in"));
     return;
   }
 
@@ -1531,7 +1531,7 @@ async function signInWithGoogle() {
 async function sendPhoneCode() {
   const client = await ensureSupabaseClient();
   if (!client) {
-    showAuthMessage("Add Supabase keys before using mobile sign in.");
+    showAuthMessage(supabaseUnavailableMessage("using mobile sign in"));
     return;
   }
 
@@ -1729,6 +1729,18 @@ async function ensureSupabaseClient() {
     authStartupError = error?.message || "Unable to connect to Supabase.";
     return null;
   }
+}
+
+function supabaseUnavailableMessage(action) {
+  if (!supabaseConfigured) {
+    return `Add Supabase keys before ${action}.`;
+  }
+
+  if (authStartupError) {
+    return `Supabase connection issue: ${authStartupError}`;
+  }
+
+  return `Supabase is not ready for ${action}. Refresh and try again.`;
 }
 
 function registerAuthStateListener() {
@@ -3278,7 +3290,14 @@ function mergeRemoteExpenses(rows) {
 }
 
 async function createSupabaseClient() {
-  const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+  let createClient = null;
+
+  try {
+    ({ createClient } = await import("https://esm.sh/@supabase/supabase-js@2"));
+  } catch {
+    ({ createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"));
+  }
+
   return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: true,
