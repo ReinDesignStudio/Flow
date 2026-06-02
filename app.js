@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=112";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=113";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -375,7 +375,6 @@ const elements = {
   saveDateDetail: document.querySelector("#save-date-detail"),
   saveDateInput: document.querySelector("#save-date-input"),
   cancelSaveDateButton: document.querySelector("#cancel-save-date-button"),
-  saveTodayButton: document.querySelector("#save-today-button"),
   confirmSaveDateButton: document.querySelector("#confirm-save-date-button"),
   clearConfirm: document.querySelector("#clear-confirm"),
   keepHistoryButton: document.querySelector("#keep-history-button"),
@@ -749,11 +748,6 @@ elements.logoutButton.addEventListener("click", () => {
 
 elements.cancelSaveDateButton.addEventListener("click", () => {
   closeSaveDateConfirm();
-});
-
-elements.saveTodayButton.addEventListener("click", () => {
-  elements.saveDateInput.value = dateInputValue(new Date());
-  commitPendingSave();
 });
 
 elements.confirmSaveDateButton.addEventListener("click", () => {
@@ -2678,7 +2672,7 @@ function openSaveDateConfirm() {
   elements.saveDateConfirm.hidden = false;
   elements.saveDateConfirm.classList.remove("show");
   window.requestAnimationFrame(() => elements.saveDateConfirm.classList.add("show"));
-  window.setTimeout(() => elements.saveTodayButton.focus({ preventScroll: true }), 60);
+  window.setTimeout(() => elements.confirmSaveDateButton.focus({ preventScroll: true }), 60);
 }
 
 function closeSaveDateConfirm({ discard = true } = {}) {

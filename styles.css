@@ -1959,22 +1959,23 @@ h2 {
 
 .save-date-card {
   align-items: center;
-  gap: 14px;
-  width: min(calc(100% - 44px), 390px);
+  gap: 10px;
+  width: min(calc(100% - 52px), 380px);
   min-height: 0;
   border-color: color-mix(in srgb, var(--accent) 46%, var(--line));
-  padding: 26px;
+  padding: 24px;
 }
 
 .save-date-icon {
-  width: 74px;
-  height: 74px;
-  font-size: 2.7rem;
+  width: 68px;
+  height: 68px;
+  font-size: 2.45rem;
 }
 
 .save-date-card strong {
   display: block;
-  font-size: 2rem;
+  margin-top: 4px;
+  font-size: 1.9rem;
   line-height: 1.05;
 }
 
@@ -1986,9 +1987,9 @@ h2 {
 
 .save-date-field {
   display: grid;
-  gap: 8px;
+  gap: 7px;
   width: 100%;
-  margin-top: 4px;
+  margin-top: 8px;
   text-align: left;
 }
 
@@ -2001,7 +2002,7 @@ h2 {
 
 .save-date-field input {
   width: 100%;
-  min-height: 58px;
+  min-height: 56px;
   border: 1px solid var(--line);
   border-radius: 18px;
   outline: 0;
@@ -2010,6 +2011,7 @@ h2 {
   padding: 0 16px;
   font-size: 1.08rem;
   font-weight: 900;
+  text-align: center;
 }
 
 .save-date-field input:focus {
@@ -2019,27 +2021,26 @@ h2 {
 
 .save-date-actions {
   display: grid;
-  grid-template-columns: 0.82fr 1fr 0.82fr;
-  gap: 9px;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
   width: 100%;
-  margin-top: 2px;
+  margin-top: 12px;
 }
 
 .save-date-actions button {
-  min-height: 54px;
+  min-height: 56px;
   border-radius: 999px;
   font-size: 0.98rem;
   font-weight: 950;
 }
 
-.save-date-secondary,
-.save-date-primary {
+.save-date-secondary {
   border: 1px solid var(--line);
   background: transparent;
   color: var(--text);
 }
 
-.save-date-today {
+.save-date-primary {
   border: 0;
   background: var(--accent);
   color: var(--bg);
