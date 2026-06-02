@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=110";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=111";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -3814,6 +3814,10 @@ function setGreeting() {
 }
 
 function renderDailySpendLine() {
+  if (!elements.dailySpendLine) {
+    return;
+  }
+
   const total = totalForDate(new Date());
   elements.dailySpendLine.textContent = `${formatMoney(total)} spent today`;
 }
