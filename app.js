@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=115";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=117";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -1951,7 +1951,7 @@ function renderProfile({ syncInput = true } = {}) {
 function renderTheme() {
   const theme = state.theme === "light" ? "light" : "dark";
   document.documentElement.dataset.theme = theme;
-  const themeColor = theme === "light" ? "#f7f9f2" : "#0c0606";
+  const themeColor = theme === "light" ? "#ffffff" : "#151515";
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor);
 
   elements.themeToggle.querySelectorAll("button[data-theme]").forEach((button) => {
