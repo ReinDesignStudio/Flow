@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=111";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=112";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -267,6 +267,7 @@ const state = {
   openMenuId: "",
   collapsedDays: new Set(),
   expandedDays: new Set(),
+  pendingSave: null,
   deferredInstallPrompt: null,
   pendingPhone: "",
   qrStream: null,
@@ -370,6 +371,12 @@ const elements = {
   successBurst: document.querySelector("#success-burst"),
   successTitle: document.querySelector("#success-title"),
   successDetail: document.querySelector("#success-detail"),
+  saveDateConfirm: document.querySelector("#save-date-confirm"),
+  saveDateDetail: document.querySelector("#save-date-detail"),
+  saveDateInput: document.querySelector("#save-date-input"),
+  cancelSaveDateButton: document.querySelector("#cancel-save-date-button"),
+  saveTodayButton: document.querySelector("#save-today-button"),
+  confirmSaveDateButton: document.querySelector("#confirm-save-date-button"),
   clearConfirm: document.querySelector("#clear-confirm"),
   keepHistoryButton: document.querySelector("#keep-history-button"),
   confirmClearButton: document.querySelector("#confirm-clear-button"),
@@ -740,6 +747,35 @@ elements.logoutButton.addEventListener("click", () => {
   signOut();
 });
 
+elements.cancelSaveDateButton.addEventListener("click", () => {
+  closeSaveDateConfirm();
+});
+
+elements.saveTodayButton.addEventListener("click", () => {
+  elements.saveDateInput.value = dateInputValue(new Date());
+  commitPendingSave();
+});
+
+elements.confirmSaveDateButton.addEventListener("click", () => {
+  commitPendingSave();
+});
+
+elements.saveDateInput.addEventListener("input", () => {
+  renderSaveDateConfirm();
+});
+
+elements.saveDateConfirm.addEventListener("click", (event) => {
+  if (event.target === elements.saveDateConfirm) {
+    closeSaveDateConfirm();
+  }
+});
+
+elements.saveDateConfirm.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeSaveDateConfirm();
+  }
+});
+
 elements.expenseForm.addEventListener("submit", (event) => {
   event.preventDefault();
   const parsed = parseEntry(elements.quickEntry.value);
@@ -751,27 +787,16 @@ elements.expenseForm.addEventListener("submit", (event) => {
   }
 
   const expense = buildExpense(parsed);
-
   const wasEditing = Boolean(state.editingId);
+  const existing = wasEditing ? state.expenses.find((item) => item.id === state.editingId) : null;
 
-  if (wasEditing) {
-    const existing = state.expenses.find((item) => item.id === state.editingId);
-    if (existing) {
-      Object.assign(existing, expense, { id: existing.id, createdAt: existing.createdAt });
-    }
-  } else {
-    state.expenses.unshift({
-      ...expense,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    });
-  }
-
-  saveExpenses();
-  resetCapture();
-  renderAll();
-  focusCapture();
-  notifySaved(wasEditing ? "Updated" : "Saved", expense);
+  state.pendingSave = {
+    expense,
+    existingId: existing?.id || "",
+    wasEditing,
+    defaultDate: existing?.createdAt || new Date().toISOString(),
+  };
+  openSaveDateConfirm();
 });
 
 elements.visibilityToggle.addEventListener("click", (event) => {
@@ -2429,6 +2454,7 @@ function shouldIgnorePageSwipe(target) {
         ".insight-detail-sheet",
         ".settings-sheet",
         ".install-guide-sheet",
+        ".save-date-confirm",
         ".clear-confirm",
         ".install-note",
       ].join(", "),
@@ -2464,6 +2490,7 @@ function deleteExpense(id) {
 }
 
 function resetCapture() {
+  closeSaveDateConfirm();
   state.editingId = "";
   elements.quickEntry.value = "";
   elements.noteEntry.value = "";
@@ -2637,6 +2664,77 @@ function notifySaved(message = "Saved", expense = null) {
   }
   showSuccess(message, expense);
   showToast(message);
+}
+
+function openSaveDateConfirm() {
+  if (!state.pendingSave) {
+    return;
+  }
+
+  const date = new Date(state.pendingSave.defaultDate);
+  elements.saveDateInput.value = dateInputValue(date);
+  elements.saveDateInput.max = dateInputValue(new Date());
+  renderSaveDateConfirm();
+  elements.saveDateConfirm.hidden = false;
+  elements.saveDateConfirm.classList.remove("show");
+  window.requestAnimationFrame(() => elements.saveDateConfirm.classList.add("show"));
+  window.setTimeout(() => elements.saveTodayButton.focus({ preventScroll: true }), 60);
+}
+
+function closeSaveDateConfirm({ discard = true } = {}) {
+  if (elements.saveDateConfirm.hidden) {
+    return;
+  }
+
+  if (discard) {
+    state.pendingSave = null;
+  }
+
+  elements.saveDateConfirm.classList.remove("show");
+  window.setTimeout(() => {
+    elements.saveDateConfirm.hidden = true;
+  }, 180);
+}
+
+function renderSaveDateConfirm() {
+  const expense = state.pendingSave?.expense;
+  const selectedDate = selectedSaveDate();
+  const dateLabel = selectedDate ? friendlyDateLabel(selectedDate) : "Today";
+  elements.saveDateDetail.textContent = expense
+    ? `${formatMoney(expense.amount)} · ${expense.category} · ${dateLabel}`
+    : dateLabel;
+}
+
+function commitPendingSave() {
+  if (!state.pendingSave) {
+    closeSaveDateConfirm();
+    return;
+  }
+
+  const selectedDate = selectedSaveDate() || new Date();
+  const createdAt = mergeDateWithCurrentTime(selectedDate).toISOString();
+  const { expense, existingId, wasEditing } = state.pendingSave;
+  const savedExpense = { ...expense, createdAt };
+
+  if (wasEditing) {
+    const existing = state.expenses.find((item) => item.id === existingId);
+    if (existing) {
+      Object.assign(existing, savedExpense, { id: existing.id });
+    }
+  } else {
+    state.expenses.unshift({
+      ...savedExpense,
+      id: crypto.randomUUID(),
+    });
+  }
+
+  state.pendingSave = null;
+  saveExpenses();
+  closeSaveDateConfirm({ discard: false });
+  resetCapture();
+  renderAll();
+  focusCapture();
+  notifySaved(wasEditing ? "Updated" : "Saved", savedExpense);
 }
 
 function showSuccess(message, expense) {
@@ -3882,6 +3980,37 @@ function dayLabel(date) {
 
 function detailDateLabel(date) {
   return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+function friendlyDateLabel(date) {
+  return dayLabel(date) === "Today" || dayLabel(date) === "Yesterday"
+    ? dayLabel(date)
+    : detailDateLabel(date);
+}
+
+function dateInputValue(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function selectedSaveDate() {
+  if (!elements.saveDateInput.value) {
+    return null;
+  }
+
+  const [year, month, day] = elements.saveDateInput.value.split("-").map(Number);
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day);
+}
+
+function mergeDateWithCurrentTime(date) {
+  const now = new Date();
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
 }
 
 function startOfDay(date) {

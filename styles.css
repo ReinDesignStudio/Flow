@@ -1868,6 +1868,7 @@ h2 {
 }
 
 .success-burst,
+.save-date-confirm,
 .clear-confirm {
   position: fixed;
   inset: 0;
@@ -1880,21 +1881,25 @@ h2 {
   transition: opacity 180ms ease;
 }
 
+.save-date-confirm,
 .clear-confirm {
   pointer-events: auto;
 }
 
 .success-burst[hidden],
+.save-date-confirm[hidden],
 .clear-confirm[hidden] {
   display: none;
 }
 
 .success-burst.show,
+.save-date-confirm.show,
 .clear-confirm.show {
   opacity: 1;
 }
 
 .success-card,
+.save-date-card,
 .clear-confirm-card {
   display: grid;
   place-items: center;
@@ -1911,6 +1916,7 @@ h2 {
 }
 
 .success-burst.show .success-card,
+.save-date-confirm.show .save-date-card,
 .clear-confirm.show .clear-confirm-card {
   animation: success-pop 780ms cubic-bezier(0.2, 1.25, 0.24, 1) forwards;
 }
@@ -1949,6 +1955,94 @@ h2 {
   display: block;
   font-size: 2rem;
   line-height: 1;
+}
+
+.save-date-card {
+  align-items: center;
+  gap: 14px;
+  width: min(calc(100% - 44px), 390px);
+  min-height: 0;
+  border-color: color-mix(in srgb, var(--accent) 46%, var(--line));
+  padding: 26px;
+}
+
+.save-date-icon {
+  width: 74px;
+  height: 74px;
+  font-size: 2.7rem;
+}
+
+.save-date-card strong {
+  display: block;
+  font-size: 2rem;
+  line-height: 1.05;
+}
+
+.save-date-card > span {
+  color: var(--muted);
+  font-size: 1.04rem;
+  font-weight: 800;
+}
+
+.save-date-field {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  text-align: left;
+}
+
+.save-date-field span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.save-date-field input {
+  width: 100%;
+  min-height: 58px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  outline: 0;
+  background: var(--panel);
+  color: var(--text);
+  padding: 0 16px;
+  font-size: 1.08rem;
+  font-weight: 900;
+}
+
+.save-date-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.save-date-actions {
+  display: grid;
+  grid-template-columns: 0.82fr 1fr 0.82fr;
+  gap: 9px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.save-date-actions button {
+  min-height: 54px;
+  border-radius: 999px;
+  font-size: 0.98rem;
+  font-weight: 950;
+}
+
+.save-date-secondary,
+.save-date-primary {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+}
+
+.save-date-today {
+  border: 0;
+  background: var(--accent);
+  color: var(--bg);
 }
 
 .clear-confirm-actions {

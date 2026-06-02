@@ -8,11 +8,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Flow" />
     <title>Flow</title>
-    <link rel="manifest" href="./manifest.webmanifest?v=111" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=111" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=111" />
-    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=111" />
-    <link rel="stylesheet" href="./styles.css?v=111" />
+    <link rel="manifest" href="./manifest.webmanifest?v=112" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=112" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=112" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=112" />
+    <link rel="stylesheet" href="./styles.css?v=112" />
   </head>
   <body>
     <div class="install-note" id="install-note" role="status" aria-live="polite" hidden>
@@ -266,6 +266,22 @@
           <span id="success-detail">₱120 Coffee</span>
         </div>
       </div>
+      <div class="save-date-confirm" id="save-date-confirm" role="dialog" aria-modal="true" aria-labelledby="save-date-title" hidden>
+        <div class="save-date-card">
+          <div class="success-check save-date-icon" aria-hidden="true">₱</div>
+          <strong id="save-date-title">Save expense?</strong>
+          <span id="save-date-detail">Today</span>
+          <label class="save-date-field">
+            <span>Pick a date</span>
+            <input id="save-date-input" type="date" />
+          </label>
+          <div class="save-date-actions">
+            <button class="save-date-secondary" id="cancel-save-date-button" type="button">Cancel</button>
+            <button class="save-date-today" id="save-today-button" type="button">Today</button>
+            <button class="save-date-primary" id="confirm-save-date-button" type="button">Save</button>
+          </div>
+        </div>
+      </div>
       <div class="clear-confirm" id="clear-confirm" role="dialog" aria-modal="true" aria-labelledby="clear-confirm-title" hidden>
         <div class="clear-confirm-card">
           <div class="success-check clear-confirm-icon" aria-hidden="true">×</div>
@@ -492,6 +508,6 @@
       </div>
     </main>
 
-    <script src="./app.js?v=111" type="module"></script>
+    <script src="./app.js?v=112" type="module"></script>
   </body>
 </html>
