@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=107";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=108";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -301,6 +301,7 @@ const elements = {
   signinForm: document.querySelector("#signin-form"),
   signinEmail: document.querySelector("#signin-email"),
   signinPassword: document.querySelector("#signin-password"),
+  forgotPasswordButton: document.querySelector("#forgot-password-button"),
   authMessage: document.querySelector("#auth-message"),
   greeting: document.querySelector("#greeting"),
   dailySpendLine: document.querySelector("#daily-spend-line"),
@@ -1585,6 +1586,34 @@ async function signInWithGoogle() {
   }
 }
 
+async function sendPasswordReset() {
+  const client = await ensureSupabaseClient();
+  if (!client) {
+    showAuthMessage(supabaseUnavailableMessage("resetting your password"));
+    return;
+  }
+
+  const email = elements.signinEmail.value.trim().toLowerCase();
+  if (!email) {
+    showAuthMessage("Enter your email first, then tap Forgot password.");
+    elements.signinEmail.focus();
+    return;
+  }
+
+  setAuthLoading(true);
+  const { error } = await client.auth.resetPasswordForEmail(email, {
+    redirectTo: getAuthRedirectUrl(),
+  });
+  setAuthLoading(false);
+
+  if (error) {
+    showAuthMessage(error.message);
+    return;
+  }
+
+  showAuthMessage("Password reset link sent. Check your email.");
+}
+
 async function sendPhoneCode() {
   const client = await ensureSupabaseClient();
   if (!client) {
@@ -1743,6 +1772,10 @@ function attachAuthListeners() {
     event.preventDefault();
     signIn();
   });
+
+  elements.forgotPasswordButton.addEventListener("click", () => {
+    sendPasswordReset();
+  });
 }
 
 async function initializeSupabaseAuth() {
@@ -1821,7 +1854,14 @@ function registerAuthStateListener() {
 function setAuthLoading(loading) {
   elements.signupForm.querySelector("button[type='submit']").disabled = loading;
   elements.signinForm.querySelector("button[type='submit']").disabled = loading;
-  [elements.authGoogle, elements.signupGoogle, elements.signinGoogle, elements.sendPhoneCode, elements.verifyPhoneCode].forEach((button) => {
+  [
+    elements.authGoogle,
+    elements.signupGoogle,
+    elements.signinGoogle,
+    elements.forgotPasswordButton,
+    elements.sendPhoneCode,
+    elements.verifyPhoneCode,
+  ].forEach((button) => {
     if (button) {
       button.disabled = loading;
     }
