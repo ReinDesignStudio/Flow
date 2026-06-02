@@ -1886,6 +1886,15 @@ h2 {
   pointer-events: auto;
 }
 
+.save-date-confirm {
+  align-items: center;
+  justify-items: center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: max(20px, env(safe-area-inset-top)) 0 max(20px, env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+
 .success-burst[hidden],
 .save-date-confirm[hidden],
 .clear-confirm[hidden] {
@@ -1962,6 +1971,7 @@ h2 {
   gap: 10px;
   width: min(calc(100% - 52px), 374px);
   min-height: 0;
+  margin: auto 0;
   border-color: color-mix(in srgb, var(--accent) 46%, var(--line));
   overflow: hidden;
   padding: 24px 22px;
@@ -2006,7 +2016,7 @@ h2 {
   display: block;
   width: 100%;
   max-width: 100%;
-  min-height: 56px;
+  height: 56px;
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 18px;
@@ -2018,7 +2028,20 @@ h2 {
   padding: 0 16px;
   font-size: 1.08rem;
   font-weight: 900;
+  line-height: 56px;
   text-align: center;
+}
+
+.save-date-field input::-webkit-date-and-time-value,
+.save-date-field input::-webkit-datetime-edit {
+  display: block;
+  min-height: 56px;
+  line-height: 56px;
+  text-align: center;
+}
+
+.save-date-field input::-webkit-calendar-picker-indicator {
+  margin: 0;
 }
 
 .save-date-field input:focus {
