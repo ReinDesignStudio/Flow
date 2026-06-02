@@ -1960,10 +1960,11 @@ h2 {
 .save-date-card {
   align-items: center;
   gap: 10px;
-  width: min(calc(100% - 52px), 380px);
+  width: min(calc(100% - 52px), 374px);
   min-height: 0;
   border-color: color-mix(in srgb, var(--accent) 46%, var(--line));
-  padding: 24px;
+  overflow: hidden;
+  padding: 24px 22px;
 }
 
 .save-date-icon {
@@ -1988,7 +1989,8 @@ h2 {
 .save-date-field {
   display: grid;
   gap: 7px;
-  width: 100%;
+  justify-self: center;
+  width: min(100%, 312px);
   margin-top: 8px;
   text-align: left;
 }
@@ -2001,11 +2003,16 @@ h2 {
 }
 
 .save-date-field input {
+  display: block;
   width: 100%;
+  max-width: 100%;
   min-height: 56px;
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: 18px;
   outline: 0;
+  appearance: none;
+  -webkit-appearance: none;
   background: var(--panel);
   color: var(--text);
   padding: 0 16px;
@@ -2023,7 +2030,8 @@ h2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  width: 100%;
+  justify-self: center;
+  width: min(100%, 312px);
   margin-top: 12px;
 }
 
