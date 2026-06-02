@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=105";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=106";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -325,6 +325,9 @@ const elements = {
   saveButton: document.querySelector("#save-button"),
   cancelEditButton: document.querySelector("#cancel-edit-button"),
   historyList: document.querySelector("#history-list"),
+  circleAccessButton: document.querySelector("#circle-access-button"),
+  circleSheet: document.querySelector("#circle-sheet"),
+  closeCircleSheetButton: document.querySelector("#close-circle-sheet-button"),
   circlePanel: document.querySelector("#circle-panel"),
   createCircleButton: document.querySelector("#create-circle-button"),
   inviteCircleButton: document.querySelector("#invite-circle-button"),
@@ -339,6 +342,7 @@ const elements = {
   circleInviteLink: document.querySelector("#circle-invite-link"),
   copyCircleLinkButton: document.querySelector("#copy-circle-link-button"),
   circleRequestList: document.querySelector("#circle-request-list"),
+  circleContactList: document.querySelector("#circle-contact-list"),
   joinCircleButton: document.querySelector("#join-circle-button"),
   qrSheet: document.querySelector("#qr-sheet"),
   qrVideo: document.querySelector("#qr-video"),
@@ -376,6 +380,8 @@ const elements = {
   accountEmail: document.querySelector("#account-email"),
   settingsSheet: document.querySelector("#settings-sheet"),
   closeSettingsButton: document.querySelector("#close-settings-button"),
+  labelSettingsButton: document.querySelector("#label-settings-button"),
+  circleContactsButton: document.querySelector("#circle-contacts-button"),
   logoutButton: document.querySelector("#logout-button"),
   installButton: document.querySelector("#install-button"),
   addExpenseButton: document.querySelector("#add-expense-button"),
@@ -611,6 +617,10 @@ elements.profileButton.addEventListener("click", () => {
   openSettings();
 });
 
+elements.circleAccessButton.addEventListener("click", () => {
+  openCircleSheet();
+});
+
 elements.weekDetailButton.addEventListener("click", () => {
   openInsightDetail("week");
 });
@@ -679,6 +689,31 @@ elements.themeToggle.addEventListener("click", (event) => {
 
 elements.closeSettingsButton.addEventListener("click", () => {
   closeSettings();
+});
+
+elements.labelSettingsButton.addEventListener("click", () => {
+  openLabelSettings();
+});
+
+elements.circleContactsButton.addEventListener("click", () => {
+  closeSettings({ restoreFocus: false });
+  openCircleSheet({ showContacts: true });
+});
+
+elements.closeCircleSheetButton.addEventListener("click", () => {
+  closeCircleSheet();
+});
+
+elements.circleSheet.addEventListener("click", (event) => {
+  if (event.target === elements.circleSheet) {
+    closeCircleSheet();
+  }
+});
+
+elements.circleSheet.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeCircleSheet();
+  }
 });
 
 elements.settingsSheet.addEventListener("keydown", (event) => {
@@ -1908,6 +1943,7 @@ function renderCircle() {
   }
 
   renderCircleRequests();
+  renderCircleContacts();
 
   elements.visibilityToggle.querySelectorAll("button").forEach((button) => {
     const active = button.dataset.visibility === state.expenseVisibility;
@@ -1921,6 +1957,37 @@ function renderCircle() {
     button.classList.toggle("active", button.dataset.historyFilter === state.historyFilter);
     button.disabled = button.dataset.historyFilter === "circle" && !hasCircle;
   });
+}
+
+function renderCircleContacts() {
+  if (!state.circle) {
+    elements.circleContactList.hidden = false;
+    elements.circleContactList.innerHTML = `
+      <article class="circle-contact-card">
+        <strong>No Circle contacts yet</strong>
+        <span>Create or join a Circle to see shared contacts here.</span>
+      </article>
+    `;
+    return;
+  }
+
+  const contacts = state.circle.members.length ? state.circle.members : [state.circle.createdByUserId];
+  elements.circleContactList.hidden = false;
+  elements.circleContactList.innerHTML = `
+    <div class="circle-contact-heading">
+      <strong>My Contact</strong>
+      <span>${contacts.length} Circle member${contacts.length === 1 ? "" : "s"}</span>
+    </div>
+    ${contacts.map((memberId, index) => `
+      <article class="circle-contact-card">
+        <div class="circle-contact-avatar">${escapeHtml(memberId === state.user?.id ? (state.profileName || defaultProfileName).charAt(0).toUpperCase() : String(index + 1))}</div>
+        <div>
+          <strong>${escapeHtml(memberId === state.user?.id ? `${state.profileName || defaultProfileName} (You)` : `Circle member ${index + 1}`)}</strong>
+          <span>${escapeHtml(memberId === state.circle.createdByUserId ? "Owner" : "Member")}</span>
+        </div>
+      </article>
+    `).join("")}
+  `;
 }
 
 function renderCircleRequests() {
@@ -2280,6 +2347,7 @@ function expensesForDate(date, expenses = state.expenses) {
 function showTab(name, { focusCaptureInput = true } = {}) {
   closeMenu();
   closeSettings();
+  closeCircleSheet();
   closeInsightDetail();
   elements.tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.tab === name));
   elements.screens.forEach((screen) => screen.classList.toggle("screen-active", screen.id === `${name}-screen`));
@@ -2407,6 +2475,7 @@ function closeMenu() {
 
 function openSettings() {
   closeMenu();
+  closeCircleSheet();
   state.settingsReturnFocus = document.activeElement;
   if (state.circle) {
     refreshCircleRemoteData().catch(() => {});
@@ -2420,7 +2489,7 @@ function openSettings() {
   }, 20);
 }
 
-function closeSettings() {
+function closeSettings({ restoreFocus = true } = {}) {
   if (elements.settingsSheet.hidden) {
     return;
   }
@@ -2428,11 +2497,56 @@ function closeSettings() {
   elements.settingsSheet.classList.remove("show");
   window.setTimeout(() => {
     elements.settingsSheet.hidden = true;
-    if (state.settingsReturnFocus?.focus) {
+    if (restoreFocus && state.settingsReturnFocus?.focus) {
       state.settingsReturnFocus.focus({ preventScroll: true });
     }
     state.settingsReturnFocus = null;
   }, 180);
+}
+
+function openCircleSheet({ showContacts = false } = {}) {
+  closeMenu();
+  closeSettings({ restoreFocus: false });
+  closeInsightDetail();
+  state.settingsReturnFocus = document.activeElement;
+  if (state.circle) {
+    refreshCircleRemoteData().catch(() => {});
+  } else if (state.pendingCircleJoin) {
+    refreshPendingCircleJoin().catch(() => {});
+  }
+  renderCircle();
+  elements.circleSheet.hidden = false;
+  window.setTimeout(() => {
+    elements.circleSheet.classList.add("show");
+    if (showContacts && elements.circleContactList.hidden) {
+      elements.circleContactList.hidden = false;
+    }
+    elements.closeCircleSheetButton.focus({ preventScroll: true });
+  }, 20);
+}
+
+function closeCircleSheet({ restoreFocus = true } = {}) {
+  if (elements.circleSheet.hidden) {
+    return;
+  }
+
+  elements.circleSheet.classList.remove("show");
+  window.setTimeout(() => {
+    elements.circleSheet.hidden = true;
+    if (restoreFocus && state.settingsReturnFocus?.focus) {
+      state.settingsReturnFocus.focus({ preventScroll: true });
+    }
+    state.settingsReturnFocus = null;
+  }, 180);
+}
+
+function openLabelSettings() {
+  closeSettings({ restoreFocus: false });
+  closeCircleSheet({ restoreFocus: false });
+  showTab("capture", { focusCaptureInput: false });
+  openCategoryEditMode(state.selectedCategory || activeCategories()[0] || "Food");
+  showCategoryComposer();
+  showToast("Edit, rearrange, add, or delete labels");
 }
 
 function trapSettingsFocus(event) {
