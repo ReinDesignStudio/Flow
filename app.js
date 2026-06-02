@@ -811,7 +811,7 @@ elements.qrSheet.addEventListener("click", (event) => {
 
 elements.qrPasteForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  const joined = await joinCircleFromInvite(elements.qrLinkInput.value);
+  const joined = await joinCircleFromInvite(elements.qrLinkInput.value, { showInlineStatus: true });
   if (joined) {
     closeQrScanner();
   }
@@ -2770,19 +2770,31 @@ function deleteCircle() {
   showToast("Circle deleted");
 }
 
-async function joinCircleFromInvite(raw) {
-  if (!raw) {
+async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
+  const setStatus = (message) => {
+    if (showInlineStatus) {
+      elements.qrMessage.textContent = message;
+    }
+  };
+  const value = raw.trim();
+
+  if (!value) {
+    setStatus("Paste a Circle ID or invite link first.");
     return false;
   }
 
   try {
+    setStatus("Checking Circle invite...");
+
     if (!supabase || !state.user) {
+      setStatus("Sign in first to join a Circle.");
       showToast("Sign in first to join a Circle");
       return false;
     }
 
-    const { circleId, name, inviteCode } = await resolveCircleInvite(raw);
+    const { circleId, name, inviteCode } = await resolveCircleInvite(value);
     if (!circleId || !name) {
+      setStatus("Circle ID not recognized. Check the invite and try again.");
       showToast("Circle ID not recognized");
       return false;
     }
@@ -2797,14 +2809,17 @@ async function joinCircleFromInvite(raw) {
 
     const requestStatus = await requestCircleJoin(request);
     if (requestStatus === "accepted") {
+      setStatus("Circle joined.");
       await refreshAcceptedCircleJoin(request.circleId);
       return true;
     }
 
     savePendingCircleJoin(request);
+    setStatus(requestStatus === "pending" ? "Request sent. Waiting for approval." : "Circle request updated.");
     showToast(requestStatus === "pending" ? "Request sent. Waiting for approval." : "Circle request updated");
     return true;
-  } catch {
+  } catch (error) {
+    setStatus(error?.message || "Circle request could not be sent. Try again.");
     showToast("Circle request could not be sent");
     return false;
   }
@@ -3048,8 +3063,16 @@ function parseCircleInvite(raw) {
   if (/^https?:\/\//i.test(value)) {
     try {
       const url = new URL(value);
-      const circleId = normalizeCircleId(url.searchParams.get("circle") || "");
-      const inviteCode = normalizeCircleInviteCode(url.searchParams.get("code") || circleId.slice(0, 8));
+      const urlText = decodeURIComponent(`${url.pathname} ${url.search} ${url.hash}`);
+      const circleId = normalizeCircleId(url.searchParams.get("circle") || url.searchParams.get("circle_id") || url.searchParams.get("id") || urlText);
+      const inviteCode = normalizeCircleInviteCode(
+        url.searchParams.get("code") ||
+        url.searchParams.get("invite") ||
+        url.searchParams.get("invite_code") ||
+        url.searchParams.get("circle") ||
+        urlText ||
+        circleId.slice(0, 8),
+      );
       return {
         circleId,
         name: url.searchParams.get("name") || "Circle",
@@ -3105,14 +3128,17 @@ function shortCircleIdToUuid(shortId) {
 }
 
 function normalizeCircleInviteCode(value) {
-  const code = String(value || "")
+  const text = String(value || "").toUpperCase().replace(/https?:\/\/[^\s?#]+/g, "");
+  const flowMatch = text.match(/FLOW\s*[-:]?\s*([A-F0-9][A-F0-9\s-]{7,})/);
+  const rawCode = flowMatch ? flowMatch[1] : text;
+  const code = rawCode
     .toUpperCase()
-    .replace(/https?:\/\/\S+/g, "")
     .replace(/CIRCLE\s*ID:?/g, "")
+    .replace(/INVITE\s*CODE:?/g, "")
     .trim()
-    .replace(/^FLOW\s*[-:]?\s*/, "")
     .replace(/[^A-F0-9]/g, "");
-  return /^[A-F0-9]{8}$/.test(code) ? code : "";
+  const match = code.match(/[A-F0-9]{8}/);
+  return match ? match[0] : "";
 }
 
 function normalizeCircleId(value) {
