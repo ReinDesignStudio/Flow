@@ -1,12 +1,12 @@
 :root {
   color-scheme: dark;
-  --bg: #151515;
-  --panel: #1f1f1f;
-  --text: #f5f5f4;
-  --muted: #a3a3a0;
-  --line: rgba(255, 255, 255, 0.14);
-  --accent: #6f6f6b;
-  --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+  --bg: #0c0606;
+  --panel: #0c0606;
+  --text: #ffffff;
+  --muted: #bbbdbf;
+  --line: #bbbdbf;
+  --accent: #87d700;
+  --shadow: 0 24px 70px #0c0606;
   --tabbar-clearance: calc(112px + env(safe-area-inset-bottom));
   font-family:
     "Intro", Intro, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -15,13 +15,12 @@
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #ffffff;
+  --bg: #f7f9f2;
   --panel: #ffffff;
-  --text: #2f2f2c;
-  --muted: #6f6f6b;
-  --line: rgba(55, 53, 47, 0.16);
-  --accent: #4f4f4b;
-  --shadow: 0 18px 44px rgba(55, 53, 47, 0.08);
+  --text: #11140d;
+  --muted: #5f6659;
+  --line: rgba(17, 20, 13, 0.18);
+  --shadow: 0 24px 70px rgba(33, 47, 18, 0.14);
 }
 
 * {
@@ -444,9 +443,9 @@ h2 {
   flex: 0 0 auto;
   border: 0;
   border-radius: 50%;
-  background: #f1f1ef;
-  color: var(--text);
-  box-shadow: none;
+  background: var(--accent);
+  color: var(--bg);
+  box-shadow: 0 14px 30px rgba(122, 231, 0, 0.18);
 }
 
 .circle-access-button svg {
@@ -464,10 +463,10 @@ h2 {
   place-items: center;
   width: 48px;
   height: 48px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--accent);
   border-radius: 50%;
-  background: #f1f1ef;
-  color: var(--text);
+  background: var(--accent);
+  color: var(--bg);
   font-size: 1rem;
   font-weight: 900;
 }
@@ -523,8 +522,8 @@ h2 {
 }
 
 .quick-input:focus-within {
-  border-color: rgba(79, 79, 75, 0.46);
-  box-shadow: inset 0 0 0 1px rgba(79, 79, 75, 0.18);
+  border-color: rgba(135, 215, 0, 0.46);
+  box-shadow: inset 0 0 0 1px rgba(135, 215, 0, 0.18);
 }
 
 .quick-input input {
@@ -567,7 +566,7 @@ h2 {
 }
 
 .quick-input input.input-prompted {
-  text-shadow: 0 0 18px rgba(79, 79, 75, 0.24);
+  text-shadow: 0 0 18px rgba(135, 215, 0, 0.24);
 }
 
 .quick-input:has(input:not(:placeholder-shown))::after {
@@ -631,7 +630,7 @@ h2 {
 }
 
 .payment-select-label select:focus {
-  box-shadow: 0 0 0 2px rgba(79, 79, 75, 0.28);
+  box-shadow: 0 0 0 2px rgba(122, 231, 0, 0.28);
 }
 
 .payment-select-label select:valid {
@@ -1532,7 +1531,7 @@ h2 {
 
 .breakdown-button:active {
   transform: scale(0.99);
-  background: rgba(79, 79, 75, 0.06);
+  background: rgba(135, 215, 0, 0.06);
 }
 
 .breakdown-label {
@@ -2074,8 +2073,8 @@ h2 {
 
 .save-date-primary {
   border: 0;
-  background: var(--text);
-  color: var(--panel);
+  background: var(--accent);
+  color: var(--bg);
 }
 
 .clear-confirm-actions {
@@ -2518,7 +2517,7 @@ h2 {
 }
 
 :root[data-theme="light"] .theme-toggle button.active {
-  color: var(--text);
+  color: #0c0606;
 }
 
 .logout-button {
@@ -2550,7 +2549,9 @@ h2 {
 }
 
 :root[data-theme="light"] .app-shell {
-  background: var(--bg);
+  background:
+    radial-gradient(circle at 14% 4%, rgba(135, 215, 0, 0.12), transparent 22%),
+    var(--bg);
 }
 
 :root[data-theme="light"] .install-note,
@@ -2574,11 +2575,11 @@ h2 {
 }
 
 :root[data-theme="light"] .settings-sheet {
-  background: rgba(247, 246, 243, 0.96);
+  background: rgba(247, 249, 242, 0.96);
 }
 
 :root[data-theme="light"] .tabbar-main {
-  box-shadow: 0 20px 50px rgba(55, 53, 47, 0.14);
+  box-shadow: 0 20px 50px rgba(33, 47, 18, 0.16);
 }
 
 :root[data-theme="light"] .category-pill,
@@ -2589,79 +2590,79 @@ h2 {
 :root[data-theme="light"] .insight-breakdown,
 :root[data-theme="light"] .quick-entry,
 :root[data-theme="light"] .note-field input {
-  border: 1px solid rgba(55, 53, 47, 0.12);
+  border: 1px solid rgba(17, 20, 13, 0.08);
 }
 
 :root[data-theme="light"] .quick-input {
-  border-color: rgba(55, 53, 47, 0.14);
-  background: #ffffff;
-  box-shadow: 0 12px 34px rgba(55, 53, 47, 0.08);
+  border-color: rgba(17, 20, 13, 0.2);
+  background: #0c0606;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 12px 34px rgba(17, 20, 13, 0.12);
 }
 
 :root[data-theme="light"] .quick-input input {
-  color: var(--text);
+  color: #ffffff;
 }
 
 :root[data-theme="light"] .quick-input input::placeholder,
 :root[data-theme="light"] .quick-input:focus-within input::placeholder {
-  color: var(--muted);
+  color: #ffffff;
 }
 
 :root[data-theme="light"] .settings-sheet {
-  background: rgba(247, 246, 243, 0.96);
+  background: rgba(13, 13, 16, 0.96);
 }
 
 :root[data-theme="light"] .settings-panel {
-  background: var(--panel);
-  color: var(--text);
+  background: #101013;
+  color: #ffffff;
 }
 
 :root[data-theme="light"] .settings-group,
 :root[data-theme="light"] .profile-summary,
 :root[data-theme="light"] .settings-row {
-  background: #ffffff;
-  color: var(--text);
+  background: #202025;
+  color: #ffffff;
 }
 
 :root[data-theme="light"] .settings-header .icon-button,
 :root[data-theme="light"] .settings-input-row input {
-  background: #ffffff;
-  color: var(--text);
+  background: #101013;
+  color: #ffffff;
 }
 
 :root[data-theme="light"] .settings-row + .settings-row {
-  border-top-color: rgba(55, 53, 47, 0.1);
+  border-top-color: rgba(255, 255, 255, 0.055);
 }
 
 :root[data-theme="light"] .settings-label,
 :root[data-theme="light"] .profile-summary strong {
-  color: var(--text);
+  color: #f1f1f4;
 }
 
 :root[data-theme="light"] .settings-row strong,
 :root[data-theme="light"] .profile-summary span,
 :root[data-theme="light"] .settings-chevron {
-  color: var(--muted);
+  color: #9d9da4;
 }
 
 :root[data-theme="light"] .settings-row-icon {
-  stroke: var(--muted);
+  stroke: #a8a8ae;
 }
 
 :root[data-theme="light"] .theme-toggle {
-  background: #edece9;
+  background: #3a3a40;
 }
 
 :root[data-theme="light"] .settings-switch {
-  background: #d9d8d4;
+  background: #3a3a40;
 }
 
 :root[data-theme="light"] .settings-switch.active {
-  background: var(--text);
+  background: var(--accent);
 }
 
 :root[data-theme="light"] .theme-toggle:has(button[data-theme="dark"].active) {
-  background: #d9d8d4;
+  background: var(--accent);
 }
 
 :root[data-theme="light"] .logout-button {
@@ -2670,16 +2671,16 @@ h2 {
 }
 
 :root[data-theme="light"] .tabbar-main {
-  border-color: rgba(55, 53, 47, 0.1);
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 20px 50px rgba(55, 53, 47, 0.14);
+  border-color: rgba(255, 255, 255, 0.54);
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 20px 50px rgba(33, 47, 18, 0.16);
   backdrop-filter: blur(24px) saturate(1.45);
   -webkit-backdrop-filter: blur(24px) saturate(1.45);
 }
 
 :root[data-theme="light"] .tab.active {
-  background: rgba(79, 79, 75, 0.1);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--accent);
 }
 
 @media (min-width: 680px) {
@@ -2687,7 +2688,7 @@ h2 {
     display: grid;
     place-items: start center;
     background:
-      radial-gradient(circle at 8% 12%, rgba(79, 79, 75, 0.1), transparent 28%),
+      radial-gradient(circle at 8% 12%, rgba(135, 215, 0, 0.1), transparent 28%),
       radial-gradient(circle at 92% 18%, rgba(255, 255, 255, 0.06), transparent 30%),
       var(--bg);
     padding: 24px;
@@ -2734,7 +2735,7 @@ h2 {
   body {
     align-items: stretch;
     background:
-      radial-gradient(circle at 8% 12%, rgba(79, 79, 75, 0.12), transparent 28%),
+      radial-gradient(circle at 8% 12%, rgba(135, 215, 0, 0.12), transparent 28%),
       radial-gradient(circle at 92% 18%, rgba(255, 255, 255, 0.07), transparent 30%),
       var(--bg);
     padding: 28px;
