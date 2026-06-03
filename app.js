@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=148";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=149";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -2141,14 +2141,15 @@ function renderHistory() {
     return;
   }
 
-  const groups = groupByDay(expenses);
+  const groups = historyDayGroups(expenses);
   const todayKey = dateKey(new Date());
-  elements.historyList.innerHTML = Object.values(groups)
+  elements.historyList.innerHTML = groups
     .map((group) => {
       const collapsed = state.collapsedDays.has(group.key) || (group.key !== todayKey && !state.expandedDays.has(group.key));
-      const rows = group.expenses
-        .map(
-          (expense) => `
+      const rows = group.expenses.length
+        ? group.expenses
+            .map(
+              (expense) => `
             <div class="expense-row">
               <div class="expense-main">
                 <div>
@@ -2170,8 +2171,9 @@ function renderHistory() {
               </div>
             </div>
           `,
-        )
-        .join("");
+            )
+            .join("")
+        : '<div class="history-empty-day">Nothing logged today yet.</div>';
 
       return `
         <section class="day-group">
@@ -4136,6 +4138,21 @@ function groupByDay(expenses) {
     groups[key].total += expense.amount;
     return groups;
   }, {});
+}
+
+function historyDayGroups(expenses) {
+  const groups = groupByDay(expenses);
+  const today = new Date();
+  const todayKey = dateKey(today);
+  groups[todayKey] ||= { expenses: [], key: todayKey, label: "Today", total: 0 };
+
+  return Object.values(groups)
+    .map((group) => ({
+      ...group,
+      sortTime: new Date(`${group.key}T00:00:00`).getTime(),
+      expenses: group.expenses.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+    }))
+    .sort((a, b) => b.sortTime - a.sortTime);
 }
 
 function totalByCategory(expenses) {

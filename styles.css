@@ -1466,6 +1466,15 @@ h2 {
   display: none;
 }
 
+.history-empty-day {
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  padding: 18px 0 22px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .expense-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -4032,6 +4041,7 @@ h1 {
 
 :root[data-theme="dark"] .settings-row + .settings-row,
 :root[data-theme="dark"] .history-list .day-toggle,
+:root[data-theme="dark"] .history-empty-day,
 :root[data-theme="dark"] .expense-row,
 :root[data-theme="dark"] .category-detail-row {
   border-color: rgba(255, 255, 255, 0.12);
