@@ -376,7 +376,7 @@ input {
   background:
     radial-gradient(circle at 50% -8%, rgba(126, 217, 87, 0.18), transparent 30%),
     radial-gradient(circle at 78% 18%, rgba(126, 217, 87, 0.08), transparent 26%),
-    radial-gradient(rgba(126, 217, 87, 0.1) 1.5px, transparent 1.5px),
+    radial-gradient(rgba(126, 217, 87, 0.05) 1.5px, transparent 1.5px),
     linear-gradient(180deg, rgba(21, 26, 23, 0.72), rgba(7, 9, 8, 0.98));
   background-size: auto, auto, 18px 18px, auto;
 }
@@ -2564,7 +2564,7 @@ h2 {
   background:
     radial-gradient(circle at 50% -8%, rgba(126, 217, 87, 0.18), transparent 30%),
     radial-gradient(circle at 78% 18%, rgba(126, 217, 87, 0.08), transparent 26%),
-    radial-gradient(rgba(126, 217, 87, 0.1) 1.5px, transparent 1.5px),
+    radial-gradient(rgba(126, 217, 87, 0.05) 1.5px, transparent 1.5px),
     linear-gradient(180deg, rgba(21, 26, 23, 0.72), rgba(7, 9, 8, 0.98));
   background-size: auto, auto, 18px 18px, auto;
 }
