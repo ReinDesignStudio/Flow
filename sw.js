@@ -1,21 +1,21 @@
-const cacheName = "flow-v144";
+const cacheName = "flow-v145";
 const assets = [
   "./",
   "./index.html",
-  "./styles.css?v=144",
-  "./app.js?v=144",
-  "./supabase-config.js?v=144",
-  "./manifest.webmanifest?v=144",
+  "./styles.css?v=145",
+  "./app.js?v=145",
+  "./supabase-config.js?v=145",
+  "./manifest.webmanifest?v=145",
   "./supabase-schema.sql",
   "./assets/flow-logo-gradient.png",
   "./assets/onboarding-slide-1.png",
   "./assets/onboarding-slide-2.png",
   "./assets/onboarding-slide-3.png",
-  "./icons/icon-192.svg?v=144",
-  "./icons/icon-512.svg?v=144",
-  "./icons/icon-192.png?v=144",
-  "./icons/icon-512.png?v=144",
-  "./icons/apple-touch-icon.png?v=144",
+  "./icons/icon-192.svg?v=145",
+  "./icons/icon-512.svg?v=145",
+  "./icons/icon-192.png?v=145",
+  "./icons/icon-512.png?v=145",
+  "./icons/apple-touch-icon.png?v=145",
 ];
 
 self.addEventListener("install", (event) => {

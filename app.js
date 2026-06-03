@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=144";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=145";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -268,6 +268,7 @@ const state = {
   collapsedDays: new Set(),
   expandedDays: new Set(),
   pendingSave: null,
+  expenseSyncInFlight: false,
   deferredInstallPrompt: null,
   pendingPhone: "",
   qrStream: null,
@@ -431,6 +432,20 @@ window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   state.deferredInstallPrompt = event;
   renderInstallNote();
+});
+
+window.addEventListener("online", () => {
+  retryPendingExpenseSync({ notify: true });
+});
+
+window.addEventListener("focus", () => {
+  retryPendingExpenseSync();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    retryPendingExpenseSync();
+  }
 });
 
 if ("serviceWorker" in navigator && isLocalHost()) {
@@ -2727,18 +2742,21 @@ function commitPendingSave() {
   const selectedDate = selectedSaveDate() || new Date();
   const createdAt = mergeDateWithCurrentTime(selectedDate).toISOString();
   const { expense, existingId, wasEditing } = state.pendingSave;
-  const savedExpense = { ...expense, createdAt };
+  const savedExpense = { ...expense, createdAt, syncStatus: "pending", syncError: "" };
+  let committedExpense = savedExpense;
 
   if (wasEditing) {
     const existing = state.expenses.find((item) => item.id === existingId);
     if (existing) {
       Object.assign(existing, savedExpense, { id: existing.id });
+      committedExpense = existing;
     }
   } else {
-    state.expenses.unshift({
+    committedExpense = {
       ...savedExpense,
       id: crypto.randomUUID(),
-    });
+    };
+    state.expenses.unshift(committedExpense);
   }
 
   state.pendingSave = null;
@@ -2747,7 +2765,7 @@ function commitPendingSave() {
   resetCapture();
   renderAll();
   focusCapture();
-  notifySaved(wasEditing ? "Updated" : "Saved", savedExpense);
+  notifySaved(wasEditing ? "Updated" : "Saved", committedExpense);
 }
 
 function showSuccess(message, expense) {
@@ -2868,6 +2886,8 @@ function loadExpenses() {
     return (JSON.parse(localStorage.getItem(storageKey)) || []).map((expense) => ({
       ...expense,
       paymentMethod: expense.paymentMethod || "cash",
+      syncStatus: expense.syncStatus || "synced",
+      syncError: expense.syncError || "",
     }));
   } catch {
     return [];
@@ -2969,7 +2989,7 @@ function saveCircle() {
 
 function saveExpenses() {
   localStorage.setItem(storageKey, JSON.stringify(state.expenses));
-  syncExpenses().catch(() => {});
+  queueExpenseSync();
 }
 
 function saveCategories() {
@@ -3597,6 +3617,72 @@ function mergeRemoteExpenses(rows) {
   localStorage.setItem(storageKey, JSON.stringify(state.expenses));
 }
 
+function hasPendingExpenseSync() {
+  return state.expenses.some((expense) => expense.syncStatus === "pending" || expense.syncStatus === "failed");
+}
+
+function queueExpenseSync({ notify = false } = {}) {
+  if (!supabase || !state.user || state.expenseSyncInFlight || !hasPendingExpenseSync()) {
+    return;
+  }
+
+  if (!navigator.onLine) {
+    return;
+  }
+
+  syncExpenses({ notify }).catch(() => {});
+}
+
+function markExpensesSynced() {
+  state.expenses.forEach((expense) => {
+    expense.syncStatus = "synced";
+    expense.syncError = "";
+  });
+  localStorage.setItem(storageKey, JSON.stringify(state.expenses));
+}
+
+function markExpensesSyncFailed(error) {
+  const message = error?.message || "Sync failed";
+  state.expenses.forEach((expense) => {
+    if (expense.syncStatus === "pending") {
+      expense.syncStatus = "failed";
+      expense.syncError = message;
+    }
+  });
+  localStorage.setItem(storageKey, JSON.stringify(state.expenses));
+}
+
+async function retryPendingExpenseSync({ notify = false } = {}) {
+  if (!hasPendingExpenseSync() || !navigator.onLine) {
+    return;
+  }
+
+  const client = await ensureSupabaseClient();
+  if (!client) {
+    return;
+  }
+
+  if (!state.user) {
+    const session = await getSupabaseSession();
+    state.authenticated = Boolean(session);
+    state.user = session?.user || null;
+    state.auth = { email: session?.user?.email || state.auth.email || "" };
+  }
+
+  if (!state.user) {
+    return;
+  }
+
+  try {
+    await syncExpenses({ notify });
+    renderAll();
+  } catch {
+    if (notify) {
+      showToast("Sync will retry when connection improves");
+    }
+  }
+}
+
 async function createSupabaseClient() {
   let createClient = null;
 
@@ -3663,8 +3749,14 @@ async function loadRemoteData() {
   }
 
   if (expenses?.length) {
-    state.expenses = expenses.map(fromExpenseRow);
+    const pendingLocal = state.expenses.filter((expense) => expense.syncStatus === "pending" || expense.syncStatus === "failed");
+    const byId = new Map(expenses.map(fromExpenseRow).map((expense) => [expense.id, expense]));
+    pendingLocal.forEach((expense) => byId.set(expense.id, expense));
+    state.expenses = Array.from(byId.values()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     localStorage.setItem(storageKey, JSON.stringify(state.expenses));
+    queueExpenseSync();
+  } else if (state.expenses.length) {
+    await syncExpenses();
   }
 
   const invite = new URLSearchParams(window.location.search);
@@ -3750,19 +3842,38 @@ async function syncCategories() {
   });
 }
 
-async function syncExpenses() {
-  if (!supabase || !state.user || !state.expenses.length) {
+async function syncExpenses({ notify = false } = {}) {
+  if (!supabase || !state.user || !state.expenses.length || state.expenseSyncInFlight) {
     return;
   }
 
+  if (!navigator.onLine) {
+    return;
+  }
+
+  state.expenseSyncInFlight = true;
   const rows = state.expenses.map(toExpenseRow);
-  const { error } = await supabase.from("expenses").upsert(rows);
-  if (!error) {
-    return;
-  }
+  try {
+    const { error } = await supabase.from("expenses").upsert(rows);
+    if (error) {
+      const fallbackRows = rows.map(({ payment_method, ...row }) => row);
+      const { error: fallbackError } = await supabase.from("expenses").upsert(fallbackRows);
+      if (fallbackError) {
+        throw fallbackError;
+      }
+    }
 
-  const fallbackRows = rows.map(({ payment_method, ...row }) => row);
-  await supabase.from("expenses").upsert(fallbackRows);
+    const hadPending = hasPendingExpenseSync();
+    markExpensesSynced();
+    if (notify && hadPending) {
+      showToast("Offline expenses synced");
+    }
+  } catch (error) {
+    markExpensesSyncFailed(error);
+    throw error;
+  } finally {
+    state.expenseSyncInFlight = false;
+  }
 }
 
 async function refreshCircleRemoteData() {
@@ -3915,6 +4026,8 @@ function fromExpenseRow(row) {
     label: row.label,
     note: row.note || "",
     createdAt: row.created_at,
+    syncStatus: "synced",
+    syncError: "",
   };
 }
 
