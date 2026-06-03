@@ -3110,12 +3110,14 @@ h1 {
 
 .payment-select-label select,
 .payment-select-label select:valid {
-  background: #151515;
-  color: #ffffff;
+  border: 0;
+  background: var(--ft-lime);
+  color: #151515;
+  box-shadow: none;
 }
 
 .payment-select-label::after {
-  color: #ffffff;
+  color: #151515;
 }
 
 .visibility-toggle,
@@ -3172,28 +3174,6 @@ h1 {
 
 .category-pill {
   border-radius: 999px;
-}
-
-.category-pill,
-:root[data-theme="light"] .category-pill {
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
-}
-
-.visibility-toggle button.active,
-.history-filter button.active,
-.category-pill.active,
-.icon-picker button.active,
-.category-pagination button.active {
-  background: var(--ft-lime);
-  color: #151515;
-}
-
-.category-pill.active,
-:root[data-theme="light"] .category-pill.active {
-  background: transparent;
-  box-shadow: inset 0 -3px 0 var(--ft-lime);
 }
 
 .add-category-pill {
