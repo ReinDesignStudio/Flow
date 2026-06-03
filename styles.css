@@ -3147,9 +3147,12 @@ h1 {
 .clear-confirm-card,
 .insight-detail-panel,
 .qr-panel,
-.circle-sheet-panel {
+.circle-sheet-panel,
+.settings-panel,
+:root[data-theme="light"] .settings-panel {
   border: 1px solid rgba(16, 16, 16, 0.12);
-  background: rgba(255, 255, 255, 0.76);
+  border-radius: 28px;
+  background: #ffffff;
   color: var(--text);
   box-shadow: var(--shadow);
 }
@@ -3300,7 +3303,7 @@ h1 {
 
 .settings-panel,
 :root[data-theme="light"] .settings-panel {
-  background: var(--ft-cream);
+  background: #ffffff;
   color: var(--text);
   box-shadow: 0 24px 54px rgba(16, 16, 16, 0.16);
 }
@@ -3359,6 +3362,23 @@ h1 {
 :root[data-theme="light"] .logout-button {
   background: #151515;
   color: #ffffff;
+}
+
+.install-guide-panel,
+.success-card,
+.save-date-card,
+.clear-confirm-card,
+.insight-detail-panel,
+.qr-panel,
+.circle-sheet-panel,
+.settings-panel,
+:root[data-theme="light"] .install-guide-panel,
+:root[data-theme="light"] .insight-detail-panel,
+:root[data-theme="light"] .qr-panel,
+:root[data-theme="light"] .circle-sheet-panel,
+:root[data-theme="light"] .settings-panel {
+  border-radius: 28px;
+  background-color: #ffffff;
 }
 
 @media (min-width: 680px) {
