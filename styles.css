@@ -102,7 +102,7 @@ input {
 .onboarding-window {
   overflow: hidden;
   border-radius: 30px;
-  background: #ffffff;
+  background: transparent;
 }
 
 .onboarding-track {
