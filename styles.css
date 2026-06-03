@@ -2537,6 +2537,66 @@ h2 {
   font-weight: 700;
 }
 
+.settings-info-panel {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--text);
+  padding: 20px;
+}
+
+.settings-info-panel[hidden] {
+  display: none;
+}
+
+.settings-info-panel h3 {
+  margin: 0;
+  color: var(--ft-text);
+  font-size: 1.35rem;
+  line-height: 1.1;
+}
+
+.settings-info-panel p {
+  margin: 0;
+  color: var(--ft-muted);
+  font-size: 0.95rem;
+  line-height: 1.42;
+}
+
+.settings-info-panel article {
+  display: grid;
+  gap: 5px;
+  padding-top: 10px;
+}
+
+.settings-info-panel article + article {
+  border-top: 1px solid rgba(16, 16, 16, 0.1);
+}
+
+.settings-info-panel article strong {
+  color: var(--ft-text);
+  font-size: 0.98rem;
+}
+
+.settings-info-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(16, 16, 16, 0.08);
+  color: var(--ft-text);
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
 .settings-switch {
   display: grid;
   align-items: center;
@@ -3964,7 +4024,8 @@ h1 {
 
 :root[data-theme="dark"] .settings-group,
 :root[data-theme="dark"] .profile-summary,
-:root[data-theme="dark"] .settings-row {
+:root[data-theme="dark"] .settings-row,
+:root[data-theme="dark"] .settings-info-panel {
   background: rgba(255, 255, 255, 0.07);
   color: var(--ft-text);
 }
@@ -3978,6 +4039,15 @@ h1 {
 
 :root[data-theme="dark"] .settings-row-icon {
   stroke: var(--ft-muted);
+}
+
+:root[data-theme="dark"] .settings-info-panel article + article {
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+
+:root[data-theme="dark"] .settings-info-close {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--ft-text);
 }
 
 :root[data-theme="dark"] .profile-avatar {

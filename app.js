@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=146";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=147";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -390,6 +390,11 @@ const elements = {
   closeSettingsButton: document.querySelector("#close-settings-button"),
   labelSettingsButton: document.querySelector("#label-settings-button"),
   circleContactsButton: document.querySelector("#circle-contacts-button"),
+  settingsInfoPanel: document.querySelector("#settings-info-panel"),
+  settingsInfoClose: document.querySelector("#settings-info-close"),
+  settingsInfoKicker: document.querySelector("#settings-info-kicker"),
+  settingsInfoTitle: document.querySelector("#settings-info-title"),
+  settingsInfoContent: document.querySelector("#settings-info-content"),
   logoutButton: document.querySelector("#logout-button"),
   installButton: document.querySelector("#install-button"),
   addExpenseButton: document.querySelector("#add-expense-button"),
@@ -726,6 +731,14 @@ document.querySelectorAll("[data-onboarding-slide]").forEach((button) => {
       dot.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
   });
+});
+
+document.querySelectorAll("[data-settings-info]").forEach((button) => {
+  button.addEventListener("click", () => openSettingsInfo(button.dataset.settingsInfo));
+});
+
+elements.settingsInfoClose.addEventListener("click", () => {
+  closeSettingsInfo();
 });
 
 elements.closeSettingsButton.addEventListener("click", () => {
@@ -2589,6 +2602,7 @@ function closeSettings({ restoreFocus = true } = {}) {
     return;
   }
 
+  closeSettingsInfo();
   elements.settingsSheet.classList.remove("show");
   window.setTimeout(() => {
     elements.settingsSheet.hidden = true;
@@ -2597,6 +2611,73 @@ function closeSettings({ restoreFocus = true } = {}) {
     }
     state.settingsReturnFocus = null;
   }, 180);
+}
+
+const settingsInfoCopy = {
+  language: {
+    kicker: "Language",
+    title: "English for now",
+    body: [
+      "Flow currently supports English.",
+      "More languages can be added later once the core tracking experience is stable.",
+    ],
+  },
+  faq: {
+    kicker: "FAQ",
+    title: "Common questions",
+    items: [
+      ["Can I use Flow offline?", "Yes. You can save expenses offline, and pending expenses upload when internet returns."],
+      ["Can I edit labels?", "Yes. Open General settings to add, edit, delete, or rearrange labels."],
+      ["What is Circle?", "Circle lets you share selected expenses with people you trust."],
+    ],
+  },
+  terms: {
+    kicker: "Terms",
+    title: "Simple terms of service",
+    body: [
+      "Flow is a personal expense tracking tool. Use it responsibly and keep your account details private.",
+      "Your entries are your responsibility. Flow helps organize spending, but it is not financial, legal, or tax advice.",
+      "Do not use Flow to store sensitive secrets such as passwords, government IDs, or payment card numbers.",
+    ],
+  },
+  policy: {
+    kicker: "Privacy",
+    title: "User policy",
+    body: [
+      "Flow stores your expenses locally on your device and syncs with your account when Supabase is available.",
+      "Offline expenses stay on your device until they can be uploaded.",
+      "Circle expenses are visible to the Circle members you share them with.",
+    ],
+  },
+};
+
+function openSettingsInfo(type) {
+  const copy = settingsInfoCopy[type];
+  if (!copy) {
+    return;
+  }
+
+  elements.settingsInfoKicker.textContent = copy.kicker;
+  elements.settingsInfoTitle.textContent = copy.title;
+  elements.settingsInfoContent.innerHTML = copy.items
+    ? copy.items
+        .map(
+          ([question, answer]) => `
+            <article>
+              <strong>${escapeHtml(question)}</strong>
+              <p>${escapeHtml(answer)}</p>
+            </article>
+          `,
+        )
+        .join("")
+    : copy.body.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("");
+  elements.settingsInfoPanel.hidden = false;
+  elements.settingsInfoPanel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+}
+
+function closeSettingsInfo() {
+  elements.settingsInfoPanel.hidden = true;
+  elements.settingsInfoContent.textContent = "";
 }
 
 function openCircleSheet({ showContacts = false } = {}) {
