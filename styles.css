@@ -94,6 +94,89 @@ input {
   font-weight: 700;
 }
 
+.onboarding {
+  display: grid;
+  gap: 18px;
+}
+
+.onboarding-window {
+  overflow: hidden;
+  border-radius: 28px;
+  background: #ffffff;
+}
+
+.onboarding-track {
+  display: flex;
+  transition: transform 320ms ease;
+  will-change: transform;
+}
+
+.onboarding-slide {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-width: 100%;
+  min-height: min(56vh, 460px);
+  overflow: hidden;
+  padding: 34px 24px;
+  color: #101010;
+  text-align: center;
+}
+
+.onboarding-slide img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.onboarding-copy {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  max-width: 20rem;
+}
+
+.onboarding-copy h1 {
+  max-width: 10ch;
+  margin: 0;
+  color: #101010;
+  font-size: clamp(2.35rem, 10vw, 3.8rem);
+  line-height: 0.98;
+}
+
+.onboarding-copy p {
+  max-width: 17rem;
+  margin: 0;
+  color: rgba(16, 16, 16, 0.68);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.28;
+}
+
+.onboarding-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.onboarding-dots button {
+  width: 9px;
+  height: 9px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.26);
+  padding: 0;
+}
+
+.onboarding-dots button.active {
+  width: 28px;
+  background: var(--accent);
+}
+
 .auth-actions,
 .auth-form {
   display: grid;
@@ -3142,6 +3225,17 @@ h1 {
 :root[data-theme="light"] .auth-provider span {
   background: var(--ft-lime);
   color: #151515;
+}
+
+.auth-copy .onboarding-copy h1,
+:root[data-theme="light"] .auth-copy .onboarding-copy h1 {
+  max-width: 10ch;
+  color: #101010;
+}
+
+.auth-copy .onboarding-copy p,
+:root[data-theme="light"] .auth-copy .onboarding-copy p {
+  color: rgba(16, 16, 16, 0.68);
 }
 
 .auth-divider {

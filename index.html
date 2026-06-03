@@ -8,11 +8,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Flow" />
     <title>Flow</title>
-    <link rel="manifest" href="./manifest.webmanifest?v=135" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=135" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=135" />
-    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=135" />
-    <link rel="stylesheet" href="./styles.css?v=135" />
+    <link rel="manifest" href="./manifest.webmanifest?v=136" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=136" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=136" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=136" />
+    <link rel="stylesheet" href="./styles.css?v=136" />
   </head>
   <body>
     <div class="install-note" id="install-note" role="status" aria-live="polite" hidden>
@@ -42,12 +42,42 @@
       <div class="auth-content">
         <img class="auth-logo" src="./assets/flow-logo-gradient.png" alt="Flow" />
         <div class="auth-copy" id="auth-copy">
-          <h1 id="auth-title">Flow</h1>
-          <p>Track spending without the noise.</p>
+          <div class="onboarding" id="onboarding" data-slide="0" aria-label="Flow introduction">
+            <div class="onboarding-window">
+              <div class="onboarding-track" id="onboarding-track">
+                <article class="onboarding-slide" aria-labelledby="onboarding-title-1">
+                  <img src="./assets/onboarding-slide-1.png" alt="" />
+                  <div class="onboarding-copy">
+                    <h1 id="onboarding-title-1">Capture Every Expense</h1>
+                    <p>Quickly log your spending anytime, anywhere.</p>
+                  </div>
+                </article>
+                <article class="onboarding-slide" aria-labelledby="onboarding-title-2">
+                  <img src="./assets/onboarding-slide-2.png" alt="" />
+                  <div class="onboarding-copy">
+                    <h1 id="onboarding-title-2">See Your Financial Story</h1>
+                    <p>Understand spending patterns with clear insights.</p>
+                  </div>
+                </article>
+                <article class="onboarding-slide" aria-labelledby="onboarding-title-3">
+                  <img src="./assets/onboarding-slide-3.png" alt="" />
+                  <div class="onboarding-copy">
+                    <h1 id="onboarding-title-3">Spend With Confidence</h1>
+                    <p>Make smarter decisions and stay in control of your money.</p>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div class="onboarding-dots" aria-label="Onboarding slides">
+              <button class="active" type="button" data-onboarding-slide="0" aria-label="Show slide 1" aria-pressed="true"></button>
+              <button type="button" data-onboarding-slide="1" aria-label="Show slide 2" aria-pressed="false"></button>
+              <button type="button" data-onboarding-slide="2" aria-label="Show slide 3" aria-pressed="false"></button>
+            </div>
+          </div>
         </div>
 
         <div class="auth-actions" id="auth-actions">
-          <button class="auth-primary" type="button" data-auth-mode="signup">Get Started</button>
+          <button class="auth-primary" type="button" data-auth-mode="signup">Get Started →</button>
         </div>
 
         <form class="auth-form" id="signup-form" autocomplete="on" hidden>
@@ -507,6 +537,6 @@
       </div>
     </main>
 
-    <script src="./app.js?v=135" type="module"></script>
+    <script src="./app.js?v=136" type="module"></script>
   </body>
 </html>

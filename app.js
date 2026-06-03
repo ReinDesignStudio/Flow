@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=135";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=136";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -692,6 +692,25 @@ elements.themeToggle.addEventListener("click", (event) => {
   }
 
   setTheme(button.dataset.theme);
+});
+
+document.querySelectorAll("[data-onboarding-slide]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const slide = Number(button.dataset.onboardingSlide || 0);
+    const onboarding = document.querySelector("#onboarding");
+    const track = document.querySelector("#onboarding-track");
+    if (!onboarding || !track) {
+      return;
+    }
+
+    onboarding.dataset.slide = String(slide);
+    track.style.transform = `translateX(-${slide * 100}%)`;
+    document.querySelectorAll("[data-onboarding-slide]").forEach((dot) => {
+      const isActive = dot === button;
+      dot.classList.toggle("active", isActive);
+      dot.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+  });
 });
 
 elements.closeSettingsButton.addEventListener("click", () => {
