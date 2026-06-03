@@ -1014,6 +1014,8 @@ h2 {
 }
 
 .note-field {
+  position: relative;
+  display: block;
   margin-top: 2px;
 }
 
@@ -1027,13 +1029,29 @@ h2 {
   border: 1px solid var(--line);
   border-radius: 18px;
   outline: 0;
-  background: rgba(255, 255, 255, 0.88);
+  background: #ffffff;
   color: var(--text);
-  padding: 0 18px;
+  padding: 0 18px 0 48px;
 }
 
 .note-field input::placeholder {
   color: var(--muted);
+}
+
+.note-icon {
+  position: absolute;
+  left: 18px;
+  top: 50%;
+  z-index: 1;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: translateY(-50%);
+  pointer-events: none;
 }
 
 .form-actions {
@@ -3695,6 +3713,20 @@ h1 {
 
 :root[data-theme="dark"] .quick-input::before {
   color: rgba(255, 255, 255, 0.48);
+}
+
+:root[data-theme="dark"] .note-field input {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: #151713;
+  color: var(--ft-text);
+}
+
+:root[data-theme="dark"] .note-field input::placeholder {
+  color: var(--ft-muted);
+}
+
+:root[data-theme="dark"] .note-icon {
+  stroke: var(--ft-muted);
 }
 
 :root[data-theme="dark"] .category-pill,
