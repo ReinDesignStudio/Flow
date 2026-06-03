@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=145";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=146";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -2190,7 +2190,7 @@ function renderInsights() {
   elements.insightWeek.textContent = formatMoney(weekTotal);
   elements.insightMonth.textContent = formatMoney(monthTotal);
   elements.insightAverage.textContent = formatMoney(todayTotal);
-  elements.insightTop.textContent = topCategory ? topCategory[0] : "None yet";
+  elements.insightTop.textContent = topCategory ? `${topCategory[0]} · ${formatMoney(topCategory[1])}` : "None yet";
 
   if (!weekExpenses.length) {
     elements.breakdownList.innerHTML = '<div class="empty-state">Add a few ideas and this starts to feel like your story.</div>';
