@@ -3381,6 +3381,33 @@ h1 {
   background-color: #ffffff;
 }
 
+.history-list,
+:root[data-theme="light"] .history-list {
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.history-list .day-group {
+  padding: 0;
+}
+
+.history-list .day-toggle {
+  min-height: 64px;
+  margin: 0;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(16, 16, 16, 0.1);
+}
+
+.history-list .day-toggle span,
+.history-list .day-toggle strong,
+.history-list .day-toggle em {
+  color: var(--ft-forest);
+}
+
 @media (min-width: 680px) {
   body,
   :root[data-theme="light"] body {
@@ -3403,6 +3430,13 @@ h1 {
   .category-breakdown {
     border: 0;
     border-top: 1px solid rgba(16, 16, 16, 0.12);
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .history-list {
+    padding: 0;
+    border: 0;
     background: transparent;
     box-shadow: none;
   }
