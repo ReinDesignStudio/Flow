@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=119";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=121";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -11,8 +11,8 @@ const defaultProfileName = "Rein";
 const productionAppUrl = "https://dailyflow.pro/";
 const weeklyInsightMax = 15000;
 const monthlyInsightBaseMax = 15000;
-const defaultCategories = ["Food", "Gas", "Coffee", "Shopping", "Bills", "Transport"];
-const defaultCircleCategories = ["Groceries", "Bills", "Rent", "Gas", "Food", "Kids", "Savings", "Emergency", "Others"];
+const defaultCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams"];
+const defaultCircleCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams", "Faith", "Fun", "Others"];
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 const authStartupTimeoutMs = 2500;
 let supabase = null;
@@ -229,9 +229,9 @@ let authListenersAttached = false;
 
 const paymentMethods = {
   cash: "Cash",
-  "credit-card": "Credit Card",
+  "credit-card": "Credit",
   debit: "Debit",
-  "e-wallet": "E-Wallet",
+  "e-wallet": "E-wallet",
 };
 
 const state = {
@@ -830,9 +830,9 @@ elements.inviteCircleButton.addEventListener("click", async () => {
     elements.circleInvite.hidden = false;
     renderCircle();
     elements.circleInvite.hidden = false;
-    showToast("Circle invite ready");
+    showToast("Invite ready");
   } catch (error) {
-    showToast(error?.message || "Circle invite could not be prepared");
+    showToast(error?.message || "Invite could not be prepared");
   } finally {
     elements.inviteCircleButton.disabled = false;
     elements.inviteCircleButton.textContent = "Invite";
@@ -990,7 +990,7 @@ if (elements.installButton) {
 
 elements.clearButton.addEventListener("click", () => {
   if (!state.expenses.length) {
-    showToast("No history yet");
+    showToast("Nothing saved yet");
     return;
   }
 
@@ -1951,7 +1951,7 @@ function renderProfile({ syncInput = true } = {}) {
 function renderTheme() {
   const theme = state.theme === "light" ? "light" : "dark";
   document.documentElement.dataset.theme = theme;
-  const themeColor = theme === "light" ? "#0b0f0d" : "#070908";
+  const themeColor = "#d7d7d9";
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor);
 
   elements.themeToggle.querySelectorAll("button[data-theme]").forEach((button) => {
@@ -1979,11 +1979,11 @@ function renderCircle() {
     state.historyFilter = "all";
   }
 
-  elements.circleNameDisplay.textContent = hasCircle ? state.circle.name : hasPendingJoin ? state.pendingCircleJoin.name : "Shared expenses";
+  elements.circleNameDisplay.textContent = hasCircle ? state.circle.name : hasPendingJoin ? state.pendingCircleJoin.name : "Circle";
   elements.circleDetail.textContent = hasCircle
-    ? `${state.circle.members.length} member${state.circle.members.length === 1 ? "" : "s"} · ${circleExpenses().length} shared`
+    ? `${state.circle.members.length} member${state.circle.members.length === 1 ? "" : "s"} · ${circleExpenses().length} shared expense${circleExpenses().length === 1 ? "" : "s"}`
     : hasPendingJoin
-      ? "Request sent. Waiting for the Circle owner to accept."
+      ? "Request sent. Waiting for your partner to accept."
     : "Create a Circle for family, couples, or roommates.";
   elements.createCircleButton.hidden = hasCircle || hasPendingJoin;
   elements.inviteCircleButton.hidden = !hasCircle;
@@ -1997,7 +1997,7 @@ function renderCircle() {
   if (hasCircle) {
     const link = circleInviteLink();
     elements.circleInviteCode.textContent = circleInviteCode();
-    elements.circleInviteLink.textContent = "Share this invite link or Circle ID to join.";
+    elements.circleInviteLink.textContent = "Share this invite link to join.";
     elements.circleQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}`;
   }
 
@@ -2024,7 +2024,7 @@ function renderCircleContacts() {
     elements.circleContactList.innerHTML = `
       <article class="circle-contact-card">
         <strong>No Circle contacts yet</strong>
-        <span>Create or join a Circle to see shared contacts here.</span>
+        <span>Create or join a Circle to see your people here.</span>
       </article>
     `;
     return;
@@ -2090,7 +2090,7 @@ function renderHistory() {
   const expenses = filteredExpenses();
   if (!expenses.length) {
     elements.historyList.innerHTML =
-      `<div class="empty-state">${state.historyFilter === "circle" ? "No Circle expenses yet." : "No expenses yet."}<br />Your first log takes five seconds.</div>`;
+      `<div class="empty-state">${state.historyFilter === "circle" ? "No Circle expenses yet." : "No expenses yet."}<br />Add your first expense.</div>`;
     return;
   }
 
@@ -2159,7 +2159,7 @@ function renderInsights() {
   elements.insightTop.textContent = topCategory ? topCategory[0] : "None yet";
 
   if (!weekExpenses.length) {
-    elements.breakdownList.innerHTML = '<div class="empty-state">Capture a few expenses and this gets useful.</div>';
+    elements.breakdownList.innerHTML = '<div class="empty-state">Add a few ideas and this starts to feel like your story.</div>';
     return;
   }
 
@@ -2227,7 +2227,7 @@ function openTodayInsightDetail() {
   elements.insightDetailTotal.textContent = formatMoney(total);
   elements.insightDetailContent.innerHTML = expenses.length
     ? renderCategoryExpenseList(expenses)
-    : '<div class="empty-state">No expenses logged today.</div>';
+    : '<div class="empty-state">No expenses today.</div>';
 
   elements.insightDetailSheet.hidden = false;
   window.setTimeout(() => {
@@ -2277,7 +2277,7 @@ function renderInsightBarChart(entries, max, type) {
   const markers = insightScaleMarkers(max);
   const labelIndexes = chartLabelIndexes(entries.length, type);
   return `
-    <div class="health-chart ${type === "month" ? "month-chart" : "week-chart"}" style="--bar-count:${entries.length}" aria-label="${type === "month" ? "Daily spending this month" : "Daily spending this week"}">
+    <div class="health-chart ${type === "month" ? "month-chart" : "week-chart"}" style="--bar-count:${entries.length}" aria-label="${type === "month" ? "Daily activity this month" : "Daily activity this week"}">
       <div class="health-plot">
         <div class="health-grid" aria-hidden="true">
           ${markers
@@ -2489,7 +2489,7 @@ function resetCapture() {
   elements.quickEntry.value = "";
   elements.noteEntry.value = "";
   selectPaymentMethod("cash");
-  setSaveButtonLabel("Save to Flow");
+  setSaveButtonLabel("Add to Flow");
   elements.cancelEditButton.hidden = true;
   renderPreview(parseEntry(""));
 }
@@ -2732,7 +2732,7 @@ function commitPendingSave() {
 }
 
 function showSuccess(message, expense) {
-  elements.successTitle.textContent = message === "Updated" ? "Updated in History" : "Added to History";
+  elements.successTitle.textContent = message === "Updated" ? "Updated in Flow" : "Added to Flow";
   elements.successDetail.textContent = expense
     ? `${formatMoney(expense.amount)} ${expense.category}`
     : "Saved";
@@ -3031,7 +3031,7 @@ function deleteCircle() {
     return;
   }
 
-  if (!window.confirm(`Delete ${state.circle.name}? Circle expenses stay in history as personal records.`)) {
+  if (!window.confirm(`Delete ${state.circle.name}? Circle expenses stay in your history.`)) {
     return;
   }
 
@@ -3911,7 +3911,7 @@ function renderDailySpendLine() {
   }
 
   const total = totalForDate(new Date());
-  elements.dailySpendLine.textContent = `${formatMoney(total)} spent today`;
+  elements.dailySpendLine.textContent = `${formatMoney(total)} added today`;
 }
 
 function groupByDay(expenses) {
@@ -4027,9 +4027,7 @@ function dateKey(date) {
 }
 
 function formatMoney(amount) {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
+  return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: amount % 1 ? 2 : 0,
   }).format(amount);
 }

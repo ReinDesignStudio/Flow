@@ -3,16 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#070908" />
+    <meta name="theme-color" content="#d7d7d9" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Flow" />
     <title>Flow</title>
-    <link rel="manifest" href="./manifest.webmanifest?v=119" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=119" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=119" />
-    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=119" />
-    <link rel="stylesheet" href="./styles.css?v=119" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900&family=Lora:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="manifest" href="./manifest.webmanifest?v=121" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=121" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=121" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=121" />
+    <link rel="stylesheet" href="./styles.css?v=121" />
   </head>
   <body>
     <div class="install-note" id="install-note" role="status" aria-live="polite" hidden>
@@ -42,8 +45,8 @@
       <div class="auth-content">
         <img class="auth-logo" src="./assets/flow-logo-gradient.png" alt="Flow" />
         <div class="auth-copy" id="auth-copy">
-          <h1 id="auth-title">Track money before you forget.</h1>
-          <p>Track expenses in 5 seconds.</p>
+          <h1 id="auth-title">Flow</h1>
+          <p>Track spending without the noise.</p>
         </div>
 
         <div class="auth-actions" id="auth-actions">
@@ -120,9 +123,9 @@
             <label class="payment-select-label" aria-label="Payment method">
               <select id="payment-method-select" name="payment-method">
                 <option value="cash">Cash</option>
-                <option value="credit-card">Credit Card</option>
+                <option value="credit-card">Credit</option>
                 <option value="debit">Debit</option>
-                <option value="e-wallet">E-Wallet</option>
+                <option value="e-wallet">E-wallet</option>
               </select>
             </label>
           </div>
@@ -167,7 +170,7 @@
               <rect x="5" y="10" width="14" height="10" rx="2" />
               <path d="M8 10V7a4 4 0 0 1 8 0v3" />
             </svg>
-            <span>Your data is private and secure</span>
+            <span>Private by default</span>
           </p>
         </form>
       </section>
@@ -175,7 +178,7 @@
       <section class="screen" id="history-screen" aria-labelledby="history-title">
         <header class="topbar">
           <div>
-            <p class="kicker">Your money trail</p>
+            <p class="kicker">Recent activity</p>
             <h1 id="history-title">History</h1>
           </div>
           <div class="header-actions">
@@ -198,7 +201,7 @@
       <section class="screen" id="insights-screen" aria-labelledby="insights-title">
         <header class="topbar">
           <div>
-            <p class="kicker">Spending signals</p>
+            <p class="kicker">Spending rhythm</p>
             <h1 id="insights-title">Insights</h1>
           </div>
           <button class="profile-button" id="profile-button" type="button" aria-label="Open profile settings" title="Profile settings">
@@ -209,15 +212,15 @@
         <div class="insight-grid">
           <button class="metric metric-button" id="week-detail-button" type="button">
             <span>This week</span>
-            <strong id="insight-week">₱0</strong>
+            <strong id="insight-week">0</strong>
           </button>
           <button class="metric metric-button" id="month-detail-button" type="button">
             <span>This month</span>
-            <strong id="insight-month">₱0</strong>
+            <strong id="insight-month">0</strong>
           </button>
           <button class="metric metric-button" id="today-detail-button" type="button">
             <span>Spent today</span>
-            <strong id="insight-average">₱0</strong>
+            <strong id="insight-average">0</strong>
           </button>
           <article class="metric top-category-metric">
             <span>Top category</span>
@@ -226,7 +229,7 @@
         </div>
 
         <section class="category-breakdown" aria-label="Category breakdown">
-          <h2>Where money went</h2>
+          <h2>Category breakdown</h2>
           <div id="breakdown-list"></div>
         </section>
       </section>
@@ -238,7 +241,7 @@
               <path d="M12 6v12" />
               <path d="M6 12h12" />
             </svg>
-            <span>Capture</span>
+            <span>Add</span>
           </button>
           <button class="tab" type="button" data-tab="history">
             <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -262,14 +265,14 @@
       <div class="success-burst" id="success-burst" role="status" aria-live="polite" hidden>
         <div class="success-card">
           <div class="success-check" aria-hidden="true">✓</div>
-          <strong id="success-title">Added to History</strong>
-          <span id="success-detail">₱120 Coffee</span>
+          <strong id="success-title">Added to Flow</strong>
+          <span id="success-detail">1 Date night</span>
         </div>
       </div>
       <div class="save-date-confirm" id="save-date-confirm" role="dialog" aria-modal="true" aria-labelledby="save-date-title" hidden>
         <div class="save-date-card">
-          <div class="success-check save-date-icon" aria-hidden="true">₱</div>
-          <strong id="save-date-title">Save expense?</strong>
+          <div class="success-check save-date-icon" aria-hidden="true">+</div>
+          <strong id="save-date-title">Add this item?</strong>
           <span id="save-date-detail">Today</span>
           <label class="save-date-field">
             <span>Pick a date</span>
@@ -285,7 +288,7 @@
         <div class="clear-confirm-card">
           <div class="success-check clear-confirm-icon" aria-hidden="true">×</div>
           <strong id="clear-confirm-title">Clear history?</strong>
-          <span>This removes every saved expense.</span>
+          <span>This removes every saved item.</span>
           <div class="clear-confirm-actions">
             <button class="clear-keep-button" id="keep-history-button" type="button">Keep</button>
             <button class="clear-delete-button" id="confirm-clear-button" type="button">Clear</button>
@@ -303,7 +306,7 @@
               <span aria-hidden="true">×</span>
             </button>
           </header>
-          <div class="insight-detail-total" id="insight-detail-total">₱0</div>
+          <div class="insight-detail-total" id="insight-detail-total">0</div>
           <div class="insight-detail-content" id="insight-detail-content"></div>
         </div>
       </div>
@@ -311,7 +314,7 @@
         <div class="qr-panel">
           <header class="insight-detail-header">
             <div>
-              <p class="kicker">Circle invite</p>
+              <p class="kicker">Partner invite</p>
               <h2 id="qr-title">Join via QR</h2>
             </div>
             <button class="icon-button" id="close-qr-button" type="button" aria-label="Close QR scanner">
@@ -324,7 +327,7 @@
           </div>
           <p class="qr-message" id="qr-message">Point your camera at a Flow Circle QR code.</p>
           <form class="qr-paste-form" id="qr-paste-form">
-            <input id="qr-link-input" type="text" placeholder="Circle ID or invite link" aria-label="Circle ID or invite link" />
+            <input id="qr-link-input" type="text" placeholder="Invite ID or link" aria-label="Invite ID or link" />
             <button type="submit">Join</button>
           </form>
         </div>
@@ -333,7 +336,7 @@
         <div class="circle-sheet-panel">
           <header class="insight-detail-header">
             <div>
-              <p class="kicker">Shared space</p>
+              <p class="kicker">Circle</p>
               <h2 id="circle-sheet-title">Circle</h2>
             </div>
             <button class="icon-button" id="close-circle-sheet-button" type="button" aria-label="Close Circle">
@@ -344,7 +347,7 @@
             <div class="circle-summary">
               <div>
                 <p class="kicker">Circle</p>
-                <strong id="circle-name-display">Shared expenses</strong>
+                <strong id="circle-name-display">Circle</strong>
                 <span id="circle-detail">Create a Circle for family, couples, or roommates.</span>
               </div>
             </div>
@@ -363,10 +366,10 @@
               <button class="circle-action danger" id="delete-circle-button" type="button" hidden>Delete</button>
             </div>
             <div class="circle-invite" id="circle-invite" hidden>
-              <img id="circle-qr" alt="Circle invite QR code" />
+              <img id="circle-qr" alt="Invite QR code" />
               <div>
                 <strong id="circle-invite-code">FLOW</strong>
-                <span id="circle-invite-link">Share this Circle ID to join.</span>
+                <span id="circle-invite-link">Share this invite to join.</span>
                 <button id="copy-circle-link-button" type="button">Copy invite link</button>
               </div>
             </div>
@@ -428,7 +431,7 @@
                 <svg class="settings-row-icon" aria-hidden="true" viewBox="0 0 24 24">
                   <path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z" />
                 </svg>
-                Dark mode
+                Soft theme
               </span>
               <div class="theme-toggle" id="theme-toggle" aria-label="Theme">
                 <button type="button" data-theme="dark">Dark</button>
@@ -507,6 +510,6 @@
       </div>
     </main>
 
-    <script src="./app.js?v=119" type="module"></script>
+    <script src="./app.js?v=121" type="module"></script>
   </body>
 </html>
