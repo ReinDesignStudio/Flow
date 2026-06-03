@@ -2978,6 +2978,16 @@ h1 {
   color: var(--text);
 }
 
+.app-shell:has(#history-screen.screen-active),
+.app-shell:has(#insights-screen.screen-active),
+:root[data-theme="light"] .app-shell:has(#history-screen.screen-active),
+:root[data-theme="light"] .app-shell:has(#insights-screen.screen-active) {
+  background:
+    radial-gradient(circle at 82% 0%, rgba(167, 232, 0, 0.14), transparent 26%),
+    var(--ft-cream);
+  background-size: auto;
+}
+
 .auth-screen {
   background: var(--ft-canvas);
   color: var(--text);
