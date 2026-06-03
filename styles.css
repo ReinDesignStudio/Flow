@@ -591,10 +591,10 @@ h2 {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   min-width: 0;
   position: relative;
-  padding-right: 14px;
+  padding: 0 16px 0 0;
   border: 1px solid var(--line);
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.84);
@@ -606,7 +606,7 @@ h2 {
 .quick-input::before {
   content: "₱";
   position: absolute;
-  left: 20px;
+  left: 26px;
   top: 50%;
   transform: translateY(-50%);
   color: rgba(16, 16, 16, 0.38);
@@ -623,7 +623,7 @@ h2 {
 
 .quick-input input {
   width: 100%;
-  height: 88px;
+  height: 94px;
   border: 0;
   border-radius: 20px;
   outline: 0;
@@ -632,8 +632,8 @@ h2 {
   caret-color: var(--accent);
   cursor: text;
   min-width: 0;
-  padding: 0 8px 0 58px;
-  font-size: clamp(3rem, 14vw, 4.5rem);
+  padding: 0 4px 0 72px;
+  font-size: clamp(2.7rem, 11vw, 4.35rem);
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0;
@@ -651,8 +651,8 @@ h2 {
 .quick-input:focus-within::after {
   content: "";
   position: absolute;
-  left: 58px;
-  top: 22px;
+  left: 72px;
+  top: 24px;
   width: 3px;
   height: 48px;
   border-radius: 999px;
@@ -712,16 +712,16 @@ h2 {
 }
 
 .payment-select-label select {
-  min-width: 108px;
-  height: 42px;
+  min-width: 118px;
+  height: 50px;
   border: 0;
   border-radius: 999px;
   background: #262525;
   color: var(--text);
   appearance: none;
   outline: 0;
-  padding: 0 34px 0 14px;
-  font-size: 0.82rem;
+  padding: 0 38px 0 18px;
+  font-size: 0.96rem;
   font-weight: 900;
 }
 
@@ -3310,7 +3310,42 @@ h1 {
 }
 
 .payment-select-label::after {
+  right: 18px;
   color: #151515;
+}
+
+@media (max-width: 380px) {
+  .quick-input {
+    gap: 10px;
+    padding-right: 12px;
+  }
+
+  .quick-input::before {
+    left: 20px;
+  }
+
+  .quick-input input {
+    height: 88px;
+    padding-left: 58px;
+    font-size: clamp(2.35rem, 10vw, 3.6rem);
+  }
+
+  .quick-input:focus-within::after {
+    left: 58px;
+    top: 22px;
+  }
+
+  .payment-select-label select {
+    min-width: 102px;
+    height: 46px;
+    padding-left: 14px;
+    padding-right: 32px;
+    font-size: 0.86rem;
+  }
+
+  .payment-select-label::after {
+    right: 14px;
+  }
 }
 
 .visibility-toggle,
