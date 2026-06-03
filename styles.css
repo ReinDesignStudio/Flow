@@ -3058,22 +3058,31 @@ h1 {
 .auth-screen,
 :root[data-theme="light"] .auth-screen {
   background:
-    radial-gradient(circle at 76% 8%, rgba(167, 232, 0, 0.32), transparent 30%),
-    radial-gradient(circle at 18% 16%, rgba(167, 232, 0, 0.18), transparent 24%),
-    var(--ft-cream);
+    radial-gradient(circle at 74% 4%, rgba(167, 232, 0, 0.18), transparent 28%),
+    radial-gradient(circle at 18% 12%, rgba(167, 232, 0, 0.08), transparent 24%),
+    #101010;
+  color: #ffffff;
 }
 
 .auth-content {
   gap: 24px;
 }
 
-.auth-copy h1,
+.auth-logo {
+  display: block;
+  filter: drop-shadow(0 18px 42px rgba(167, 232, 0, 0.18));
+}
+
+.auth-copy h1 {
+  color: #ffffff;
+}
+
 .auth-form h2 {
-  color: var(--ft-lime);
+  color: #ffffff;
 }
 
 .auth-copy p {
-  color: var(--ft-forest);
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .auth-form .kicker {
@@ -3089,7 +3098,7 @@ h1 {
 
 .auth-link,
 :root[data-theme="light"] .auth-link {
-  color: var(--ft-forest);
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .auth-forgot-link,
@@ -3099,10 +3108,10 @@ h1 {
 
 .auth-provider,
 :root[data-theme="light"] .auth-provider {
-  border: 1px solid rgba(167, 232, 0, 0.42);
-  background: rgba(255, 255, 255, 0.92);
+  border: 0;
+  background: #ffffff;
   color: #151515;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  box-shadow: none;
 }
 
 .auth-provider span,
@@ -3112,12 +3121,12 @@ h1 {
 }
 
 .auth-divider {
-  color: var(--ft-forest);
+  color: rgba(255, 255, 255, 0.58);
 }
 
 .auth-divider::before,
 .auth-divider::after {
-  background: rgba(167, 232, 0, 0.44);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .auth-form input,
@@ -3244,6 +3253,15 @@ h1 {
 
 .category-pill {
   border-radius: 999px;
+}
+
+.category-pill,
+.category-pill.active,
+.category-wrap.editing .category-pill,
+.category-pill.dragging,
+:root[data-theme="light"] .category-pill,
+:root[data-theme="light"] .category-pill.active {
+  box-shadow: none;
 }
 
 #capture-screen .capture-card {
