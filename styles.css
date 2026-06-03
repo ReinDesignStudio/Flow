@@ -3365,6 +3365,23 @@ h1 {
   box-shadow: none;
 }
 
+#capture-screen .category-pill.active,
+:root[data-theme="light"] #capture-screen .category-pill.active,
+:root[data-theme="dark"] #capture-screen .category-pill.active {
+  border-color: transparent;
+  background: var(--ft-lime);
+  color: #151515;
+}
+
+@media (hover: hover) {
+  #capture-screen .category-pill:hover,
+  :root[data-theme="light"] #capture-screen .category-pill:hover,
+  :root[data-theme="dark"] #capture-screen .category-pill:hover {
+    background: var(--ft-lime);
+    color: #151515;
+  }
+}
+
 #capture-screen .capture-card {
   gap: 18px;
 }
