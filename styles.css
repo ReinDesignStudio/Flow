@@ -1339,7 +1339,7 @@ h2 {
 }
 
 .day-toggle span {
-  color: var(--accent);
+  color: var(--text);
   font-size: 0.9rem;
   font-weight: 800;
 }
@@ -3144,6 +3144,14 @@ h1 {
   box-shadow: var(--shadow);
 }
 
+.category-breakdown,
+:root[data-theme="light"] .category-breakdown {
+  border: 0;
+  border-top: 1px solid rgba(16, 16, 16, 0.12);
+  background: transparent;
+  box-shadow: none;
+}
+
 .category-pill {
   border-radius: 999px;
 }
@@ -3211,6 +3219,7 @@ h1 {
 
 .expense-main em,
 .category-detail-row em,
+.day-toggle span,
 .day-toggle strong,
 .insight-detail-total {
   color: var(--ft-forest);
@@ -3359,6 +3368,13 @@ h1 {
     background: rgba(255, 255, 255, 0.72);
     border-color: rgba(16, 16, 16, 0.12);
     box-shadow: var(--shadow);
+  }
+
+  .category-breakdown {
+    border: 0;
+    border-top: 1px solid rgba(16, 16, 16, 0.12);
+    background: transparent;
+    box-shadow: none;
   }
 }
 
