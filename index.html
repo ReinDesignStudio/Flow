@@ -8,11 +8,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Flow" />
     <title>Flow</title>
-    <link rel="manifest" href="./manifest.webmanifest?v=126" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=126" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=126" />
-    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=126" />
-    <link rel="stylesheet" href="./styles.css?v=126" />
+    <link rel="manifest" href="./manifest.webmanifest?v=127" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=127" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=127" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=127" />
+    <link rel="stylesheet" href="./styles.css?v=127" />
   </head>
   <body>
     <div class="install-note" id="install-note" role="status" aria-live="polite" hidden>
@@ -116,14 +116,14 @@
                 placeholder="0"
                 autofocus
               />
-            </label>
-            <label class="payment-select-label" aria-label="Payment method">
-              <select id="payment-method-select" name="payment-method">
-                <option value="cash">Cash</option>
-                <option value="credit-card">Credit</option>
-                <option value="debit">Debit</option>
-                <option value="e-wallet">E-wallet</option>
-              </select>
+              <span class="payment-select-label">
+                <select id="payment-method-select" name="payment-method" aria-label="Payment method">
+                  <option value="cash">Cash</option>
+                  <option value="credit-card">Credit</option>
+                  <option value="debit">Debit</option>
+                  <option value="e-wallet">E-wallet</option>
+                </select>
+              </span>
             </label>
           </div>
 
@@ -507,6 +507,6 @@
       </div>
     </main>
 
-    <script src="./app.js?v=126" type="module"></script>
+    <script src="./app.js?v=127" type="module"></script>
   </body>
 </html>
