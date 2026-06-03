@@ -3174,11 +3174,45 @@ h1 {
 
 .category-grid,
 :root[data-theme="light"] .category-grid {
-  background: var(--ft-cream);
+  background: transparent;
 }
 
 .category-pill {
   border-radius: 999px;
+}
+
+#capture-screen .capture-card {
+  gap: 18px;
+}
+
+#capture-screen .category-grid {
+  grid-auto-columns: calc((100% - 28px) / 3);
+  gap: 14px;
+  margin-top: 6px;
+  margin-bottom: 0;
+  padding: 0;
+}
+
+#capture-screen .category-pagination {
+  margin: -2px 0 8px;
+}
+
+#capture-screen .note-field,
+#capture-screen .form-actions {
+  margin-top: 0;
+}
+
+#history-screen .topbar {
+  margin-bottom: 22px;
+}
+
+#history-screen .history-list {
+  margin-top: 0;
+}
+
+#history-screen .history-list .day-toggle {
+  min-height: 58px;
+  padding: 3px 0;
 }
 
 .add-category-pill {
