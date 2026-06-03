@@ -2959,6 +2959,30 @@ h2 {
   --shadow: 0 18px 38px rgba(16, 16, 16, 0.08);
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ft-canvas: #070807;
+  --ft-cream: #0f110f;
+  --ft-warm: #181b16;
+  --ft-stone: #23271f;
+  --ft-bark: #d9dfd2;
+  --ft-forest: #f5f7ef;
+  --ft-sage: #a0aa98;
+  --ft-blush: #1a1d18;
+  --ft-gold: #a7e800;
+  --ft-lime: #a7e800;
+  --ft-text: #f7f8f2;
+  --ft-muted: #9ca594;
+  --bg: var(--ft-canvas);
+  --panel: #121411;
+  --text: var(--ft-text);
+  --muted: var(--ft-muted);
+  --line: rgba(255, 255, 255, 0.12);
+  --accent: var(--ft-lime);
+  --accent-soft: rgba(167, 232, 0, 0.2);
+  --shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+}
+
 body,
 :root[data-theme="light"] body {
   background: var(--ft-canvas);
@@ -3537,9 +3561,157 @@ h1 {
   color: var(--ft-forest);
 }
 
+:root[data-theme="dark"] .app-shell {
+  background:
+    radial-gradient(circle at 82% 0%, rgba(167, 232, 0, 0.16), transparent 26%),
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(180deg, #11130f, #070807);
+  background-size: auto, 32px 32px, 32px 32px, auto;
+}
+
+:root[data-theme="dark"] .app-shell:has(#history-screen.screen-active),
+:root[data-theme="dark"] .app-shell:has(#insights-screen.screen-active) {
+  background:
+    radial-gradient(circle at 82% 0%, rgba(167, 232, 0, 0.12), transparent 26%),
+    var(--ft-cream);
+  background-size: auto;
+}
+
+:root[data-theme="dark"] .auth-form input,
+:root[data-theme="dark"] .phone-auth input,
+:root[data-theme="dark"] .quick-input,
+:root[data-theme="dark"] .note-field input,
+:root[data-theme="dark"] .category-composer input,
+:root[data-theme="dark"] .qr-paste-form input,
+:root[data-theme="dark"] .save-date-field input,
+:root[data-theme="dark"] .settings-input-row input {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ft-text);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .quick-input {
+  background: #11130f;
+}
+
+:root[data-theme="dark"] .quick-input input,
+:root[data-theme="dark"] .quick-input input::placeholder,
+:root[data-theme="dark"] .quick-input:focus-within input::placeholder {
+  color: var(--ft-text);
+}
+
+:root[data-theme="dark"] .quick-input::before {
+  color: rgba(255, 255, 255, 0.48);
+}
+
+:root[data-theme="dark"] .category-pill,
+:root[data-theme="dark"] .metric,
+:root[data-theme="dark"] .empty-state,
+:root[data-theme="dark"] .install-note,
+:root[data-theme="dark"] .install-guide-panel,
+:root[data-theme="dark"] .circle-panel,
+:root[data-theme="dark"] .category-breakdown,
+:root[data-theme="dark"] .success-card,
+:root[data-theme="dark"] .save-date-card,
+:root[data-theme="dark"] .clear-confirm-card,
+:root[data-theme="dark"] .insight-detail-panel,
+:root[data-theme="dark"] .qr-panel,
+:root[data-theme="dark"] .circle-sheet-panel,
+:root[data-theme="dark"] .settings-panel {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #151713;
+  color: var(--ft-text);
+}
+
+:root[data-theme="dark"] .category-pill.active {
+  background: var(--ft-lime);
+  color: #151515;
+}
+
+:root[data-theme="dark"] .settings-sheet,
+:root[data-theme="dark"] .install-guide-sheet,
+:root[data-theme="dark"] .insight-detail-sheet,
+:root[data-theme="dark"] .save-date-confirm,
+:root[data-theme="dark"] .clear-confirm,
+:root[data-theme="dark"] .circle-sheet {
+  background: rgba(0, 0, 0, 0.58);
+}
+
+:root[data-theme="dark"] .settings-panel,
+:root[data-theme="dark"] .install-guide-panel,
+:root[data-theme="dark"] .insight-detail-panel,
+:root[data-theme="dark"] .qr-panel,
+:root[data-theme="dark"] .circle-sheet-panel {
+  background-color: #151713;
+  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.42);
+}
+
+:root[data-theme="dark"] .settings-group,
+:root[data-theme="dark"] .profile-summary,
+:root[data-theme="dark"] .settings-row {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ft-text);
+}
+
+:root[data-theme="dark"] .settings-row + .settings-row,
+:root[data-theme="dark"] .history-list .day-toggle,
+:root[data-theme="dark"] .expense-row,
+:root[data-theme="dark"] .category-detail-row {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+:root[data-theme="dark"] .settings-row-icon {
+  stroke: var(--ft-muted);
+}
+
+:root[data-theme="dark"] .profile-avatar {
+  background: var(--ft-lime);
+  color: #151515;
+}
+
+:root[data-theme="dark"] .tabbar-main {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(16, 18, 15, 0.78);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.38);
+}
+
+:root[data-theme="dark"] .tab {
+  color: var(--ft-muted);
+}
+
+:root[data-theme="dark"] .tab.active {
+  background: var(--ft-lime);
+  color: #151515;
+}
+
+:root[data-theme="dark"] .save-button,
+:root[data-theme="dark"] .logout-button {
+  background: var(--ft-lime);
+  color: #151515;
+}
+
+:root[data-theme="dark"] .icon-button,
+:root[data-theme="dark"] .cancel-edit-button,
+:root[data-theme="dark"] .save-date-secondary,
+:root[data-theme="dark"] .clear-delete-button {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ft-text);
+}
+
+:root[data-theme="dark"] .auth-screen {
+  background:
+    radial-gradient(circle at 74% 4%, rgba(167, 232, 0, 0.18), transparent 28%),
+    radial-gradient(circle at 18% 12%, rgba(167, 232, 0, 0.08), transparent 24%),
+    #101010;
+}
+
 @media (min-width: 680px) {
   body,
-  :root[data-theme="light"] body {
+  :root[data-theme="light"] body,
+  :root[data-theme="dark"] body {
     background: var(--ft-canvas);
   }
 
@@ -3548,11 +3720,24 @@ h1 {
     box-shadow: 0 30px 70px rgba(16, 16, 16, 0.2);
   }
 
+  :root[data-theme="dark"] .app-shell {
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.44);
+  }
+
   .capture-card,
   .history-list,
   .category-breakdown {
     background: rgba(255, 255, 255, 0.72);
     border-color: rgba(16, 16, 16, 0.12);
+    box-shadow: var(--shadow);
+  }
+
+  :root[data-theme="dark"] .capture-card,
+  :root[data-theme="dark"] .history-list,
+  :root[data-theme="dark"] .category-breakdown {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
     box-shadow: var(--shadow);
   }
 
@@ -3573,7 +3758,8 @@ h1 {
 
 @media (min-width: 1040px) {
   body,
-  :root[data-theme="light"] body {
+  :root[data-theme="light"] body,
+  :root[data-theme="dark"] body {
     background: var(--ft-canvas);
   }
 
