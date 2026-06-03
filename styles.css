@@ -3055,6 +3055,71 @@ h1 {
   color: #151515;
 }
 
+.auth-screen,
+:root[data-theme="light"] .auth-screen {
+  background:
+    radial-gradient(circle at 76% 8%, rgba(167, 232, 0, 0.32), transparent 30%),
+    radial-gradient(circle at 18% 16%, rgba(167, 232, 0, 0.18), transparent 24%),
+    var(--ft-cream);
+}
+
+.auth-content {
+  gap: 24px;
+}
+
+.auth-copy h1,
+.auth-form h2 {
+  color: var(--ft-lime);
+}
+
+.auth-copy p {
+  color: var(--ft-forest);
+}
+
+.auth-form .kicker {
+  color: var(--ft-lime);
+}
+
+.auth-primary,
+:root[data-theme="light"] .auth-primary {
+  background: var(--ft-lime);
+  color: #151515;
+  box-shadow: 0 16px 34px rgba(167, 232, 0, 0.24);
+}
+
+.auth-link,
+:root[data-theme="light"] .auth-link {
+  color: var(--ft-forest);
+}
+
+.auth-forgot-link,
+:root[data-theme="light"] .auth-forgot-link {
+  color: var(--ft-lime);
+}
+
+.auth-provider,
+:root[data-theme="light"] .auth-provider {
+  border: 1px solid rgba(167, 232, 0, 0.42);
+  background: rgba(255, 255, 255, 0.92);
+  color: #151515;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+}
+
+.auth-provider span,
+:root[data-theme="light"] .auth-provider span {
+  background: var(--ft-lime);
+  color: #151515;
+}
+
+.auth-divider {
+  color: var(--ft-forest);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  background: rgba(167, 232, 0, 0.44);
+}
+
 .auth-form input,
 .phone-auth input,
 .quick-input,
