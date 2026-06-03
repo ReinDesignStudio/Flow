@@ -10,7 +10,7 @@
   --shadow: 0 24px 70px rgba(32, 32, 32, 0.14);
   --tabbar-clearance: calc(112px + env(safe-area-inset-bottom));
   font-family:
-    "Intro", Intro, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Nunito", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
 }
 
