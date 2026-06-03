@@ -3172,6 +3172,11 @@ h1 {
   box-shadow: none;
 }
 
+.category-grid,
+:root[data-theme="light"] .category-grid {
+  background: var(--ft-cream);
+}
+
 .category-pill {
   border-radius: 999px;
 }
