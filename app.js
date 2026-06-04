@@ -2197,7 +2197,7 @@ function renderHistory() {
           `,
             )
             .join("")
-        : '<div class="history-empty-day">Nothing logged today yet.</div>';
+        : `<div class="history-empty-day">${escapeHtml(emptyHistoryDayMessage(group.label))}</div>`;
 
       return `
         <section class="day-group">
@@ -4199,15 +4199,36 @@ function historyDayGroups(expenses) {
   const groups = groupByDay(expenses);
   const today = new Date();
   const todayKey = dateKey(today);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = dateKey(yesterday);
   groups[todayKey] ||= { expenses: [], key: todayKey, label: "Today", total: 0 };
+  groups[yesterdayKey] ||= { expenses: [], key: yesterdayKey, label: "Yesterday", total: 0 };
 
   return Object.values(groups)
     .map((group) => ({
       ...group,
-      sortTime: new Date(`${group.key}T00:00:00`).getTime(),
+      sortTime: sortTimeFromDateKey(group.key),
       expenses: group.expenses.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
     }))
     .sort((a, b) => b.sortTime - a.sortTime);
+}
+
+function sortTimeFromDateKey(key) {
+  const [year, month, day] = key.split("-").map(Number);
+  return new Date(year, month, day).getTime();
+}
+
+function emptyHistoryDayMessage(label) {
+  if (label === "Today") {
+    return "Nothing logged today yet.";
+  }
+
+  if (label === "Yesterday") {
+    return "Nothing logged yesterday.";
+  }
+
+  return "No expenses logged this day.";
 }
 
 function totalByCategory(expenses) {
