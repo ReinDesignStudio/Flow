@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=152";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=153";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -2214,21 +2214,24 @@ function renderHistory() {
 }
 
 function renderInsights() {
+  const weekStart = startOfWeek(new Date());
   const monthStart = startOfMonth(new Date());
   const insightExpenses = filteredExpenses();
+  const weekExpenses = insightExpenses.filter((expense) => new Date(expense.createdAt) >= weekStart);
   const monthExpenses = insightExpenses.filter((expense) => new Date(expense.createdAt) >= monthStart);
+  const todayExpenses = expensesForDate(new Date(), insightExpenses);
+  const weekTotal = weekExpenses.reduce((total, expense) => total + expense.amount, 0);
   const monthTotal = monthExpenses.reduce((total, expense) => total + expense.amount, 0);
-  const spendingDays = new Set(monthExpenses.map((expense) => dateKey(new Date(expense.createdAt)))).size;
-  const averageSpendDay = spendingDays ? monthTotal / spendingDays : 0;
-  const byCategory = totalByCategory(monthExpenses);
+  const todayTotal = todayExpenses.reduce((total, expense) => total + expense.amount, 0);
+  const byCategory = totalByCategory(weekExpenses);
   const topCategory = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0];
 
+  elements.insightWeek.textContent = formatMoney(weekTotal);
   elements.insightMonth.textContent = formatMoney(monthTotal);
-  elements.insightWeek.textContent = String(spendingDays);
-  elements.insightAverage.textContent = formatMoney(averageSpendDay);
+  elements.insightAverage.textContent = formatMoney(todayTotal);
   elements.insightTop.textContent = topCategory ? `${topCategory[0]} · ${formatMoney(topCategory[1])}` : "None yet";
 
-  if (!monthExpenses.length) {
+  if (!weekExpenses.length) {
     elements.breakdownList.innerHTML = '<div class="empty-state">Add a few ideas and this starts to feel like your story.</div>';
     return;
   }
@@ -2236,7 +2239,7 @@ function renderInsights() {
   elements.breakdownList.innerHTML = Object.entries(byCategory)
     .sort((a, b) => b[1] - a[1])
     .map(([category, total]) => {
-      const percent = Math.max(5, Math.round((total / monthTotal) * 100));
+      const percent = Math.max(5, Math.round((total / weekTotal) * 100));
       return `
         <button class="breakdown-row breakdown-button" type="button" data-breakdown-category="${escapeHtml(category)}" aria-label="View ${escapeHtml(category)} expenses">
           <strong class="breakdown-label">${categoryIcon(category)}${escapeHtml(category)}</strong>
