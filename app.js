@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=149";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=150";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -714,24 +714,47 @@ elements.themeToggle.addEventListener("click", (event) => {
   setTheme(button.dataset.theme);
 });
 
-document.querySelectorAll("[data-onboarding-slide]").forEach((button) => {
+const onboarding = document.querySelector("#onboarding");
+const onboardingTrack = document.querySelector("#onboarding-track");
+const onboardingDots = Array.from(document.querySelectorAll("[data-onboarding-slide]"));
+let onboardingTimerId = null;
+
+function setOnboardingSlide(slide) {
+  if (!onboarding || !onboardingTrack || !onboardingDots.length) {
+    return;
+  }
+
+  const safeSlide = ((slide % onboardingDots.length) + onboardingDots.length) % onboardingDots.length;
+  onboarding.dataset.slide = String(safeSlide);
+  onboardingTrack.style.transform = `translateX(-${safeSlide * 100}%)`;
+  onboardingDots.forEach((dot) => {
+    const isActive = Number(dot.dataset.onboardingSlide || 0) === safeSlide;
+    dot.classList.toggle("active", isActive);
+    dot.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
+}
+
+function startOnboardingAutoplay() {
+  if (!onboardingDots.length) {
+    return;
+  }
+
+  window.clearInterval(onboardingTimerId);
+  onboardingTimerId = window.setInterval(() => {
+    const currentSlide = Number(onboarding?.dataset.slide || 0);
+    setOnboardingSlide(currentSlide + 1);
+  }, 4000);
+}
+
+onboardingDots.forEach((button) => {
   button.addEventListener("click", () => {
     const slide = Number(button.dataset.onboardingSlide || 0);
-    const onboarding = document.querySelector("#onboarding");
-    const track = document.querySelector("#onboarding-track");
-    if (!onboarding || !track) {
-      return;
-    }
-
-    onboarding.dataset.slide = String(slide);
-    track.style.transform = `translateX(-${slide * 100}%)`;
-    document.querySelectorAll("[data-onboarding-slide]").forEach((dot) => {
-      const isActive = dot === button;
-      dot.classList.toggle("active", isActive);
-      dot.setAttribute("aria-pressed", isActive ? "true" : "false");
-    });
+    setOnboardingSlide(slide);
+    startOnboardingAutoplay();
   });
 });
+
+startOnboardingAutoplay();
 
 document.querySelectorAll("[data-settings-info]").forEach((button) => {
   button.addEventListener("click", () => openSettingsInfo(button.dataset.settingsInfo));
