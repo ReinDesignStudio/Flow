@@ -3591,8 +3591,8 @@ h1 {
 
 #insights-screen .topbar {
   align-items: flex-start;
-  margin-bottom: 22px;
-  padding-top: 18px;
+  margin-bottom: 18px;
+  padding-top: 12px;
 }
 
 #insights-screen .topbar > div {
@@ -3601,39 +3601,46 @@ h1 {
 }
 
 #insights-screen .kicker {
-  margin-bottom: 6px;
+  margin-bottom: 5px;
+  font-size: 0.82rem;
+}
+
+#insights-screen h1 {
+  font-size: clamp(2.15rem, 9vw, 3.1rem);
+  line-height: 0.98;
 }
 
 #insights-screen .profile-button {
-  width: 58px;
-  height: 58px;
+  width: 48px;
+  height: 48px;
   margin-top: 0;
+  font-size: 0.9rem;
 }
 
 #insights-screen .insight-grid {
-  gap: 14px;
+  gap: 10px;
   margin-top: 0;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 #insights-screen .metric {
-  min-height: 116px;
-  padding: 18px 20px;
-  border-radius: 26px;
+  min-height: 94px;
+  padding: 15px 16px;
+  border-radius: 22px;
 }
 
 #insights-screen .metric span {
   display: block;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
   color: var(--ft-muted);
-  font-size: 0.98rem;
+  font-size: 0.86rem;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.18;
 }
 
 #insights-screen .metric strong {
   color: var(--ft-text);
-  font-size: clamp(1.85rem, 7vw, 2.45rem);
+  font-size: clamp(1.42rem, 5.8vw, 1.9rem);
   letter-spacing: 0;
 }
 
@@ -3652,16 +3659,16 @@ h1 {
 #insights-screen .top-category-metric strong,
 :root[data-theme="light"] #insights-screen .top-category-metric strong {
   color: #ffffff;
-  font-size: clamp(1.25rem, 5.5vw, 1.85rem);
-  line-height: 1.08;
+  font-size: clamp(1.18rem, 5vw, 1.6rem);
+  line-height: 1.12;
   overflow-wrap: anywhere;
 }
 
 #insights-screen .category-breakdown,
 :root[data-theme="light"] #insights-screen .category-breakdown {
-  gap: 16px;
+  gap: 12px;
   overflow: hidden;
-  padding: 22px 0 0;
+  padding: 18px 0 0;
   border: 0;
   border-top: 1px solid rgba(16, 16, 16, 0.1);
   border-radius: 0;
@@ -3671,8 +3678,8 @@ h1 {
 
 #insights-screen .category-breakdown h2 {
   color: var(--ft-muted);
-  font-size: 1.35rem;
-  line-height: 1.1;
+  font-size: 1.12rem;
+  line-height: 1.15;
 }
 
 #insights-screen .breakdown-row {
@@ -3681,24 +3688,24 @@ h1 {
   grid-template-areas:
     "label amount chevron"
     "bar bar bar";
-  gap: 10px 12px;
-  min-height: 72px;
-  padding: 14px 0;
+  gap: 8px 10px;
+  min-height: 60px;
+  padding: 11px 0;
   background: transparent;
 }
 
 #insights-screen .breakdown-label {
   grid-area: label;
-  gap: 10px;
+  gap: 9px;
   min-width: 0;
   color: var(--ft-text);
-  font-size: 1.15rem;
-  line-height: 1.1;
+  font-size: 0.98rem;
+  line-height: 1.15;
 }
 
 #insights-screen .breakdown-label .category-icon {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   color: var(--ft-muted);
   stroke: var(--ft-muted);
 }
@@ -3706,7 +3713,7 @@ h1 {
 #insights-screen .breakdown-row > span {
   grid-area: amount;
   color: var(--ft-text);
-  font-size: 1.15rem;
+  font-size: 0.98rem;
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
@@ -3720,7 +3727,7 @@ h1 {
 
 #insights-screen .bar-track {
   grid-area: bar;
-  height: 10px;
+  height: 7px;
   background: rgba(16, 16, 16, 0.12);
 }
 
