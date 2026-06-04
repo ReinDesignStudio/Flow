@@ -1538,6 +1538,7 @@ function buildExpense(parsed) {
     categoryId: slugify(category),
     expenseVisibility: visibility,
     circleId: visibility === "circle" ? state.circle.id : null,
+    userId: state.user?.id || "local",
     createdByUserId: state.user?.id || "local",
     label: parsed.label || parsed.category || state.selectedCategory,
     note: elements.noteEntry.value.trim(),
@@ -2528,6 +2529,11 @@ function shouldIgnorePageSwipe(target) {
 }
 
 function startEdit(expense) {
+  if (!canWriteExpense(expense)) {
+    showToast("Shared expenses are view-only");
+    return;
+  }
+
   state.editingId = expense.id;
   elements.quickEntry.value = `${formatPlainAmount(expense.amount)} ${expense.label}`;
   elements.noteEntry.value = expense.note || "";
@@ -2541,6 +2547,13 @@ function startEdit(expense) {
 }
 
 function deleteExpense(id) {
+  const expense = state.expenses.find((item) => item.id === id);
+  if (expense && !canWriteExpense(expense)) {
+    showToast("Shared expenses are view-only");
+    closeMenu();
+    return;
+  }
+
   state.expenses = state.expenses.filter((expense) => expense.id !== id);
 
   if (state.editingId === id) {
@@ -2990,6 +3003,7 @@ function loadExpenses() {
   try {
     return (JSON.parse(localStorage.getItem(storageKey)) || []).map((expense) => ({
       ...expense,
+      userId: expense.userId || expense.user_id || expense.createdByUserId || "local",
       paymentMethod: expense.paymentMethod || "cash",
       syncStatus: expense.syncStatus || "synced",
       syncError: expense.syncError || "",
@@ -3723,7 +3737,7 @@ function mergeRemoteExpenses(rows) {
 }
 
 function hasPendingExpenseSync() {
-  return state.expenses.some((expense) => expense.syncStatus === "pending" || expense.syncStatus === "failed");
+  return state.expenses.some((expense) => canWriteExpense(expense) && (expense.syncStatus === "pending" || expense.syncStatus === "failed"));
 }
 
 function queueExpenseSync({ notify = false } = {}) {
@@ -3740,6 +3754,10 @@ function queueExpenseSync({ notify = false } = {}) {
 
 function markExpensesSynced() {
   state.expenses.forEach((expense) => {
+    if (!canWriteExpense(expense)) {
+      return;
+    }
+
     expense.syncStatus = "synced";
     expense.syncError = "";
   });
@@ -3749,7 +3767,7 @@ function markExpensesSynced() {
 function markExpensesSyncFailed(error) {
   const message = error?.message || "Sync failed";
   state.expenses.forEach((expense) => {
-    if (expense.syncStatus === "pending") {
+    if (canWriteExpense(expense) && expense.syncStatus === "pending") {
       expense.syncStatus = "failed";
       expense.syncError = message;
     }
@@ -3956,8 +3974,13 @@ async function syncExpenses({ notify = false } = {}) {
     return;
   }
 
+  const writableExpenses = state.expenses.filter(canWriteExpense);
+  if (!writableExpenses.length) {
+    return;
+  }
+
   state.expenseSyncInFlight = true;
-  const rows = state.expenses.map(toExpenseRow);
+  const rows = writableExpenses.map(toExpenseRow);
   try {
     const { error } = await supabase.from("expenses").upsert(rows);
     if (error) {
@@ -4030,7 +4053,7 @@ async function refreshCircleRemoteData() {
     state.pendingCircleRequests = [];
   }
 
-  renderCircle();
+  renderAll();
 }
 
 async function ensureCircleMembership() {
@@ -4048,6 +4071,15 @@ async function ensureCircleMembership() {
   if (error) {
     throw error;
   }
+}
+
+function canWriteExpense(expense) {
+  if (!state.user) {
+    return !isUuid(expense.userId) && !isUuid(expense.createdByUserId);
+  }
+
+  const ownerId = expense.userId || expense.createdByUserId;
+  return !isUuid(ownerId) || ownerId === state.user.id;
 }
 
 async function syncCircle({ requireOwner = false } = {}) {
@@ -4103,7 +4135,7 @@ async function clearRemoteExpenses() {
 function toExpenseRow(expense) {
   return {
     id: expense.id,
-    user_id: state.user.id,
+    user_id: isUuid(expense.userId) ? expense.userId : state.user.id,
     amount: expense.amount,
     category: expense.category,
     category_id: expense.categoryId || slugify(expense.category),
@@ -4121,6 +4153,7 @@ function toExpenseRow(expense) {
 function fromExpenseRow(row) {
   return {
     id: row.id,
+    userId: row.user_id || "",
     amount: Number(row.amount),
     category: row.category,
     categoryId: row.category_id || slugify(row.category),

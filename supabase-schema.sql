@@ -150,6 +150,21 @@ create policy "Circle owners can add accepted members"
     )
   );
 
+drop policy if exists "Accepted users can keep their circle membership" on public.circle_members;
+create policy "Accepted users can keep their circle membership"
+  on public.circle_members
+  for insert
+  to authenticated
+  with check (
+    user_id = (select auth.uid())
+    and exists (
+      select 1 from public.circle_join_requests
+      where circle_join_requests.circle_id = circle_members.circle_id
+      and circle_join_requests.requester_user_id = (select auth.uid())
+      and circle_join_requests.status = 'accepted'
+    )
+  );
+
 drop policy if exists "Users can update their circle membership" on public.circle_members;
 create policy "Users can update their circle membership"
   on public.circle_members
