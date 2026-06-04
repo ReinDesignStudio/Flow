@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=150";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=151";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -648,15 +648,15 @@ elements.circleAccessButton.addEventListener("click", () => {
   openCircleSheet();
 });
 
-elements.weekDetailButton.addEventListener("click", () => {
+elements.weekDetailButton?.addEventListener("click", () => {
   openInsightDetail("week");
 });
 
-elements.monthDetailButton.addEventListener("click", () => {
+elements.monthDetailButton?.addEventListener("click", () => {
   openInsightDetail("month");
 });
 
-elements.todayDetailButton.addEventListener("click", () => {
+elements.todayDetailButton?.addEventListener("click", () => {
   openTodayInsightDetail();
 });
 
@@ -2213,24 +2213,21 @@ function renderHistory() {
 }
 
 function renderInsights() {
-  const weekStart = startOfWeek(new Date());
   const monthStart = startOfMonth(new Date());
   const insightExpenses = filteredExpenses();
-  const weekExpenses = insightExpenses.filter((expense) => new Date(expense.createdAt) >= weekStart);
   const monthExpenses = insightExpenses.filter((expense) => new Date(expense.createdAt) >= monthStart);
-  const todayExpenses = expensesForDate(new Date(), insightExpenses);
-  const weekTotal = weekExpenses.reduce((total, expense) => total + expense.amount, 0);
   const monthTotal = monthExpenses.reduce((total, expense) => total + expense.amount, 0);
-  const todayTotal = todayExpenses.reduce((total, expense) => total + expense.amount, 0);
-  const byCategory = totalByCategory(weekExpenses);
+  const spendingDays = new Set(monthExpenses.map((expense) => dateKey(new Date(expense.createdAt)))).size;
+  const averageSpendDay = spendingDays ? monthTotal / spendingDays : 0;
+  const byCategory = totalByCategory(monthExpenses);
   const topCategory = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0];
 
-  elements.insightWeek.textContent = formatMoney(weekTotal);
   elements.insightMonth.textContent = formatMoney(monthTotal);
-  elements.insightAverage.textContent = formatMoney(todayTotal);
+  elements.insightWeek.textContent = String(spendingDays);
+  elements.insightAverage.textContent = formatMoney(averageSpendDay);
   elements.insightTop.textContent = topCategory ? `${topCategory[0]} · ${formatMoney(topCategory[1])}` : "None yet";
 
-  if (!weekExpenses.length) {
+  if (!monthExpenses.length) {
     elements.breakdownList.innerHTML = '<div class="empty-state">Add a few ideas and this starts to feel like your story.</div>';
     return;
   }
@@ -2238,7 +2235,7 @@ function renderInsights() {
   elements.breakdownList.innerHTML = Object.entries(byCategory)
     .sort((a, b) => b[1] - a[1])
     .map(([category, total]) => {
-      const percent = Math.max(5, Math.round((total / weekTotal) * 100));
+      const percent = Math.max(5, Math.round((total / monthTotal) * 100));
       return `
         <button class="breakdown-row breakdown-button" type="button" data-breakdown-category="${escapeHtml(category)}" aria-label="View ${escapeHtml(category)} expenses">
           <strong class="breakdown-label">${categoryIcon(category)}${escapeHtml(category)}</strong>
@@ -2385,8 +2382,10 @@ function renderInsightBarChart(entries, max, type) {
 }
 
 function openCategoryBreakdown(category) {
-  const expenses = state.expenses
+  const monthStart = startOfMonth(new Date());
+  const expenses = filteredExpenses()
     .filter((expense) => expense.category === category)
+    .filter((expense) => new Date(expense.createdAt) >= monthStart)
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
