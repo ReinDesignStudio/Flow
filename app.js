@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=158";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=159";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -4319,7 +4319,7 @@ function startOfDay(date) {
 }
 
 function startOfWeek(date) {
-  const day = date.getDay();
+  const day = (date.getDay() + 6) % 7;
   const start = startOfDay(date);
   start.setDate(start.getDate() - day);
   return start;
