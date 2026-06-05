@@ -8,14 +8,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Flow" />
     <title>Flow</title>
-    <link rel="manifest" href="./manifest.webmanifest?v=159" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=159" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=159" />
-    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=159" />
+    <link rel="manifest" href="./manifest.webmanifest?v=160" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=160" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=160" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=160" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./styles.css?v=159" />
+    <link rel="stylesheet" href="./styles.css?v=160" />
   </head>
   <body>
     <div class="install-note" id="install-note" role="status" aria-live="polite" hidden>
@@ -245,29 +245,59 @@
           </button>
         </header>
 
+        <div class="insight-periods" id="insight-periods" aria-label="Insight period">
+          <button class="active" type="button" data-insight-period="week">This week</button>
+          <button type="button" data-insight-period="month">This month</button>
+          <button type="button" data-insight-period="last30">Last 30d</button>
+          <button type="button" data-insight-period="all">All time</button>
+        </div>
+
         <div class="insight-grid">
-          <button class="metric metric-button" id="week-detail-button" type="button">
-            <span>This Week</span>
-            <strong id="insight-week">0</strong>
-          </button>
-          <button class="metric metric-button" id="month-detail-button" type="button">
-            <span>This Month</span>
-            <strong id="insight-month">0</strong>
-          </button>
-          <button class="metric metric-button" id="today-detail-button" type="button">
-            <span>Today</span>
-            <strong id="insight-average">0</strong>
-          </button>
+          <article class="metric">
+            <span>Total spent</span>
+            <strong id="insight-total">₱0</strong>
+            <small id="insight-trend">No previous period</small>
+          </article>
+          <article class="metric">
+            <span>Daily average</span>
+            <strong id="insight-average">₱0</strong>
+            <small id="insight-days">0 days logged</small>
+          </article>
           <article class="metric top-category-metric">
             <span>Top Category</span>
             <strong id="insight-top">None yet</strong>
+            <small id="insight-top-detail">₱0 · 0%</small>
+          </article>
+          <article class="metric">
+            <span>Today</span>
+            <strong id="insight-today">₱0</strong>
+            <small id="insight-today-detail">Matches daily average</small>
           </article>
         </div>
+
+        <section class="insight-donut-card" aria-label="Category share">
+          <div class="insight-donut" id="insight-donut"></div>
+          <div class="insight-legend" id="insight-legend"></div>
+        </section>
 
         <section class="category-breakdown" aria-label="Spending by Category">
           <h2>Spending by Category</h2>
           <div id="breakdown-list"></div>
         </section>
+
+        <article class="ai-insight-card">
+          <div class="ai-insight-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M9 18h6" />
+              <path d="M10 22h4" />
+              <path d="M8 14a6 6 0 1 1 8 0c-.9.7-1.3 1.5-1.3 2.4H9.3c0-.9-.4-1.7-1.3-2.4Z" />
+            </svg>
+          </div>
+          <div>
+            <strong id="ai-insight-title">Flow insight</strong>
+            <p id="ai-insight-copy">Log a few expenses to see a calm summary.</p>
+          </div>
+        </article>
       </section>
 
       <nav class="tabbar" aria-label="Main navigation">
@@ -553,6 +583,6 @@
       </div>
     </main>
 
-    <script src="./app.js?v=159" type="module"></script>
+    <script src="./app.js?v=160" type="module"></script>
   </body>
 </html>

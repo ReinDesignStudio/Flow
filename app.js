@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=159";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=160";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -244,6 +244,7 @@ const state = {
   expenseVisibility: "personal",
   selectedPaymentMethod: "cash",
   historyFilter: "all",
+  insightPeriod: "week",
   profileName: profileData.name,
   theme: savedTheme,
   auth: { email: initialSession?.user?.email || "" },
@@ -354,13 +355,19 @@ const elements = {
   qrLinkInput: document.querySelector("#qr-link-input"),
   closeQrButton: document.querySelector("#close-qr-button"),
   historyFilter: document.querySelector("#history-filter"),
-  insightWeek: document.querySelector("#insight-week"),
-  insightMonth: document.querySelector("#insight-month"),
+  insightPeriods: document.querySelector("#insight-periods"),
+  insightTotal: document.querySelector("#insight-total"),
+  insightTrend: document.querySelector("#insight-trend"),
+  insightDays: document.querySelector("#insight-days"),
   insightAverage: document.querySelector("#insight-average"),
   insightTop: document.querySelector("#insight-top"),
-  weekDetailButton: document.querySelector("#week-detail-button"),
-  monthDetailButton: document.querySelector("#month-detail-button"),
-  todayDetailButton: document.querySelector("#today-detail-button"),
+  insightTopDetail: document.querySelector("#insight-top-detail"),
+  insightToday: document.querySelector("#insight-today"),
+  insightTodayDetail: document.querySelector("#insight-today-detail"),
+  insightDonut: document.querySelector("#insight-donut"),
+  insightLegend: document.querySelector("#insight-legend"),
+  aiInsightTitle: document.querySelector("#ai-insight-title"),
+  aiInsightCopy: document.querySelector("#ai-insight-copy"),
   insightDetailSheet: document.querySelector("#insight-detail-sheet"),
   insightDetailKicker: document.querySelector("#insight-detail-kicker"),
   insightDetailTitle: document.querySelector("#insight-detail-title"),
@@ -648,16 +655,17 @@ elements.circleAccessButton.addEventListener("click", () => {
   openCircleSheet();
 });
 
-elements.weekDetailButton?.addEventListener("click", () => {
-  openInsightDetail("week");
-});
+elements.insightPeriods.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-insight-period]");
+  if (!button) {
+    return;
+  }
 
-elements.monthDetailButton?.addEventListener("click", () => {
-  openInsightDetail("month");
-});
-
-elements.todayDetailButton?.addEventListener("click", () => {
-  openTodayInsightDetail();
+  state.insightPeriod = button.dataset.insightPeriod;
+  if (state.circle) {
+    refreshCircleRemoteData().catch(() => renderInsights());
+  }
+  renderInsights();
 });
 
 elements.breakdownList.addEventListener("click", (event) => {
@@ -2214,44 +2222,242 @@ function renderHistory() {
 }
 
 function renderInsights() {
-  const weekStart = startOfWeek(new Date());
-  const monthStart = startOfMonth(new Date());
-  const insightExpenses = filteredExpenses();
-  const weekExpenses = insightExpenses.filter((expense) => new Date(expense.createdAt) >= weekStart);
-  const monthExpenses = insightExpenses.filter((expense) => new Date(expense.createdAt) >= monthStart);
+  const range = insightRange(state.insightPeriod);
+  const previousRange = previousInsightRange(range);
+  const insightExpenses = expensesInRange(filteredExpenses(), range);
+  const previousExpenses = previousRange ? expensesInRange(filteredExpenses(), previousRange) : [];
   const todayExpenses = expensesForDate(new Date(), insightExpenses);
-  const weekTotal = weekExpenses.reduce((total, expense) => total + expense.amount, 0);
-  const monthTotal = monthExpenses.reduce((total, expense) => total + expense.amount, 0);
+  const total = sumExpenses(insightExpenses);
+  const previousTotal = sumExpenses(previousExpenses);
   const todayTotal = todayExpenses.reduce((total, expense) => total + expense.amount, 0);
-  const byCategory = totalByCategory(weekExpenses);
-  const topCategory = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0];
+  const categoryTotals = insightCategoryTotals(insightExpenses);
+  const topCategory = categoryTotals[0];
+  const loggedDays = spendingDayCount(insightExpenses);
+  const dailyAverage = loggedDays ? total / loggedDays : 0;
 
-  elements.insightWeek.textContent = formatMoney(weekTotal);
-  elements.insightMonth.textContent = formatMoney(monthTotal);
-  elements.insightAverage.textContent = formatMoney(todayTotal);
-  elements.insightTop.textContent = topCategory ? `${topCategory[0]} · ${formatMoney(topCategory[1])}` : "None yet";
+  renderInsightPeriodSelector();
+  elements.insightTotal.textContent = formatPeso(total);
+  renderInsightTrend(total, previousTotal, range);
+  elements.insightAverage.textContent = formatPeso(dailyAverage);
+  elements.insightDays.textContent = `${loggedDays} day${loggedDays === 1 ? "" : "s"} logged`;
+  elements.insightTop.textContent = topCategory ? topCategory.category : "None yet";
+  elements.insightTopDetail.textContent = topCategory ? `${formatPeso(topCategory.total)} · ${topCategory.percent}%` : "₱0 · 0%";
+  elements.insightToday.textContent = formatPeso(todayTotal);
+  elements.insightTodayDetail.textContent = todayComparison(todayTotal, dailyAverage);
+  elements.insightDonut.innerHTML = renderInsightDonut(categoryTotals, total);
+  elements.insightLegend.innerHTML = renderInsightLegend(categoryTotals, total);
+  renderAiInsight(categoryTotals, total);
 
-  if (!weekExpenses.length) {
+  if (!insightExpenses.length) {
     elements.breakdownList.innerHTML = '<div class="empty-state">Add a few ideas and this starts to feel like your story.</div>';
     return;
   }
 
-  elements.breakdownList.innerHTML = Object.entries(byCategory)
-    .sort((a, b) => b[1] - a[1])
-    .map(([category, total]) => {
-      const percent = Math.max(5, Math.round((total / weekTotal) * 100));
-      return `
-        <button class="breakdown-row breakdown-button" type="button" data-breakdown-category="${escapeHtml(category)}" aria-label="View ${escapeHtml(category)} expenses">
-          <strong class="breakdown-label">${categoryIcon(category)}${escapeHtml(category)}</strong>
-          <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${percent}%"></div></div>
-          <span>${formatMoney(total)}</span>
-          <svg class="breakdown-chevron" aria-hidden="true" viewBox="0 0 24 24">
-            <path d="m9 6 6 6-6 6" />
-          </svg>
-        </button>
-      `;
-    })
-    .join("");
+  elements.breakdownList.innerHTML = renderInsightCategoryRows(categoryTotals);
+}
+
+function renderInsightPeriodSelector() {
+  elements.insightPeriods.querySelectorAll("button[data-insight-period]").forEach((button) => {
+    const active = button.dataset.insightPeriod === state.insightPeriod;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", active ? "true" : "false");
+  });
+}
+
+function insightRange(period) {
+  const now = new Date();
+  const end = now;
+
+  if (period === "month") {
+    return { period, start: startOfMonth(now), end, previousLabel: "last month" };
+  }
+
+  if (period === "last30") {
+    const start = startOfDay(now);
+    start.setDate(start.getDate() - 29);
+    return { period, start, end, previousLabel: "prev 30d" };
+  }
+
+  if (period === "all") {
+    return { period, start: null, end, previousLabel: "" };
+  }
+
+  return { period: "week", start: startOfWeek(now), end, previousLabel: "last week" };
+}
+
+function previousInsightRange(range) {
+  if (!range.start) {
+    return null;
+  }
+
+  const end = new Date(range.start.getTime() - 1);
+  const duration = range.end.getTime() - range.start.getTime();
+  const start = new Date(end.getTime() - duration);
+  return { start, end };
+}
+
+function expensesInRange(expenses, range) {
+  return expenses.filter((expense) => {
+    const date = new Date(expense.createdAt);
+    return (!range.start || date >= range.start) && (!range.end || date <= range.end);
+  });
+}
+
+function sumExpenses(expenses) {
+  return expenses.reduce((total, expense) => total + expense.amount, 0);
+}
+
+function spendingDayCount(expenses) {
+  return new Set(expenses.map((expense) => dateKey(new Date(expense.createdAt)))).size;
+}
+
+function insightCategoryTotals(expenses) {
+  const total = sumExpenses(expenses);
+  return Object.entries(totalByCategory(expenses))
+    .map(([category, amount]) => ({
+      category,
+      total: amount,
+      percent: total ? Math.round((amount / total) * 100) : 0,
+    }))
+    .sort((a, b) => b.total - a.total);
+}
+
+function renderInsightTrend(total, previousTotal, range) {
+  if (!previousTotal) {
+    elements.insightTrend.textContent = "No previous period";
+    elements.insightTrend.className = "trend neutral";
+    return;
+  }
+
+  const change = Math.round(((total - previousTotal) / previousTotal) * 100);
+  if (change === 0) {
+    elements.insightTrend.textContent = `No change vs ${range.previousLabel}`;
+    elements.insightTrend.className = "trend neutral";
+    return;
+  }
+
+  const up = change > 0;
+  elements.insightTrend.textContent = `${up ? "↑" : "↓"} ${Math.abs(change)}% vs ${range.previousLabel}`;
+  elements.insightTrend.className = `trend ${up ? "up" : "down"}`;
+}
+
+function todayComparison(todayTotal, dailyAverage) {
+  if (!dailyAverage) {
+    return "No average yet";
+  }
+
+  const difference = Math.round(Math.abs(todayTotal - dailyAverage));
+  if (difference === 0) {
+    return "Matches daily average";
+  }
+
+  return `${formatPeso(difference)} ${todayTotal > dailyAverage ? "above" : "below"} daily avg`;
+}
+
+function renderInsightDonut(categories, total) {
+  if (!total) {
+    return `
+      <svg viewBox="0 0 160 160" role="img" aria-label="No spending yet">
+        <circle cx="80" cy="80" r="56" fill="none" stroke="#333" stroke-width="16"></circle>
+      </svg>
+      <div class="donut-center"><strong>₱0</strong><span>total</span></div>
+    `;
+  }
+
+  const radius = 56;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+  const segments = insightDonutSegments(categories, total);
+  const circles = segments.map((segment) => {
+    const length = (segment.total / total) * circumference;
+    const circle = `
+      <circle cx="80" cy="80" r="${radius}" fill="none" stroke="${segment.color}" stroke-width="16"
+        stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${-offset}" transform="rotate(-90 80 80)"></circle>
+    `;
+    offset += length;
+    return circle;
+  }).join("");
+
+  return `
+    <svg viewBox="0 0 160 160" role="img" aria-label="Spending by category donut">
+      <circle cx="80" cy="80" r="${radius}" fill="none" stroke="#333" stroke-width="16"></circle>
+      ${circles}
+    </svg>
+    <div class="donut-center"><strong>${formatCompactPeso(total)}</strong><span>total</span></div>
+  `;
+}
+
+function renderInsightLegend(categories, total) {
+  const segments = insightDonutSegments(categories, total);
+  if (!segments.length) {
+    return '<div class="empty-state">No categories yet.</div>';
+  }
+
+  return segments.map((segment) => `
+    <div class="legend-row">
+      <span class="legend-dot" style="background:${segment.color}"></span>
+      <strong>${escapeHtml(segment.category)}</strong>
+      <span>${formatPeso(segment.total)} · ${segment.percent}%</span>
+    </div>
+  `).join("");
+}
+
+function insightDonutSegments(categories, total) {
+  const colors = ["#AADD44", "#7aaa33", "#4a7a20", "#2a4a10"];
+  const top = categories.slice(0, 4).map((item, index) => ({ ...item, color: colors[index] }));
+  const rest = categories.slice(4);
+  if (!rest.length) {
+    return top;
+  }
+
+  const otherTotal = rest.reduce((sum, item) => sum + item.total, 0);
+  return [
+    ...top,
+    {
+      category: "Others",
+      total: otherTotal,
+      percent: total ? Math.round((otherTotal / total) * 100) : 0,
+      color: "#333",
+    },
+  ];
+}
+
+function renderInsightCategoryRows(categories) {
+  const colors = ["#AADD44", "#7aaa33", "#4a7a20"];
+  const highest = categories[0]?.total || 1;
+  return categories.map((item, index) => {
+    const width = Math.max(3, Math.round((item.total / highest) * 100));
+    const color = colors[index] || "#555";
+    return `
+      <button class="breakdown-row breakdown-button" type="button" data-breakdown-category="${escapeHtml(item.category)}" aria-label="View ${escapeHtml(item.category)} expenses">
+        <span class="breakdown-icon">${categoryIcon(item.category)}</span>
+        <strong class="breakdown-label">${escapeHtml(item.category)}</strong>
+        <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${width}%;background:${color}"></div></div>
+        <span class="breakdown-amount">${formatPeso(item.total)}<small>${item.percent}%</small></span>
+      </button>
+    `;
+  }).join("");
+}
+
+function renderAiInsight(categories, total) {
+  const [first, second] = categories;
+  const essentials = ["bills", "rent", "gas", "transport", "insurance", "taxes", "debt", "loan", "electric", "water", "internet", "mobile"];
+  const essentialTotal = categories
+    .filter((item) => essentials.some((keyword) => item.category.toLowerCase().includes(keyword)))
+    .reduce((sum, item) => sum + item.total, 0);
+  const discretionary = Math.max(0, total - essentialTotal);
+  const periodLabel = state.insightPeriod === "week" ? "this week" : "this period";
+
+  elements.aiInsightTitle.textContent = "Flow insight";
+  if (!total || !first) {
+    elements.aiInsightCopy.textContent = "Log a few expenses to see a calm summary.";
+    return;
+  }
+
+  const leaders = second
+    ? `${first.category} and ${second.category} make up ${first.percent + second.percent}% of spending`
+    : `${first.category} makes up ${first.percent}% of spending`;
+  elements.aiInsightCopy.textContent = `${leaders} ${periodLabel}. Discretionary spending is ${formatPeso(discretionary)}, with essentials at ${formatPeso(essentialTotal)}.`;
 }
 
 function openInsightDetail(type) {
@@ -2386,10 +2592,10 @@ function renderInsightBarChart(entries, max, type) {
 }
 
 function openCategoryBreakdown(category) {
-  const monthStart = startOfMonth(new Date());
+  const range = insightRange(state.insightPeriod);
   const expenses = filteredExpenses()
     .filter((expense) => expense.category === category)
-    .filter((expense) => new Date(expense.createdAt) >= monthStart)
+    .filter((expense) => expensesInRange([expense], range).length)
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
@@ -2401,7 +2607,7 @@ function openCategoryBreakdown(category) {
   window.clearTimeout(state.insightDetailCloseTimer);
   elements.insightDetailKicker.textContent = "Spending by Category";
   elements.insightDetailTitle.textContent = category;
-  elements.insightDetailTotal.textContent = formatMoney(total);
+  elements.insightDetailTotal.textContent = formatPeso(total);
   elements.insightDetailContent.innerHTML = renderCategoryExpenseList(expenses);
 
   elements.insightDetailSheet.hidden = false;
@@ -4339,8 +4545,16 @@ function formatMoney(amount) {
   }).format(amount);
 }
 
+function formatPeso(amount) {
+  return `₱${formatMoney(Math.round(amount))}`;
+}
+
 function formatCompactMoney(amount) {
   return amount >= 1000 ? `${Math.round(amount / 1000)}k` : formatMoney(amount);
+}
+
+function formatCompactPeso(amount) {
+  return `₱${formatCompactMoney(amount)}`;
 }
 
 function formatChartAxis(amount) {
