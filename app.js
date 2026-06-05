@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=163";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=164";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -15,6 +15,7 @@ const defaultCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", 
 const defaultCircleCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams", "Faith", "Fun", "Others"];
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 const authStartupTimeoutMs = 2500;
+const greetingRefreshMs = 60 * 1000;
 let supabase = null;
 let initialSession = null;
 let authStartupError = "";
@@ -449,14 +450,18 @@ window.addEventListener("online", () => {
 });
 
 window.addEventListener("focus", () => {
+  setGreeting();
   retryPendingExpenseSync();
 });
 
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) {
+    setGreeting();
     retryPendingExpenseSync();
   }
 });
+
+window.setInterval(setGreeting, greetingRefreshMs);
 
 if ("serviceWorker" in navigator && isLocalHost()) {
   resetLocalServiceWorkers();
@@ -4307,7 +4312,10 @@ function fromExpenseRow(row) {
 }
 
 function setGreeting() {
-  elements.greeting.textContent = "Good Morning, Rein";
+  const hour = new Date().getHours();
+  const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
+  const firstName = firstProfileName(state.profileName || defaultProfileName);
+  elements.greeting.textContent = `Good ${timeOfDay}, ${firstName}`;
 }
 
 function renderDailySpendLine() {
@@ -4496,6 +4504,10 @@ function titleCase(text) {
 
 function cleanProfileName(name) {
   return titleCase(String(name || "").trim()) || defaultProfileName;
+}
+
+function firstProfileName(name) {
+  return cleanProfileName(name).split(/\s+/)[0] || defaultProfileName;
 }
 
 function escapeHtml(value) {
