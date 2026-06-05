@@ -3510,7 +3510,7 @@ h1 {
 
 #capture-screen .category-grid {
   grid-auto-columns: calc((100% - 24px) / 3);
-  grid-template-rows: repeat(2, minmax(86px, 1fr));
+  grid-template-rows: repeat(2, minmax(70px, 1fr));
   gap: 12px;
   margin-top: 8px;
   margin-bottom: 2px;
@@ -3526,24 +3526,23 @@ h1 {
 :root[data-theme="dark"] #capture-screen .category-pill {
   flex-direction: column;
   justify-content: center;
-  gap: 8px;
-  min-height: 86px;
-  aspect-ratio: 1 / 1;
+  gap: 7px;
+  min-height: 70px;
   border-width: 1px;
   border-style: solid;
   border-color: rgba(255, 255, 255, 0.13);
-  border-radius: 22px;
+  border-radius: 18px;
   background: #151713;
   color: var(--ft-text);
-  padding: 12px 10px;
+  padding: 10px 12px;
   font-size: 0.82rem;
   line-height: 1;
   text-align: center;
 }
 
 #capture-screen .category-pill .category-icon {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   stroke-width: 2;
 }
 
@@ -3562,11 +3561,11 @@ h1 {
 }
 
 #capture-screen .category-grid-editing {
-  grid-template-rows: repeat(2, 118px);
+  grid-template-rows: repeat(2, 102px);
 }
 
 #capture-screen .category-grid-editing .category-pill {
-  min-height: 86px;
+  min-height: 70px;
 }
 
 #capture-screen .category-move-controls {
