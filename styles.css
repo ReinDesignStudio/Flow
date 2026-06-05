@@ -3509,15 +3509,71 @@ h1 {
 }
 
 #capture-screen .category-grid {
-  grid-auto-columns: calc((100% - 28px) / 3);
-  gap: 14px;
-  margin-top: 6px;
-  margin-bottom: 0;
+  grid-auto-columns: calc((100% - 24px) / 3);
+  grid-template-rows: repeat(2, 64px);
+  gap: 12px;
+  margin-top: 8px;
+  margin-bottom: 2px;
   padding: 0;
 }
 
 #capture-screen .category-pagination {
-  margin: -2px 0 8px;
+  margin: 2px 0 10px;
+}
+
+#capture-screen .category-pill,
+:root[data-theme="light"] #capture-screen .category-pill,
+:root[data-theme="dark"] #capture-screen .category-pill {
+  justify-content: center;
+  gap: 9px;
+  min-height: 64px;
+  border-width: 1px;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.13);
+  border-radius: 999px;
+  background: #151713;
+  color: var(--ft-text);
+  padding: 0 12px;
+  font-size: 0.86rem;
+  line-height: 1;
+}
+
+#capture-screen .category-pill .category-icon {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+}
+
+#capture-screen .category-pill span:last-child {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  line-height: 1;
+  max-height: 1.2em;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  -webkit-line-clamp: 1;
+}
+
+#capture-screen .category-grid-editing {
+  grid-template-rows: repeat(2, 96px);
+}
+
+#capture-screen .category-grid-editing .category-pill {
+  min-height: 64px;
+}
+
+#capture-screen .category-move-controls {
+  gap: 6px;
+}
+
+#capture-screen .category-pill.active,
+:root[data-theme="light"] #capture-screen .category-pill.active,
+:root[data-theme="dark"] #capture-screen .category-pill.active {
+  border-color: transparent;
+  background: var(--ft-lime);
+  color: #151515;
 }
 
 #capture-screen .note-field,
