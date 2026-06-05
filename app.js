@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=162";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=163";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -364,8 +364,6 @@ const elements = {
   insightTopDetail: document.querySelector("#insight-top-detail"),
   insightToday: document.querySelector("#insight-today"),
   insightTodayDetail: document.querySelector("#insight-today-detail"),
-  insightDonut: document.querySelector("#insight-donut"),
-  insightLegend: document.querySelector("#insight-legend"),
   aiInsightTitle: document.querySelector("#ai-insight-title"),
   aiInsightCopy: document.querySelector("#ai-insight-copy"),
   insightDetailSheet: document.querySelector("#insight-detail-sheet"),
@@ -2244,8 +2242,6 @@ function renderInsights() {
   elements.insightTopDetail.textContent = topCategory ? `${formatPeso(topCategory.total)} · ${topCategory.percent}%` : "₱0 · 0%";
   elements.insightToday.textContent = formatPeso(todayTotal);
   elements.insightTodayDetail.textContent = todayComparison(todayTotal, dailyAverage);
-  elements.insightDonut.innerHTML = renderInsightDonut(categoryTotals, total);
-  elements.insightLegend.innerHTML = renderInsightLegend(categoryTotals, total);
   renderAiInsight(categoryTotals, total);
 
   if (!insightExpenses.length) {
@@ -2352,74 +2348,6 @@ function todayComparison(todayTotal, dailyAverage) {
   }
 
   return `${formatPeso(difference)} ${todayTotal > dailyAverage ? "above" : "below"} daily avg`;
-}
-
-function renderInsightDonut(categories, total) {
-  if (!total) {
-    return `
-      <svg viewBox="0 0 160 160" role="img" aria-label="No spending yet">
-        <circle cx="80" cy="80" r="56" fill="none" stroke="#333" stroke-width="16"></circle>
-      </svg>
-      <div class="donut-center"><strong>₱0</strong><span>total</span></div>
-    `;
-  }
-
-  const radius = 56;
-  const circumference = 2 * Math.PI * radius;
-  let offset = 0;
-  const segments = insightDonutSegments(categories, total);
-  const circles = segments.map((segment) => {
-    const length = (segment.total / total) * circumference;
-    const circle = `
-      <circle cx="80" cy="80" r="${radius}" fill="none" stroke="${segment.color}" stroke-width="16"
-        stroke-dasharray="${length} ${circumference - length}" stroke-dashoffset="${-offset}" transform="rotate(-90 80 80)"></circle>
-    `;
-    offset += length;
-    return circle;
-  }).join("");
-
-  return `
-    <svg viewBox="0 0 160 160" role="img" aria-label="Spending by category donut">
-      <circle cx="80" cy="80" r="${radius}" fill="none" stroke="#333" stroke-width="16"></circle>
-      ${circles}
-    </svg>
-    <div class="donut-center"><strong>${formatCompactPeso(total)}</strong><span>total</span></div>
-  `;
-}
-
-function renderInsightLegend(categories, total) {
-  const segments = insightDonutSegments(categories, total);
-  if (!segments.length) {
-    return '<div class="empty-state">No categories yet.</div>';
-  }
-
-  return segments.map((segment) => `
-    <div class="legend-row">
-      <span class="legend-dot" style="background:${segment.color}"></span>
-      <strong>${escapeHtml(segment.category)}</strong>
-      <span>${formatPeso(segment.total)} · ${segment.percent}%</span>
-    </div>
-  `).join("");
-}
-
-function insightDonutSegments(categories, total) {
-  const colors = ["#a7e800", "#78ad24", "#4d801c", "#294f10"];
-  const top = categories.slice(0, 4).map((item, index) => ({ ...item, color: colors[index] }));
-  const rest = categories.slice(4);
-  if (!rest.length) {
-    return top;
-  }
-
-  const otherTotal = rest.reduce((sum, item) => sum + item.total, 0);
-  return [
-    ...top,
-    {
-      category: "Others",
-      total: otherTotal,
-      percent: total ? Math.round((otherTotal / total) * 100) : 0,
-      color: "#333333",
-    },
-  ];
 }
 
 function renderInsightCategoryRows(categories) {
@@ -4547,14 +4475,6 @@ function formatMoney(amount) {
 
 function formatPeso(amount) {
   return `₱${formatMoney(Math.round(amount))}`;
-}
-
-function formatCompactMoney(amount) {
-  return amount >= 1000 ? `${Math.round(amount / 1000)}k` : formatMoney(amount);
-}
-
-function formatCompactPeso(amount) {
-  return `₱${formatCompactMoney(amount)}`;
 }
 
 function formatChartAxis(amount) {
