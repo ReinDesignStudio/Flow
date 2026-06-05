@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=160";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=161";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -2403,7 +2403,7 @@ function renderInsightLegend(categories, total) {
 }
 
 function insightDonutSegments(categories, total) {
-  const colors = ["#AADD44", "#7aaa33", "#4a7a20", "#2a4a10"];
+  const colors = ["#a7e800", "#78ad24", "#4d801c", "#294f10"];
   const top = categories.slice(0, 4).map((item, index) => ({ ...item, color: colors[index] }));
   const rest = categories.slice(4);
   if (!rest.length) {
@@ -2417,20 +2417,20 @@ function insightDonutSegments(categories, total) {
       category: "Others",
       total: otherTotal,
       percent: total ? Math.round((otherTotal / total) * 100) : 0,
-      color: "#333",
+      color: "#333333",
     },
   ];
 }
 
 function renderInsightCategoryRows(categories) {
-  const colors = ["#AADD44", "#7aaa33", "#4a7a20"];
+  const colors = ["#a7e800", "#78ad24", "#4d801c"];
   const highest = categories[0]?.total || 1;
   return categories.map((item, index) => {
     const width = Math.max(3, Math.round((item.total / highest) * 100));
     const color = colors[index] || "#555";
     return `
       <button class="breakdown-row breakdown-button" type="button" data-breakdown-category="${escapeHtml(item.category)}" aria-label="View ${escapeHtml(item.category)} expenses">
-        <span class="breakdown-icon">${categoryIcon(item.category)}</span>
+        <div class="breakdown-icon">${categoryIcon(item.category)}</div>
         <strong class="breakdown-label">${escapeHtml(item.category)}</strong>
         <div class="bar-track" aria-hidden="true"><div class="bar-fill" style="width:${width}%;background:${color}"></div></div>
         <span class="breakdown-amount">${formatPeso(item.total)}<small>${item.percent}%</small></span>
