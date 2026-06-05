@@ -8,14 +8,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Flow" />
     <title>Flow</title>
-    <link rel="manifest" href="./manifest.webmanifest?v=155" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=155" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=155" />
-    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=155" />
+    <link rel="manifest" href="./manifest.webmanifest?v=156" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=156" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=156" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=156" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./styles.css?v=155" />
+    <link rel="stylesheet" href="./styles.css?v=156" />
   </head>
   <body>
     <div class="install-note" id="install-note" role="status" aria-live="polite" hidden>
@@ -126,7 +126,7 @@
         <header class="topbar">
           <div>
             <p class="kicker" id="greeting">Good Morning, Rein</p>
-            <h1 id="capture-title">What did you spend today?</h1>
+            <h1 id="capture-title">Log an expense</h1>
           </div>
           <button class="circle-access-button" id="circle-access-button" type="button" aria-label="Open Circle">
             <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -188,7 +188,7 @@
               <path d="M10 12h7" />
               <path d="M10 16h5" />
             </svg>
-            <input id="note-entry" name="note-entry" placeholder="Note" />
+            <input id="note-entry" name="note-entry" placeholder="Optional note" />
           </label>
 
           <div class="form-actions">
@@ -197,7 +197,7 @@
                 <path d="M5 12h14" />
                 <path d="m13 6 6 6-6 6" />
               </svg>
-              <span>Save to Flow</span>
+              <span>Add to Flow</span>
             </button>
             <button class="cancel-edit-button" id="cancel-edit-button" type="button" hidden>Cancel</button>
           </div>
@@ -206,7 +206,7 @@
               <rect x="5" y="10" width="14" height="10" rx="2" />
               <path d="M8 10V7a4 4 0 0 1 8 0v3" />
             </svg>
-            <span>Private by default</span>
+            <span>Private by design</span>
           </p>
         </form>
       </section>
@@ -214,7 +214,7 @@
       <section class="screen" id="history-screen" aria-labelledby="history-title">
         <header class="topbar">
           <div>
-            <p class="kicker">Recent activity</p>
+            <p class="kicker">Your spending timeline</p>
             <h1 id="history-title">History</h1>
           </div>
           <div class="header-actions">
@@ -237,7 +237,7 @@
       <section class="screen" id="insights-screen" aria-labelledby="insights-title">
         <header class="topbar">
           <div>
-            <p class="kicker">Spending rhythm</p>
+            <p class="kicker">Understand your spending</p>
             <h1 id="insights-title">Insights</h1>
           </div>
           <button class="profile-button" id="profile-button" type="button" aria-label="Open profile settings" title="Profile settings">
@@ -247,25 +247,25 @@
 
         <div class="insight-grid">
           <button class="metric metric-button" id="week-detail-button" type="button">
-            <span>Weekly</span>
+            <span>This Week</span>
             <strong id="insight-week">0</strong>
           </button>
           <button class="metric metric-button" id="month-detail-button" type="button">
-            <span>Monthly</span>
+            <span>This Month</span>
             <strong id="insight-month">0</strong>
           </button>
           <button class="metric metric-button" id="today-detail-button" type="button">
-            <span>Today's Expense</span>
+            <span>Today</span>
             <strong id="insight-average">0</strong>
           </button>
           <article class="metric top-category-metric">
-            <span>Highest Label</span>
+            <span>Top Category</span>
             <strong id="insight-top">None yet</strong>
           </article>
         </div>
 
-        <section class="category-breakdown" aria-label="Category breakdown">
-          <h2>Category breakdown</h2>
+        <section class="category-breakdown" aria-label="Spending by Category">
+          <h2>Spending by Category</h2>
           <div id="breakdown-list"></div>
         </section>
       </section>
@@ -553,6 +553,6 @@
       </div>
     </main>
 
-    <script src="./app.js?v=155" type="module"></script>
+    <script src="./app.js?v=156" type="module"></script>
   </body>
 </html>

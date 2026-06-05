@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=155";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=156";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -2399,7 +2399,7 @@ function openCategoryBreakdown(category) {
   }
 
   window.clearTimeout(state.insightDetailCloseTimer);
-  elements.insightDetailKicker.textContent = "Category breakdown";
+  elements.insightDetailKicker.textContent = "Spending by Category";
   elements.insightDetailTitle.textContent = category;
   elements.insightDetailTotal.textContent = formatMoney(total);
   elements.insightDetailContent.innerHTML = renderCategoryExpenseList(expenses);
@@ -2456,7 +2456,7 @@ function chartLabelIndexes(length, type) {
 function weekRangeLabel(entries) {
   const [start, end] = [entries[0]?.date, entries.at(-1)?.date];
   if (!start || !end) {
-    return "Weekly graph";
+    return "This Week graph";
   }
 
   const month = start.toLocaleDateString(undefined, { month: "short" });
@@ -4173,9 +4173,7 @@ function fromExpenseRow(row) {
 }
 
 function setGreeting() {
-  const hour = new Date().getHours();
-  const dayPart = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
-  elements.greeting.textContent = `Good ${dayPart}, ${state.profileName || defaultProfileName}`;
+  elements.greeting.textContent = "Good Morning, Rein";
 }
 
 function renderDailySpendLine() {
