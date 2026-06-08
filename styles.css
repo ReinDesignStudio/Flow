@@ -3540,6 +3540,12 @@ h1 {
   text-align: center;
 }
 
+:root[data-theme="light"] #capture-screen .category-pill {
+  border-color: rgba(16, 16, 16, 0.1);
+  background: #ffffff;
+  color: #151515;
+}
+
 #capture-screen .category-pill .category-icon {
   width: 20px;
   height: 20px;
