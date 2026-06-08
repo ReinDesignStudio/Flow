@@ -4355,7 +4355,7 @@ h1 {
 #insights-screen .category-breakdown,
 :root[data-theme="dark"] #insights-screen .category-breakdown,
 :root[data-theme="light"] #insights-screen .category-breakdown {
-  padding: 0;
+  padding: 4px 0 0;
   border: 0;
   background: transparent;
 }
@@ -4444,7 +4444,7 @@ h1 {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr);
   gap: 12px;
-  margin: 0 0 14px;
+  margin: 0 0 28px;
 }
 
 #insights-screen .ai-insight-icon {
