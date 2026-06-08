@@ -4486,3 +4486,41 @@ h1 {
   font-size: 0.84rem;
   line-height: 1.4;
 }
+
+:root[data-theme="light"] #insights-screen .metric,
+:root[data-theme="light"] #insights-screen .ai-insight-card {
+  border-color: rgba(16, 16, 16, 0.1);
+  background: #ffffff;
+  color: #151515;
+}
+
+:root[data-theme="light"] #insights-screen .metric span,
+:root[data-theme="light"] #insights-screen .metric small,
+:root[data-theme="light"] #insights-screen .ai-insight-card p {
+  color: #777777;
+}
+
+:root[data-theme="light"] #insights-screen .metric strong,
+:root[data-theme="light"] #insights-screen .ai-insight-card strong,
+:root[data-theme="light"] #insights-screen .category-breakdown h2,
+:root[data-theme="light"] #insights-screen .breakdown-label,
+:root[data-theme="light"] #insights-screen .breakdown-row > .breakdown-amount {
+  color: #151515;
+}
+
+:root[data-theme="light"] #insights-screen .breakdown-amount small {
+  color: #777777;
+}
+
+:root[data-theme="light"] #insights-screen .breakdown-row {
+  border-bottom-color: rgba(16, 16, 16, 0.18);
+}
+
+:root[data-theme="light"] #insights-screen .breakdown-row > .breakdown-icon {
+  background: rgba(167, 232, 0, 0.22);
+  color: #1f3a00;
+}
+
+:root[data-theme="light"] #insights-screen .bar-track {
+  background: rgba(16, 16, 16, 0.12);
+}
