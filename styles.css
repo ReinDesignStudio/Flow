@@ -3354,6 +3354,21 @@ h1 {
   color: rgba(16, 16, 16, 0.58);
 }
 
+.auth-screen .auth-form input,
+:root[data-theme="light"] .auth-screen .auth-form input,
+:root[data-theme="dark"] .auth-screen .auth-form input {
+  border-color: rgba(255, 255, 255, 0.16);
+  background: #262626;
+  color: #ffffff;
+  box-shadow: none;
+}
+
+.auth-screen .auth-form input::placeholder,
+:root[data-theme="light"] .auth-screen .auth-form input::placeholder,
+:root[data-theme="dark"] .auth-screen .auth-form input::placeholder {
+  color: rgba(255, 255, 255, 0.58);
+}
+
 .quick-input {
   border-radius: 28px;
   background: #f7f7f6;
