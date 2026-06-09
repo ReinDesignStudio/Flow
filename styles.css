@@ -3234,6 +3234,17 @@ h1 {
   color: #151515;
 }
 
+.save-date-primary,
+.clear-keep-button,
+:root[data-theme="light"] .save-date-primary,
+:root[data-theme="light"] .clear-keep-button,
+:root[data-theme="dark"] .save-date-primary,
+:root[data-theme="dark"] .clear-keep-button {
+  background: var(--ft-lime);
+  color: #151515;
+  box-shadow: 0 12px 24px rgba(167, 232, 0, 0.22);
+}
+
 .auth-screen,
 :root[data-theme="light"] .auth-screen {
   background: #101010;
