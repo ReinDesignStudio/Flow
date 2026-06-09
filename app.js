@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=178";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=179";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -3473,7 +3473,7 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
         "Circle join request timed out. Check your connection and try again.",
       );
     } catch (error) {
-      if (isMissingJoinRequestsTableError(error)) {
+      if (isMissingJoinRequestsTableError(error) || isCircleJoinTimeoutError(error)) {
         setStatus("Joining Circle...");
         await joinCircleDirectly(request);
         setStatus("Circle joined.");
@@ -3557,7 +3557,7 @@ async function joinCircleDirectly(request) {
       throw new Error("Circle invite is not ready or no longer exists. Ask the owner to copy the invite link again.");
     }
 
-    throw new Error("Circle database needs an update before direct joining can work.");
+    throw new Error("Circle database needs updating. Run the latest Supabase schema, then try again.");
   }
 
   await refreshAcceptedCircleJoin(request.circleId);
@@ -3567,6 +3567,10 @@ function isMissingJoinRequestsTableError(error) {
   const message = String(error?.message || error?.details || error?.hint || "").toLowerCase();
   const code = String(error?.code || "").toLowerCase();
   return code === "pgrst205" || message.includes("circle_join_requests") && message.includes("schema cache");
+}
+
+function isCircleJoinTimeoutError(error) {
+  return String(error?.message || "").toLowerCase().includes("circle join request timed out");
 }
 
 function isMissingCircleInviteError(error) {
