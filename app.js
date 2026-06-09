@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=177";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=178";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -3473,6 +3473,14 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
         "Circle join request timed out. Check your connection and try again.",
       );
     } catch (error) {
+      if (isMissingJoinRequestsTableError(error)) {
+        setStatus("Joining Circle...");
+        await joinCircleDirectly(request);
+        setStatus("Circle joined.");
+        showToast("Circle joined");
+        return true;
+      }
+
       if (isMissingCircleInviteError(error)) {
         setStatus("Circle invite is not ready or no longer exists. Ask the owner to copy the invite link again.");
         showToast("Circle invite is not ready");
@@ -3533,6 +3541,32 @@ async function requestCircleJoin(request) {
   }
 
   return "pending";
+}
+
+async function joinCircleDirectly(request) {
+  const now = new Date().toISOString();
+  const { error } = await supabase.from("circle_members").upsert({
+    circle_id: request.circleId,
+    user_id: state.user.id,
+    role: "member",
+    joined_at: now,
+  });
+
+  if (error) {
+    if (isMissingCircleInviteError(error)) {
+      throw new Error("Circle invite is not ready or no longer exists. Ask the owner to copy the invite link again.");
+    }
+
+    throw new Error("Circle database needs an update before direct joining can work.");
+  }
+
+  await refreshAcceptedCircleJoin(request.circleId);
+}
+
+function isMissingJoinRequestsTableError(error) {
+  const message = String(error?.message || error?.details || error?.hint || "").toLowerCase();
+  const code = String(error?.code || "").toLowerCase();
+  return code === "pgrst205" || message.includes("circle_join_requests") && message.includes("schema cache");
 }
 
 function isMissingCircleInviteError(error) {
@@ -3624,10 +3658,15 @@ async function declineCircleJoinRequest(requesterUserId) {
 
 async function cancelPendingCircleJoin() {
   if (supabase && state.user && state.pendingCircleJoin) {
-    await supabase.from("circle_join_requests")
+    const { error } = await supabase.from("circle_join_requests")
       .update({ status: "cancelled", updated_at: new Date().toISOString() })
       .eq("circle_id", state.pendingCircleJoin.circleId)
       .eq("requester_user_id", state.user.id);
+
+    if (error && !isMissingJoinRequestsTableError(error)) {
+      showToast("Circle request could not be cancelled");
+      return;
+    }
   }
 
   savePendingCircleJoin(null);
@@ -3639,12 +3678,23 @@ async function refreshPendingCircleJoin() {
     return;
   }
 
-  const { data: request } = await supabase
+  const { data: request, error } = await supabase
     .from("circle_join_requests")
     .select("circle_id, status")
     .eq("circle_id", state.pendingCircleJoin.circleId)
     .eq("requester_user_id", state.user.id)
     .maybeSingle();
+
+  if (error) {
+    if (isMissingJoinRequestsTableError(error)) {
+      savePendingCircleJoin(null);
+      showToast("Circle request system was updated. Paste the invite again.");
+      return;
+    }
+
+    showToast("Circle request could not be checked");
+    return;
+  }
 
   if (!request || request.status === "declined" || request.status === "cancelled") {
     savePendingCircleJoin(null);
@@ -4299,12 +4349,15 @@ async function refreshCircleRemoteData() {
   mergeRemoteExpenses(circleExpensesData || []);
 
   if (isCircleOwner()) {
-    const { data: requests } = await supabase
+    const { data: requests, error } = await supabase
       .from("circle_join_requests")
       .select("requester_user_id, requester_name, created_at")
       .eq("circle_id", state.circle.id)
       .eq("status", "pending")
       .order("created_at", { ascending: true });
+    if (error && !isMissingJoinRequestsTableError(error)) {
+      throw error;
+    }
     state.pendingCircleRequests = requests || [];
   } else {
     state.pendingCircleRequests = [];
