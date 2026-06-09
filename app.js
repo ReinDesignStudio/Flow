@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=173";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=174";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -11,6 +11,7 @@ const defaultProfileName = "Rein";
 const productionAppUrl = "https://dailyflow.pro/";
 const weeklyInsightMax = 15000;
 const monthlyInsightBaseMax = 15000;
+const circleInviteSyncTimeoutMs = 8000;
 const defaultCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams"];
 const defaultCircleCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams", "Faith", "Fun", "Others"];
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
@@ -907,7 +908,9 @@ elements.inviteCircleButton.addEventListener("click", async () => {
   elements.inviteCircleButton.disabled = true;
   elements.inviteCircleButton.textContent = "Preparing...";
   try {
-    await syncCircle({ requireOwner: true });
+    elements.circleInvite.hidden = false;
+    renderCircle();
+    await syncCircleForInvite();
     elements.circleInvite.hidden = false;
     renderCircle();
     elements.circleInvite.hidden = false;
@@ -931,11 +934,30 @@ elements.circleForm.addEventListener("submit", (event) => {
 
 elements.copyCircleLinkButton.addEventListener("click", async () => {
   const invite = circleInviteLink() || circleInviteCode();
+  if (!invite) {
+    return;
+  }
+
+  if (!state.user) {
+    showToast("Sign in first to share an invite");
+    return;
+  }
+
+  elements.copyCircleLinkButton.disabled = true;
+  elements.copyCircleLinkButton.textContent = "Preparing...";
   try {
-    await navigator.clipboard.writeText(invite);
-    showToast("Invite link copied");
-  } catch {
-    showToast(invite);
+    await syncCircleForInvite();
+    try {
+      await navigator.clipboard.writeText(invite);
+      showToast("Invite link copied");
+    } catch {
+      showToast(invite);
+    }
+  } catch (error) {
+    showToast(error?.message || "Invite could not be prepared");
+  } finally {
+    elements.copyCircleLinkButton.disabled = false;
+    elements.copyCircleLinkButton.textContent = "Copy invite link";
   }
 });
 
@@ -2072,14 +2094,14 @@ function renderCircle() {
   elements.deleteCircleButton.hidden = !hasCircle;
   elements.joinCircleButton.textContent = hasPendingJoin ? "Check request" : "Join";
   elements.circleForm.hidden = true;
-  if (!hasCircle) {
-    elements.circleInvite.hidden = true;
-  }
+  elements.circleInvite.hidden = !hasCircle;
 
   if (hasCircle) {
     const link = circleInviteLink();
     elements.circleInviteCode.textContent = circleInviteCode();
-    elements.circleInviteLink.textContent = "Share this invite link to join.";
+    elements.circleInviteLink.textContent = state.user
+      ? "Share this invite link to join."
+      : "Sign in to sync and share this invite.";
     elements.circleQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}`;
   }
 
@@ -3385,10 +3407,16 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       return false;
     }
 
-    const { circleId, name, inviteCode } = await resolveCircleInvite(value);
+    const { circleId, name, inviteCode, circle } = await resolveCircleInvite(value);
     if (!circleId || !name) {
       setStatus("Circle ID not recognized. Check the invite and try again.");
       showToast("Circle ID not recognized");
+      return false;
+    }
+
+    if (!circle) {
+      setStatus("Circle invite is not ready yet. Ask the owner to copy the invite link again.");
+      showToast("Circle invite is not ready yet");
       return false;
     }
 
@@ -3784,6 +3812,36 @@ function circleInviteLink() {
   return url.toString();
 }
 
+async function syncCircleForInvite() {
+  if (!state.circle) {
+    throw new Error("Create a Circle first.");
+  }
+
+  if (!supabase || !state.user) {
+    throw new Error("Sign in first to share an invite.");
+  }
+
+  await withTimeout(
+    syncCircle({ requireOwner: true }),
+    circleInviteSyncTimeoutMs,
+    "Invite sync timed out. Check your connection and try again.",
+  );
+}
+
+async function withTimeout(promise, timeoutMs, message) {
+  let timeoutId = 0;
+  try {
+    await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 function setExpenseVisibility(visibility) {
   state.expenseVisibility = visibility;
   state.categoryEditMode = false;
@@ -4035,8 +4093,8 @@ async function loadRemoteData() {
     await syncExpenses();
   }
 
-  const invite = new URLSearchParams(window.location.search);
-  if (!state.circle && invite.get("circle") && invite.get("name")) {
+  const invite = parseCircleInvite(window.location.href);
+  if (!state.circle && (invite.circleId || invite.inviteCode)) {
     await joinCircleFromInvite(window.location.href);
     window.history.replaceState({}, "", window.location.pathname);
   }
