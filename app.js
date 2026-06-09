@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=175";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=176";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -12,6 +12,7 @@ const productionAppUrl = "https://dailyflow.pro/";
 const weeklyInsightMax = 15000;
 const monthlyInsightBaseMax = 15000;
 const circleInviteSyncTimeoutMs = 8000;
+const circleJoinTimeoutMs = 10000;
 const defaultCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams"];
 const defaultCircleCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams", "Faith", "Fun", "Others"];
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
@@ -2112,9 +2113,11 @@ function renderCircle() {
   if (hasCircle) {
     const link = circleInviteLink();
     elements.circleInviteCode.textContent = circleInviteCode();
-    elements.circleInviteLink.textContent = state.user
+    elements.circleInviteLink.textContent = state.circle.inviteSynced
       ? "Share this invite link to join."
-      : "Sign in to sync and share this invite.";
+      : state.user
+        ? "Preparing online invite. Tap Copy invite link to finish."
+        : "Sign in to sync and share this invite.";
     elements.circleQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}`;
   }
 
@@ -3257,6 +3260,7 @@ function loadCircleData() {
       members: Array.isArray(saved.members) && saved.members.length ? saved.members : [saved.createdByUserId || "local"],
       categories: cleanCategoryOrder(saved.categories).length ? cleanCategoryOrder(saved.categories) : defaultCircleCategories,
       icons: saved.icons || {},
+      inviteSynced: saved.inviteSynced === true,
       updatedAt: saved.updatedAt || "",
     };
   } catch {
@@ -3361,6 +3365,7 @@ function createCircle(rawName) {
     members: [memberId],
     categories: [...defaultCircleCategories],
     icons: {},
+    inviteSynced: false,
     updatedAt: new Date().toISOString(),
   };
   state.expenseVisibility = "circle";
@@ -3420,7 +3425,11 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       return false;
     }
 
-    const { circleId, name, inviteCode, circle } = await resolveCircleInvite(value);
+    const { circleId, name, inviteCode, circle } = await withTimeout(
+      resolveCircleInvite(value),
+      circleJoinTimeoutMs,
+      "Circle lookup timed out. Check your connection and try again.",
+    );
     if (!circleId || !name) {
       setStatus("Circle ID not recognized. Check the invite and try again.");
       showToast("Circle ID not recognized");
@@ -3433,6 +3442,12 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       return false;
     }
 
+    if (circle.created_by_user_id === state.user.id || circle.members?.includes(state.user.id)) {
+      setStatus("Circle joined.");
+      await refreshAcceptedCircleJoin(circleId);
+      return true;
+    }
+
     const request = {
       circleId,
       name: titleCase(name),
@@ -3441,7 +3456,11 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       requestedAt: new Date().toISOString(),
     };
 
-    const requestStatus = await requestCircleJoin(request);
+    const requestStatus = await withTimeout(
+      requestCircleJoin(request),
+      circleJoinTimeoutMs,
+      "Circle join request timed out. Check your connection and try again.",
+    );
     if (requestStatus === "accepted") {
       setStatus("Circle joined.");
       await refreshAcceptedCircleJoin(request.circleId);
@@ -3454,7 +3473,7 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
     return true;
   } catch (error) {
     setStatus(error?.message || "Circle request could not be sent. Try again.");
-    showToast("Circle request could not be sent");
+    showToast(error?.message || "Circle request could not be sent");
     return false;
   }
 }
@@ -3641,6 +3660,7 @@ function joinAcceptedCircle(circle, members = []) {
     members: members.map((member) => member.user_id).length ? members.map((member) => member.user_id) : circle.members || [state.user?.id || "local"],
     categories: cleanCategoryOrder(circle.categories).length ? cleanCategoryOrder(circle.categories) : defaultCircleCategories,
     icons: circle.icons || {},
+    inviteSynced: true,
     updatedAt: circle.updated_at || new Date().toISOString(),
   };
   state.expenseVisibility = "circle";
@@ -3839,6 +3859,9 @@ async function syncCircleForInvite() {
     circleInviteSyncTimeoutMs,
     "Invite sync timed out. Check your connection and try again.",
   );
+  state.circle.inviteSynced = true;
+  localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
+  renderCircle();
 }
 
 function setExpenseVisibility(visibility) {
@@ -4319,6 +4342,9 @@ async function syncCircle({ requireOwner = false } = {}) {
     if (error) {
       throw error;
     }
+
+    state.circle.inviteSynced = true;
+    localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
   } else if (requireOwner) {
     throw new Error("Only the Circle owner can create invites.");
   }
