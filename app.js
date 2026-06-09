@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=169";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=170";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -230,9 +230,9 @@ let authListenersAttached = false;
 
 const paymentMethods = {
   cash: "Cash",
-  "credit-card": "Credit",
+  "credit-card": "Credit Card",
   debit: "Debit",
-  "e-wallet": "E-wallet",
+  "e-wallet": "E-Wallet",
 };
 
 const state = {
@@ -2229,24 +2229,20 @@ function renderInsights() {
   const previousRange = previousInsightRange(range);
   const insightExpenses = expensesInRange(filteredExpenses(), range);
   const previousExpenses = previousRange ? expensesInRange(filteredExpenses(), previousRange) : [];
-  const todayExpenses = expensesForDate(new Date(), insightExpenses);
   const total = sumExpenses(insightExpenses);
   const previousTotal = sumExpenses(previousExpenses);
-  const todayTotal = todayExpenses.reduce((total, expense) => total + expense.amount, 0);
   const categoryTotals = insightCategoryTotals(insightExpenses);
-  const topCategory = categoryTotals[0];
-  const loggedDays = spendingDayCount(insightExpenses);
-  const dailyAverage = loggedDays ? total / loggedDays : 0;
+  const paymentTotals = insightPaymentMethodTotals(insightExpenses);
 
   renderInsightPeriodSelector();
   elements.insightTotal.textContent = formatPeso(total);
   renderInsightTrend(total, previousTotal, range);
-  elements.insightAverage.textContent = formatPeso(dailyAverage);
-  elements.insightDays.textContent = `${loggedDays} day${loggedDays === 1 ? "" : "s"} logged`;
-  elements.insightTop.textContent = topCategory ? topCategory.category : "None yet";
-  elements.insightTopDetail.textContent = topCategory ? `${formatPeso(topCategory.total)} · ${topCategory.percent}%` : "₱0 · 0%";
-  elements.insightToday.textContent = formatPeso(todayTotal);
-  elements.insightTodayDetail.textContent = todayComparison(todayTotal, dailyAverage);
+  elements.insightAverage.textContent = formatPeso(paymentTotals.cash);
+  elements.insightDays.textContent = paymentMethodShare(paymentTotals.cash, total);
+  elements.insightTop.textContent = formatPeso(paymentTotals["e-wallet"]);
+  elements.insightTopDetail.textContent = paymentMethodShare(paymentTotals["e-wallet"], total);
+  elements.insightToday.textContent = formatPeso(paymentTotals["credit-card"]);
+  elements.insightTodayDetail.textContent = paymentMethodShare(paymentTotals["credit-card"], total);
   renderAiInsight(categoryTotals, total);
 
   if (!insightExpenses.length) {
@@ -2321,6 +2317,21 @@ function insightCategoryTotals(expenses) {
       percent: total ? Math.round((amount / total) * 100) : 0,
     }))
     .sort((a, b) => b.total - a.total);
+}
+
+function insightPaymentMethodTotals(expenses) {
+  return expenses.reduce(
+    (totals, expense) => {
+      const method = paymentMethods[expense.paymentMethod] ? expense.paymentMethod : "cash";
+      totals[method] = (totals[method] || 0) + expense.amount;
+      return totals;
+    },
+    { cash: 0, "e-wallet": 0, "credit-card": 0 },
+  );
+}
+
+function paymentMethodShare(amount, total) {
+  return `${total ? Math.round((amount / total) * 100) : 0}% of spend`;
 }
 
 function renderInsightTrend(total, previousTotal, range) {
