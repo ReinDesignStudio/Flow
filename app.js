@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=179";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=180";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -14,6 +14,7 @@ const monthlyInsightBaseMax = 15000;
 const circleInviteSyncTimeoutMs = 8000;
 const circleLookupTimeoutMs = 3500;
 const circleJoinTimeoutMs = 10000;
+const circleDirectJoinTimeoutMs = 8000;
 const defaultCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams"];
 const defaultCircleCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams", "Faith", "Fun", "Others"];
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
@@ -3475,7 +3476,11 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
     } catch (error) {
       if (isMissingJoinRequestsTableError(error) || isCircleJoinTimeoutError(error)) {
         setStatus("Joining Circle...");
-        await joinCircleDirectly(request);
+        await withTimeout(
+          joinCircleDirectly(request, circle),
+          circleDirectJoinTimeoutMs,
+          "Direct Circle join timed out. The Circle database needs updating, then try again.",
+        );
         setStatus("Circle joined.");
         showToast("Circle joined");
         return true;
@@ -3543,7 +3548,7 @@ async function requestCircleJoin(request) {
   return "pending";
 }
 
-async function joinCircleDirectly(request) {
+async function joinCircleDirectly(request, circle = null) {
   const now = new Date().toISOString();
   const { error } = await supabase.from("circle_members").upsert({
     circle_id: request.circleId,
@@ -3560,7 +3565,19 @@ async function joinCircleDirectly(request) {
     throw new Error("Circle database needs updating. Run the latest Supabase schema, then try again.");
   }
 
-  await refreshAcceptedCircleJoin(request.circleId);
+  if (circle) {
+    joinAcceptedCircle(circle, [
+      { user_id: state.user.id },
+      ...(Array.isArray(circle.members) ? circle.members.map((userId) => ({ user_id: userId })) : []),
+    ]);
+    return;
+  }
+
+  await withTimeout(
+    refreshAcceptedCircleJoin(request.circleId),
+    circleDirectJoinTimeoutMs,
+    "Circle joined, but loading it timed out. Refresh and try again.",
+  );
 }
 
 function isMissingJoinRequestsTableError(error) {
