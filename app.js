@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=174";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=175";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -421,8 +421,21 @@ try {
   renderEmptyPrompt();
   renderInstallNote();
 
+  if (state.authenticated) {
+    showApp();
+  } else {
+    showAuth("welcome");
+    if (!supabaseConfigured) {
+      showAuthMessage("Add Supabase URL and anon key to supabase-config.js.");
+    }
+  }
+
   if (supabaseConfigured) {
-    await withTimeout(initializeSupabaseAuth(), authStartupTimeoutMs);
+    try {
+      await withTimeout(initializeSupabaseAuth(), authStartupTimeoutMs, "Unable to connect to Supabase.");
+    } catch (error) {
+      authStartupError = error?.message || "Unable to connect to Supabase.";
+    }
   }
 
   if (state.authenticated) {
@@ -3828,20 +3841,6 @@ async function syncCircleForInvite() {
   );
 }
 
-async function withTimeout(promise, timeoutMs, message) {
-  let timeoutId = 0;
-  try {
-    await Promise.race([
-      promise,
-      new Promise((_, reject) => {
-        timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
-      }),
-    ]);
-  } finally {
-    window.clearTimeout(timeoutId);
-  }
-}
-
 function setExpenseVisibility(visibility) {
   state.expenseVisibility = visibility;
   state.categoryEditMode = false;
@@ -4462,13 +4461,13 @@ function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value));
 }
 
-async function withTimeout(promise, timeoutMs) {
+async function withTimeout(promise, timeoutMs, message = "Operation timed out.") {
   let timeoutId = 0;
   try {
     return await Promise.race([
       promise,
-      new Promise((resolve) => {
-        timeoutId = window.setTimeout(resolve, timeoutMs);
+      new Promise((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
       }),
     ]);
   } finally {
