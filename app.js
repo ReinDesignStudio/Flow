@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=176";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=177";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -12,6 +12,7 @@ const productionAppUrl = "https://dailyflow.pro/";
 const weeklyInsightMax = 15000;
 const monthlyInsightBaseMax = 15000;
 const circleInviteSyncTimeoutMs = 8000;
+const circleLookupTimeoutMs = 3500;
 const circleJoinTimeoutMs = 10000;
 const defaultCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams"];
 const defaultCircleCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams", "Faith", "Fun", "Others"];
@@ -3425,24 +3426,32 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       return false;
     }
 
-    const { circleId, name, inviteCode, circle } = await withTimeout(
-      resolveCircleInvite(value),
-      circleJoinTimeoutMs,
-      "Circle lookup timed out. Check your connection and try again.",
-    );
+    const parsedInvite = parseCircleInvite(value);
+    if (!parsedInvite.circleId && !parsedInvite.inviteCode) {
+      setStatus("Circle ID not recognized. Check the invite and try again.");
+      showToast("Circle ID not recognized");
+      return false;
+    }
+
+    let resolvedInvite = parsedInvite;
+    try {
+      resolvedInvite = await withTimeout(
+        resolveCircleInvite(value),
+        circleLookupTimeoutMs,
+        "Circle lookup timed out.",
+      );
+    } catch {
+      setStatus("Sending join request...");
+    }
+
+    const { circleId, name, inviteCode, circle } = resolvedInvite;
     if (!circleId || !name) {
       setStatus("Circle ID not recognized. Check the invite and try again.");
       showToast("Circle ID not recognized");
       return false;
     }
 
-    if (!circle) {
-      setStatus("Circle invite is not ready yet. Ask the owner to copy the invite link again.");
-      showToast("Circle invite is not ready yet");
-      return false;
-    }
-
-    if (circle.created_by_user_id === state.user.id || circle.members?.includes(state.user.id)) {
+    if (circle?.created_by_user_id === state.user.id || circle?.members?.includes(state.user.id)) {
       setStatus("Circle joined.");
       await refreshAcceptedCircleJoin(circleId);
       return true;
@@ -3456,11 +3465,21 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       requestedAt: new Date().toISOString(),
     };
 
-    const requestStatus = await withTimeout(
-      requestCircleJoin(request),
-      circleJoinTimeoutMs,
-      "Circle join request timed out. Check your connection and try again.",
-    );
+    let requestStatus = "";
+    try {
+      requestStatus = await withTimeout(
+        requestCircleJoin(request),
+        circleJoinTimeoutMs,
+        "Circle join request timed out. Check your connection and try again.",
+      );
+    } catch (error) {
+      if (isMissingCircleInviteError(error)) {
+        setStatus("Circle invite is not ready or no longer exists. Ask the owner to copy the invite link again.");
+        showToast("Circle invite is not ready");
+        return false;
+      }
+      throw error;
+    }
     if (requestStatus === "accepted") {
       setStatus("Circle joined.");
       await refreshAcceptedCircleJoin(request.circleId);
@@ -3514,6 +3533,11 @@ async function requestCircleJoin(request) {
   }
 
   return "pending";
+}
+
+function isMissingCircleInviteError(error) {
+  const message = String(error?.message || error?.details || error?.hint || "").toLowerCase();
+  return message.includes("foreign key") || message.includes("violates") || message.includes("not present");
 }
 
 async function handleCircleJoinRequest(action, requesterUserId = "") {
