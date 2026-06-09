@@ -4194,6 +4194,83 @@ h1 {
   color: var(--ft-text);
 }
 
+:root[data-theme="dark"] .circle-panel {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #11140f;
+  color: var(--ft-text);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.34);
+}
+
+:root[data-theme="dark"] .circle-summary strong,
+:root[data-theme="dark"] .circle-contact-heading strong,
+:root[data-theme="dark"] .circle-contact-card strong,
+:root[data-theme="dark"] .circle-request-card strong {
+  color: var(--ft-text);
+}
+
+:root[data-theme="dark"] .circle-summary span,
+:root[data-theme="dark"] .circle-invite span,
+:root[data-theme="dark"] .circle-request-card span,
+:root[data-theme="dark"] .circle-contact-heading span,
+:root[data-theme="dark"] .circle-contact-card span {
+  color: #b8c3af;
+}
+
+:root[data-theme="dark"] .circle-panel .kicker {
+  color: #a9b5a0;
+}
+
+:root[data-theme="dark"] .circle-action,
+:root[data-theme="dark"] .circle-form button,
+:root[data-theme="dark"] .circle-invite button {
+  background: var(--ft-lime);
+  color: #101010;
+}
+
+:root[data-theme="dark"] .circle-action.secondary,
+:root[data-theme="dark"] .circle-request-actions button.secondary {
+  border-color: rgba(167, 232, 0, 0.24);
+  background: rgba(167, 232, 0, 0.1);
+  color: var(--ft-text);
+}
+
+:root[data-theme="dark"] .circle-action.danger {
+  border-color: rgba(255, 128, 128, 0.34);
+  background: rgba(255, 92, 92, 0.12);
+  color: #ffb4b4;
+}
+
+:root[data-theme="dark"] .circle-form input {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ft-text);
+}
+
+:root[data-theme="dark"] .circle-form input::placeholder {
+  color: #8f9a88;
+}
+
+:root[data-theme="dark"] .circle-invite strong {
+  background: rgba(167, 232, 0, 0.16);
+  color: var(--ft-text);
+}
+
+:root[data-theme="dark"] .circle-contact-card,
+:root[data-theme="dark"] .circle-request-card {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .circle-contact-avatar {
+  background: var(--ft-lime);
+  color: #101010;
+}
+
+:root[data-theme="dark"] .circle-request-actions button {
+  background: var(--ft-text);
+  color: #101010;
+}
+
 :root[data-theme="dark"] .auth-screen {
   background: #101010;
 }

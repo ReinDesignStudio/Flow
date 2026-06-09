@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=172";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=173";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
