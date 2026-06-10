@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=188";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=189";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -12,7 +12,7 @@ const productionAppUrl = "https://dailyflow.pro/";
 const weeklyInsightMax = 15000;
 const monthlyInsightBaseMax = 15000;
 const circleInviteSyncTimeoutMs = 8000;
-const circleLookupTimeoutMs = 3500;
+const circleLookupTimeoutMs = 10000;
 const circleJoinTimeoutMs = 20000;
 const circleRequestRefreshMs = 7000;
 const circleRequestActionTimeoutMs = 4500;
@@ -960,11 +960,6 @@ elements.circleForm.addEventListener("submit", (event) => {
 });
 
 elements.copyCircleLinkButton.addEventListener("click", async () => {
-  const invite = circleInviteLink() || circleInviteCode();
-  if (!invite) {
-    return;
-  }
-
   if (!state.user) {
     showToast("Sign in first to share an invite");
     return;
@@ -974,6 +969,10 @@ elements.copyCircleLinkButton.addEventListener("click", async () => {
   elements.copyCircleLinkButton.textContent = "Preparing...";
   try {
     await syncCircleForInvite();
+    const invite = circleInviteLink() || circleInviteCode();
+    if (!invite) {
+      throw new Error("Invite could not be prepared");
+    }
     try {
       await navigator.clipboard.writeText(invite);
       showToast("Invite link copied");
@@ -2126,16 +2125,12 @@ function renderCircle() {
     : "Join";
   elements.joinCircleButton.disabled = hasPendingJoin && Boolean(state.circleJoinAction);
   elements.circleForm.hidden = true;
-  elements.circleInvite.hidden = !hasCircle;
+  elements.circleInvite.hidden = !hasCircle || !state.circle.inviteSynced;
 
   if (hasCircle) {
     const link = circleInviteLink();
     elements.circleInviteCode.textContent = circleInviteCode();
-    elements.circleInviteLink.textContent = state.circle.inviteSynced
-      ? "Share this invite link to join."
-      : state.user
-        ? "Preparing online invite. Tap Copy invite link to finish."
-        : "Sign in to sync and share this invite.";
+    elements.circleInviteLink.textContent = "Share this invite link to join.";
     elements.circleQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}`;
   }
 
@@ -3516,7 +3511,9 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
         "Circle lookup timed out.",
       );
     } catch {
-      setStatus("Sending join request...");
+      setStatus("Could not check the online invite. Try again.");
+      showToast("Could not check online invite");
+      return false;
     }
 
     const { circleId, name, inviteCode, circle } = resolvedInvite;
@@ -3550,11 +3547,10 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       );
     } catch (error) {
       if (isCircleJoinTimeoutError(error)) {
-        savePendingCircleJoin(request);
-        watchSlowCircleJoin(request, joinRequestPromise);
-        setStatus("Request is still sending. Check again in a moment.");
+        watchSlowCircleJoin(request, joinRequestPromise, setStatus);
+        setStatus("Request is still sending. Keep this open a moment.");
         showToast("Request is still sending");
-        return true;
+        return false;
       }
 
       if (isMissingJoinRequestsTableError(error)) {
@@ -3608,21 +3604,31 @@ async function requestCircleJoin(request) {
   return data?.status || "pending";
 }
 
-function watchSlowCircleJoin(request, promise) {
+function watchSlowCircleJoin(request, promise, setStatus = () => {}) {
   promise
     .then(async (status) => {
       if (!state.pendingCircleJoin || state.circle || state.pendingCircleJoin.circleId !== request.circleId) {
-        return;
+        if (state.circle || state.pendingCircleJoin) {
+          return;
+        }
       }
 
       if (status === "accepted") {
+        setStatus("Circle joined.");
         await refreshAcceptedCircleJoin(request.circleId);
         return;
       }
 
+      savePendingCircleJoin(request);
+      setStatus("Request sent. Waiting for approval.");
+      showToast("Request sent. Waiting for approval.");
+      closeQrScanner();
       renderCircle();
     })
-    .catch(() => {});
+    .catch((error) => {
+      setStatus(error?.message || "Circle request could not be sent. Try again.");
+      showToast(error?.message || "Circle request could not be sent");
+    });
 }
 
 function isMissingJoinRequestsTableError(error) {
