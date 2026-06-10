@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=186";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=187";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -474,6 +474,7 @@ window.addEventListener("online", () => {
 window.addEventListener("focus", () => {
   setGreeting();
   retryPendingExpenseSync();
+  syncCircleRequestRefresh();
   refreshOwnerCircleRequests();
 });
 
@@ -481,7 +482,10 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) {
     setGreeting();
     retryPendingExpenseSync();
+    syncCircleRequestRefresh();
     refreshOwnerCircleRequests();
+  } else {
+    stopCircleRequestRefresh();
   }
 });
 
@@ -999,7 +1003,7 @@ elements.circleRequestList.addEventListener("click", (event) => {
     return;
   }
 
-  handleCircleJoinRequest(button.dataset.joinRequest, button.dataset.requestUserId);
+  handleCircleJoinRequest(button.dataset.joinRequest, button.dataset.requestUserId, button.dataset.requestCircleId);
 });
 
 elements.closeQrButton.addEventListener("click", () => {
@@ -2137,6 +2141,7 @@ function renderCircle() {
 
   renderCircleRequests();
   renderCircleContacts();
+  syncCircleRequestRefresh();
 
   elements.visibilityToggle.querySelectorAll("button").forEach((button) => {
     const active = button.dataset.visibility === state.expenseVisibility;
@@ -2228,11 +2233,11 @@ function renderCircleRequests() {
     ${state.pendingCircleRequests
     .map((request) => `
       <article class="circle-request-card">
-        <strong>${escapeHtml(request.requester_name || "Someone")}</strong>
-        <span>wants to join this Circle.</span>
-        <div class="circle-request-actions">
-          <button type="button" data-join-request="accept" data-request-user-id="${escapeHtml(request.requester_user_id)}">Accept</button>
-          <button class="secondary" type="button" data-join-request="decline" data-request-user-id="${escapeHtml(request.requester_user_id)}">Decline</button>
+          <strong>${escapeHtml(request.requester_name || "Someone")}</strong>
+          <span>wants to join this Circle.</span>
+          <div class="circle-request-actions">
+          <button type="button" data-join-request="accept" data-request-user-id="${escapeHtml(request.requester_user_id)}" data-request-circle-id="${escapeHtml(request.circle_id || state.circle.id)}">Accept</button>
+          <button class="secondary" type="button" data-join-request="decline" data-request-user-id="${escapeHtml(request.requester_user_id)}" data-request-circle-id="${escapeHtml(request.circle_id || state.circle.id)}">Decline</button>
         </div>
       </article>
     `)
@@ -2952,7 +2957,7 @@ function openCircleSheet({ showContacts = false } = {}) {
   } else if (state.pendingCircleJoin) {
     refreshPendingCircleJoin().catch(() => {});
   }
-  startCircleRequestRefresh();
+  syncCircleRequestRefresh();
   renderCircle();
   elements.circleSheet.hidden = false;
   window.setTimeout(() => {
@@ -2970,7 +2975,6 @@ function closeCircleSheet({ restoreFocus = true } = {}) {
   }
 
   elements.circleSheet.classList.remove("show");
-  stopCircleRequestRefresh();
   window.setTimeout(() => {
     elements.circleSheet.hidden = true;
     if (restoreFocus && state.settingsReturnFocus?.focus) {
@@ -2981,8 +2985,7 @@ function closeCircleSheet({ restoreFocus = true } = {}) {
 }
 
 function startCircleRequestRefresh() {
-  stopCircleRequestRefresh();
-  if (!state.circle || !isCircleOwner()) {
+  if (!state.circle || !isCircleOwner() || document.hidden || state.circleRequestRefreshTimer) {
     return;
   }
 
@@ -2998,6 +3001,15 @@ function stopCircleRequestRefresh() {
 
   window.clearInterval(state.circleRequestRefreshTimer);
   state.circleRequestRefreshTimer = 0;
+}
+
+function syncCircleRequestRefresh() {
+  if (!state.circle || !isCircleOwner() || document.hidden) {
+    stopCircleRequestRefresh();
+    return;
+  }
+
+  startCircleRequestRefresh();
 }
 
 function refreshOwnerCircleRequests() {
@@ -3628,7 +3640,7 @@ function isMissingCircleInviteError(error) {
   return message.includes("foreign key") || message.includes("violates") || message.includes("not present");
 }
 
-async function handleCircleJoinRequest(action, requesterUserId = "") {
+async function handleCircleJoinRequest(action, requesterUserId = "", requestCircleId = "") {
   if (action === "check") {
     if (!state.pendingCircleJoin || state.circleJoinAction) {
       return;
@@ -3666,24 +3678,25 @@ async function handleCircleJoinRequest(action, requesterUserId = "") {
   }
 
   if (action === "accept") {
-    await acceptCircleJoinRequest(requesterUserId);
+    await acceptCircleJoinRequest(requesterUserId, requestCircleId);
     return;
   }
 
   if (action === "decline") {
-    await declineCircleJoinRequest(requesterUserId);
+    await declineCircleJoinRequest(requesterUserId, requestCircleId);
   }
 }
 
-async function acceptCircleJoinRequest(requesterUserId) {
+async function acceptCircleJoinRequest(requesterUserId, requestCircleId = "") {
   if (!supabase || !state.user || !state.circle) {
     return;
   }
 
+  const circleId = requestCircleId || state.circle.id;
   const now = new Date().toISOString();
   const { error: requestError } = await supabase.from("circle_join_requests")
     .update({ status: "accepted", updated_at: now })
-    .eq("circle_id", state.circle.id)
+    .eq("circle_id", circleId)
     .eq("requester_user_id", requesterUserId);
   if (requestError) {
     showToast("Could not accept request");
@@ -3691,7 +3704,7 @@ async function acceptCircleJoinRequest(requesterUserId) {
   }
 
   const { error: memberError } = await supabase.from("circle_members").upsert({
-    circle_id: state.circle.id,
+    circle_id: circleId,
     user_id: requesterUserId,
     role: "member",
     joined_at: now,
@@ -3707,7 +3720,7 @@ async function acceptCircleJoinRequest(requesterUserId) {
 
   const { error: circleError } = await supabase.from("circles")
     .update({ members: state.circle.members.filter(isUuid), updated_at: now })
-    .eq("id", state.circle.id);
+    .eq("id", circleId);
   if (circleError) {
     showToast("Member added, but Circle sync failed");
     return;
@@ -3718,14 +3731,15 @@ async function acceptCircleJoinRequest(requesterUserId) {
   showToast("Circle request accepted");
 }
 
-async function declineCircleJoinRequest(requesterUserId) {
+async function declineCircleJoinRequest(requesterUserId, requestCircleId = "") {
   if (!supabase || !state.circle || !isCircleOwner()) {
     return;
   }
 
+  const circleId = requestCircleId || state.circle.id;
   await supabase.from("circle_join_requests")
     .update({ status: "declined", updated_at: new Date().toISOString() })
-    .eq("circle_id", state.circle.id)
+    .eq("circle_id", circleId)
     .eq("requester_user_id", requesterUserId);
   state.pendingCircleRequests = state.pendingCircleRequests.filter((request) => request.requester_user_id !== requesterUserId);
   renderCircle();
@@ -4413,11 +4427,71 @@ async function syncExpenses({ notify = false } = {}) {
   }
 }
 
+async function reconcileOwnerCircleForRequests() {
+  const ids = new Set();
+  if (!supabase || !state.user || !state.circle || !isCircleOwner()) {
+    if (state.circle?.id) {
+      ids.add(state.circle.id);
+    }
+    return Array.from(ids);
+  }
+
+  ids.add(state.circle.id);
+  const inviteCode = normalizeCircleInviteCode(state.circle.inviteCode || state.circle.id.slice(0, 8));
+  const filters = [`id.eq.${state.circle.id}`];
+  if (inviteCode) {
+    filters.push(`invite_code.eq.${inviteCode}`);
+  }
+
+  const { data: ownedCircles, error } = await supabase
+    .from("circles")
+    .select("id, name, invite_code, created_by_user_id, members, categories, icons, updated_at")
+    .eq("created_by_user_id", state.user.id)
+    .or(filters.join(","));
+
+  if (error || !ownedCircles?.length) {
+    return Array.from(ids);
+  }
+
+  ownedCircles.forEach((circle) => ids.add(circle.id));
+  const matchedCircle = ownedCircles.find((circle) => circle.id === state.circle.id)
+    || ownedCircles.find((circle) => inviteCode && circle.invite_code === inviteCode);
+  if (!matchedCircle) {
+    return Array.from(ids);
+  }
+
+  const previousCircleId = state.circle.id;
+  state.circle = {
+    ...state.circle,
+    id: matchedCircle.id,
+    name: matchedCircle.name || state.circle.name,
+    inviteCode: matchedCircle.invite_code || state.circle.inviteCode,
+    createdByUserId: matchedCircle.created_by_user_id || state.circle.createdByUserId,
+    members: Array.isArray(matchedCircle.members) && matchedCircle.members.length ? matchedCircle.members : state.circle.members,
+    categories: cleanCategoryOrder(matchedCircle.categories).length ? cleanCategoryOrder(matchedCircle.categories) : state.circle.categories,
+    icons: matchedCircle.icons || state.circle.icons,
+    inviteSynced: true,
+    updatedAt: matchedCircle.updated_at || state.circle.updatedAt,
+  };
+
+  if (previousCircleId !== state.circle.id) {
+    state.expenses.forEach((expense) => {
+      if (expense.circleId === previousCircleId) {
+        expense.circleId = state.circle.id;
+      }
+    });
+    localStorage.setItem(storageKey, JSON.stringify(state.expenses));
+  }
+  localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
+  return Array.from(ids);
+}
+
 async function refreshCircleRemoteData() {
   if (!supabase || !state.user || !state.circle) {
     return;
   }
 
+  const requestCircleIds = await reconcileOwnerCircleForRequests();
   await ensureCircleMembership();
 
   const [{ data: circle }, { data: members }, { data: circleExpensesData }] = await Promise.all([
@@ -4451,18 +4525,26 @@ async function refreshCircleRemoteData() {
   mergeRemoteExpenses(circleExpensesData || []);
 
   if (isCircleOwner()) {
-    const { data: requests, error } = await supabase
+    let requestQuery = supabase
       .from("circle_join_requests")
-      .select("requester_user_id, requester_name, created_at")
-      .eq("circle_id", state.circle.id)
+      .select("circle_id, requester_user_id, requester_name, created_at")
       .eq("status", "pending")
       .order("created_at", { ascending: true });
+    if (requestCircleIds.length > 1) {
+      requestQuery = requestQuery.in("circle_id", requestCircleIds);
+    } else {
+      requestQuery = requestQuery.eq("circle_id", requestCircleIds[0] || state.circle.id);
+    }
+
+    const { data: requests, error } = await requestQuery;
     if (error && !isMissingJoinRequestsTableError(error)) {
       throw error;
     }
     state.pendingCircleRequests = requests || [];
-    if (state.pendingCircleRequests.length > state.lastPendingCircleRequestCount && elements.circleSheet.hidden) {
-      showToast(`${state.pendingCircleRequests.length} Circle join request${state.pendingCircleRequests.length === 1 ? "" : "s"}`);
+    if (state.pendingCircleRequests.length > state.lastPendingCircleRequestCount) {
+      const latestRequest = state.pendingCircleRequests[state.pendingCircleRequests.length - 1];
+      const requesterName = latestRequest?.requester_name || "Someone";
+      showToast(`${requesterName} wants to join your Circle`);
     }
     state.lastPendingCircleRequestCount = state.pendingCircleRequests.length;
   } else {
