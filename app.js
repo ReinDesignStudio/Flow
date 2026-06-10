@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=180";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=181";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -3565,19 +3565,21 @@ async function joinCircleDirectly(request, circle = null) {
     throw new Error("Circle database needs updating. Run the latest Supabase schema, then try again.");
   }
 
-  if (circle) {
-    joinAcceptedCircle(circle, [
-      { user_id: state.user.id },
-      ...(Array.isArray(circle.members) ? circle.members.map((userId) => ({ user_id: userId })) : []),
-    ]);
-    return;
-  }
+  const joinedCircle = circle || {
+    id: request.circleId,
+    name: request.name || "Circle",
+    invite_code: request.inviteCode || request.circleId.slice(0, 8).toUpperCase(),
+    created_by_user_id: "",
+    members: [state.user.id],
+    categories: defaultCircleCategories,
+    icons: {},
+    updated_at: now,
+  };
 
-  await withTimeout(
-    refreshAcceptedCircleJoin(request.circleId),
-    circleDirectJoinTimeoutMs,
-    "Circle joined, but loading it timed out. Refresh and try again.",
-  );
+  joinAcceptedCircle(joinedCircle, [
+    { user_id: state.user.id },
+    ...(Array.isArray(joinedCircle.members) ? joinedCircle.members.map((userId) => ({ user_id: userId })) : []),
+  ]);
 }
 
 function isMissingJoinRequestsTableError(error) {
