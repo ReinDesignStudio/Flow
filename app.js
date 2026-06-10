@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=183";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=184";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -14,6 +14,8 @@ const monthlyInsightBaseMax = 15000;
 const circleInviteSyncTimeoutMs = 8000;
 const circleLookupTimeoutMs = 3500;
 const circleJoinTimeoutMs = 10000;
+const circleJoinStatusTimeoutMs = 3500;
+const circleRequestRefreshMs = 7000;
 const defaultCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams"];
 const defaultCircleCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams", "Faith", "Fun", "Others"];
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
@@ -279,6 +281,7 @@ const state = {
   pendingPhone: "",
   qrStream: null,
   qrScanTimer: 0,
+  circleRequestRefreshTimer: 0,
   qrDetector: null,
 };
 
@@ -470,12 +473,14 @@ window.addEventListener("online", () => {
 window.addEventListener("focus", () => {
   setGreeting();
   retryPendingExpenseSync();
+  refreshOwnerCircleRequests();
 });
 
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) {
     setGreeting();
     retryPendingExpenseSync();
+    refreshOwnerCircleRequests();
   }
 });
 
@@ -2938,6 +2943,7 @@ function openCircleSheet({ showContacts = false } = {}) {
   } else if (state.pendingCircleJoin) {
     refreshPendingCircleJoin().catch(() => {});
   }
+  startCircleRequestRefresh();
   renderCircle();
   elements.circleSheet.hidden = false;
   window.setTimeout(() => {
@@ -2955,6 +2961,7 @@ function closeCircleSheet({ restoreFocus = true } = {}) {
   }
 
   elements.circleSheet.classList.remove("show");
+  stopCircleRequestRefresh();
   window.setTimeout(() => {
     elements.circleSheet.hidden = true;
     if (restoreFocus && state.settingsReturnFocus?.focus) {
@@ -2962,6 +2969,34 @@ function closeCircleSheet({ restoreFocus = true } = {}) {
     }
     state.settingsReturnFocus = null;
   }, 180);
+}
+
+function startCircleRequestRefresh() {
+  stopCircleRequestRefresh();
+  if (!state.circle || !isCircleOwner()) {
+    return;
+  }
+
+  state.circleRequestRefreshTimer = window.setInterval(() => {
+    refreshOwnerCircleRequests();
+  }, circleRequestRefreshMs);
+}
+
+function stopCircleRequestRefresh() {
+  if (!state.circleRequestRefreshTimer) {
+    return;
+  }
+
+  window.clearInterval(state.circleRequestRefreshTimer);
+  state.circleRequestRefreshTimer = 0;
+}
+
+function refreshOwnerCircleRequests() {
+  if (!state.circle || !isCircleOwner()) {
+    return;
+  }
+
+  refreshCircleRemoteData().catch(() => {});
 }
 
 function openLabelSettings() {
@@ -3493,10 +3528,9 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       );
     } catch (error) {
       if (isCircleJoinTimeoutError(error)) {
-        savePendingCircleJoin(request);
-        setStatus("Request sent. Waiting for approval.");
-        showToast("Request sent. Waiting for approval.");
-        return true;
+        setStatus("Could not confirm the request. Try again.");
+        showToast("Could not confirm the request");
+        return false;
       }
 
       if (isMissingJoinRequestsTableError(error)) {
@@ -3543,18 +3577,27 @@ async function requestCircleJoin(request) {
     throw insertError;
   }
 
-  const { data: existing, error: existingError } = await supabase
-    .from("circle_join_requests")
-    .select("status")
-    .eq("circle_id", request.circleId)
-    .eq("requester_user_id", state.user.id)
-    .maybeSingle();
-
-  if (existingError) {
+  let statusResult = null;
+  try {
+    statusResult = await withTimeout(
+      supabase
+        .from("circle_join_requests")
+        .select("status")
+        .eq("circle_id", request.circleId)
+        .eq("requester_user_id", state.user.id)
+        .maybeSingle(),
+      circleJoinStatusTimeoutMs,
+      "Circle status lookup timed out.",
+    );
+  } catch {
     return "pending";
   }
 
-  return existing?.status || "pending";
+  if (statusResult.error) {
+    return "pending";
+  }
+
+  return statusResult.data?.status || "pending";
 }
 
 function isMissingJoinRequestsTableError(error) {
