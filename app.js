@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=187";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=188";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -2234,7 +2234,7 @@ function renderCircleRequests() {
     .map((request) => `
       <article class="circle-request-card">
           <strong>${escapeHtml(request.requester_name || "Someone")}</strong>
-          <span>wants to join this Circle.</span>
+          <span>wants to join ${escapeHtml(request.circle_name || "this Circle")}.</span>
           <div class="circle-request-actions">
           <button type="button" data-join-request="accept" data-request-user-id="${escapeHtml(request.requester_user_id)}" data-request-circle-id="${escapeHtml(request.circle_id || state.circle.id)}">Accept</button>
           <button class="secondary" type="button" data-join-request="decline" data-request-user-id="${escapeHtml(request.requester_user_id)}" data-request-circle-id="${escapeHtml(request.circle_id || state.circle.id)}">Decline</button>
@@ -3714,18 +3714,28 @@ async function acceptCircleJoinRequest(requesterUserId, requestCircleId = "") {
     return;
   }
 
-  if (!state.circle.members.includes(requesterUserId)) {
-    state.circle.members.push(requesterUserId);
+  const { data: targetCircle } = await supabase
+    .from("circles")
+    .select("members")
+    .eq("id", circleId)
+    .maybeSingle();
+  const targetMembers = Array.isArray(targetCircle?.members) ? [...targetCircle.members] : [...state.circle.members];
+  if (!targetMembers.includes(requesterUserId)) {
+    targetMembers.push(requesterUserId);
   }
 
   const { error: circleError } = await supabase.from("circles")
-    .update({ members: state.circle.members.filter(isUuid), updated_at: now })
+    .update({ members: targetMembers.filter(isUuid), updated_at: now })
     .eq("id", circleId);
   if (circleError) {
     showToast("Member added, but Circle sync failed");
     return;
   }
-  localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
+
+  if (circleId === state.circle.id) {
+    state.circle.members = targetMembers;
+    localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
+  }
   await refreshCircleRemoteData();
   renderAll();
   showToast("Circle request accepted");
@@ -4429,35 +4439,36 @@ async function syncExpenses({ notify = false } = {}) {
 
 async function reconcileOwnerCircleForRequests() {
   const ids = new Set();
+  const namesById = {};
   if (!supabase || !state.user || !state.circle || !isCircleOwner()) {
     if (state.circle?.id) {
       ids.add(state.circle.id);
+      namesById[state.circle.id] = state.circle.name;
     }
-    return Array.from(ids);
+    return { ids: Array.from(ids), namesById };
   }
 
   ids.add(state.circle.id);
+  namesById[state.circle.id] = state.circle.name;
   const inviteCode = normalizeCircleInviteCode(state.circle.inviteCode || state.circle.id.slice(0, 8));
-  const filters = [`id.eq.${state.circle.id}`];
-  if (inviteCode) {
-    filters.push(`invite_code.eq.${inviteCode}`);
-  }
 
   const { data: ownedCircles, error } = await supabase
     .from("circles")
     .select("id, name, invite_code, created_by_user_id, members, categories, icons, updated_at")
-    .eq("created_by_user_id", state.user.id)
-    .or(filters.join(","));
+    .eq("created_by_user_id", state.user.id);
 
   if (error || !ownedCircles?.length) {
-    return Array.from(ids);
+    return { ids: Array.from(ids), namesById };
   }
 
-  ownedCircles.forEach((circle) => ids.add(circle.id));
+  ownedCircles.forEach((circle) => {
+    ids.add(circle.id);
+    namesById[circle.id] = circle.name || "Circle";
+  });
   const matchedCircle = ownedCircles.find((circle) => circle.id === state.circle.id)
     || ownedCircles.find((circle) => inviteCode && circle.invite_code === inviteCode);
   if (!matchedCircle) {
-    return Array.from(ids);
+    return { ids: Array.from(ids), namesById };
   }
 
   const previousCircleId = state.circle.id;
@@ -4483,7 +4494,7 @@ async function reconcileOwnerCircleForRequests() {
     localStorage.setItem(storageKey, JSON.stringify(state.expenses));
   }
   localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
-  return Array.from(ids);
+  return { ids: Array.from(ids), namesById };
 }
 
 async function refreshCircleRemoteData() {
@@ -4491,7 +4502,7 @@ async function refreshCircleRemoteData() {
     return;
   }
 
-  const requestCircleIds = await reconcileOwnerCircleForRequests();
+  const { ids: requestCircleIds, namesById: requestCircleNamesById } = await reconcileOwnerCircleForRequests();
   await ensureCircleMembership();
 
   const [{ data: circle }, { data: members }, { data: circleExpensesData }] = await Promise.all([
@@ -4540,11 +4551,15 @@ async function refreshCircleRemoteData() {
     if (error && !isMissingJoinRequestsTableError(error)) {
       throw error;
     }
-    state.pendingCircleRequests = requests || [];
+    state.pendingCircleRequests = (requests || []).map((request) => ({
+      ...request,
+      circle_name: requestCircleNamesById[request.circle_id] || "this Circle",
+    }));
     if (state.pendingCircleRequests.length > state.lastPendingCircleRequestCount) {
       const latestRequest = state.pendingCircleRequests[state.pendingCircleRequests.length - 1];
       const requesterName = latestRequest?.requester_name || "Someone";
-      showToast(`${requesterName} wants to join your Circle`);
+      const circleName = latestRequest?.circle_name || "your Circle";
+      showToast(`${requesterName} wants to join ${circleName}`);
     }
     state.lastPendingCircleRequestCount = state.pendingCircleRequests.length;
   } else {
