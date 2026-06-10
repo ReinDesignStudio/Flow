@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=184";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=185";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -16,6 +16,7 @@ const circleLookupTimeoutMs = 3500;
 const circleJoinTimeoutMs = 10000;
 const circleJoinStatusTimeoutMs = 3500;
 const circleRequestRefreshMs = 7000;
+const circleRequestActionTimeoutMs = 4500;
 const defaultCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams"];
 const defaultCircleCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams", "Faith", "Fun", "Others"];
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
@@ -282,6 +283,7 @@ const state = {
   qrStream: null,
   qrScanTimer: 0,
   circleRequestRefreshTimer: 0,
+  circleJoinAction: "",
   qrDetector: null,
 };
 
@@ -985,7 +987,7 @@ elements.copyCircleLinkButton.addEventListener("click", async () => {
 
 elements.joinCircleButton.addEventListener("click", () => {
   if (state.pendingCircleJoin) {
-    refreshPendingCircleJoin().catch(() => showToast("Still waiting for approval"));
+    handleCircleJoinRequest("check").catch(() => showToast("Circle request could not be checked"));
     return;
   }
 
@@ -2114,7 +2116,12 @@ function renderCircle() {
   elements.createCircleButton.hidden = hasCircle || hasPendingJoin;
   elements.inviteCircleButton.hidden = !hasCircle;
   elements.deleteCircleButton.hidden = !hasCircle;
-  elements.joinCircleButton.textContent = hasPendingJoin ? "Check request" : "Join";
+  elements.joinCircleButton.textContent = hasPendingJoin
+    ? state.circleJoinAction === "check"
+      ? "Checking..."
+      : "Check request"
+    : "Join";
+  elements.joinCircleButton.disabled = hasPendingJoin && Boolean(state.circleJoinAction);
   elements.circleForm.hidden = true;
   elements.circleInvite.hidden = !hasCircle;
 
@@ -2190,14 +2197,17 @@ function renderCircleRequests() {
   );
 
   if (state.pendingCircleJoin && !state.circle) {
+    const isChecking = state.circleJoinAction === "check";
+    const isCancelling = state.circleJoinAction === "cancel";
+    const actionDisabled = state.circleJoinAction ? " disabled" : "";
     elements.circleRequestList.hidden = false;
     elements.circleRequestList.innerHTML = `
       <article class="circle-request-card">
         <strong>Waiting for approval</strong>
         <span>${escapeHtml(state.pendingCircleJoin.name)} will open after the owner accepts your request.</span>
         <div class="circle-request-actions">
-          <button type="button" data-join-request="check">Check request</button>
-          <button class="secondary" type="button" data-join-request="cancel">Cancel</button>
+          <button type="button" data-join-request="check"${actionDisabled}>${isChecking ? "Checking..." : "Check request"}</button>
+          <button class="secondary" type="button" data-join-request="cancel"${actionDisabled}>${isCancelling ? "Cancelling..." : "Cancel"}</button>
         </div>
       </article>
     `;
@@ -3572,9 +3582,11 @@ async function requestCircleJoin(request) {
     updated_at: new Date().toISOString(),
   };
 
-  const { error: insertError } = await supabase.from("circle_join_requests").insert(row);
-  if (insertError && !isDuplicateJoinRequestError(insertError)) {
-    throw insertError;
+  const { error: requestError } = await supabase
+    .from("circle_join_requests")
+    .upsert(row, { onConflict: "circle_id,requester_user_id" });
+  if (requestError) {
+    throw requestError;
   }
 
   let statusResult = null;
@@ -3606,11 +3618,6 @@ function isMissingJoinRequestsTableError(error) {
   return code === "pgrst205" || message.includes("circle_join_requests") && message.includes("schema cache");
 }
 
-function isDuplicateJoinRequestError(error) {
-  const message = String(error?.message || error?.details || "").toLowerCase();
-  return String(error?.code || "") === "23505" || message.includes("duplicate key");
-}
-
 function isCircleJoinTimeoutError(error) {
   return String(error?.message || "").toLowerCase().includes("circle join request timed out");
 }
@@ -3622,12 +3629,34 @@ function isMissingCircleInviteError(error) {
 
 async function handleCircleJoinRequest(action, requesterUserId = "") {
   if (action === "check") {
-    await refreshPendingCircleJoin();
+    if (!state.pendingCircleJoin || state.circleJoinAction) {
+      return;
+    }
+
+    state.circleJoinAction = "check";
+    renderCircle();
+    try {
+      await refreshPendingCircleJoin();
+    } finally {
+      state.circleJoinAction = "";
+      renderCircle();
+    }
     return;
   }
 
   if (action === "cancel") {
-    await cancelPendingCircleJoin();
+    if (!state.pendingCircleJoin || state.circleJoinAction) {
+      return;
+    }
+
+    state.circleJoinAction = "cancel";
+    renderCircle();
+    try {
+      await cancelPendingCircleJoin();
+    } finally {
+      state.circleJoinAction = "";
+      renderCircle();
+    }
     return;
   }
 
@@ -3703,57 +3732,77 @@ async function declineCircleJoinRequest(requesterUserId) {
 }
 
 async function cancelPendingCircleJoin() {
-  if (supabase && state.user && state.pendingCircleJoin) {
-    const { error } = await supabase.from("circle_join_requests")
-      .update({ status: "cancelled", updated_at: new Date().toISOString() })
-      .eq("circle_id", state.pendingCircleJoin.circleId)
-      .eq("requester_user_id", state.user.id);
+  let cancelledOnline = false;
 
-    if (error && !isMissingJoinRequestsTableError(error)) {
-      showToast("Circle request could not be cancelled");
-      return;
+  if (supabase && state.user && state.pendingCircleJoin) {
+    try {
+      const { error } = await withTimeout(
+        supabase.from("circle_join_requests")
+          .update({ status: "cancelled", updated_at: new Date().toISOString() })
+          .eq("circle_id", state.pendingCircleJoin.circleId)
+          .eq("requester_user_id", state.user.id),
+        circleRequestActionTimeoutMs,
+        "Circle request cancel timed out.",
+      );
+
+      cancelledOnline = !error || isMissingJoinRequestsTableError(error);
+    } catch {
+      cancelledOnline = false;
     }
   }
 
   savePendingCircleJoin(null);
-  showToast("Circle request cancelled");
+  showToast(cancelledOnline ? "Circle request cancelled" : "Waiting request removed");
 }
 
 async function refreshPendingCircleJoin() {
   if (!supabase || !state.user || !state.pendingCircleJoin) {
-    return;
+    return "none";
   }
 
-  const { data: request, error } = await supabase
-    .from("circle_join_requests")
-    .select("circle_id, status")
-    .eq("circle_id", state.pendingCircleJoin.circleId)
-    .eq("requester_user_id", state.user.id)
-    .maybeSingle();
+  let result = null;
+  try {
+    result = await withTimeout(
+      supabase
+        .from("circle_join_requests")
+        .select("circle_id, status")
+        .eq("circle_id", state.pendingCircleJoin.circleId)
+        .eq("requester_user_id", state.user.id)
+        .maybeSingle(),
+      circleRequestActionTimeoutMs,
+      "Circle request check timed out.",
+    );
+  } catch {
+    showToast("Circle request check timed out");
+    return "timeout";
+  }
+
+  const { data: request, error } = result;
 
   if (error) {
     if (isMissingJoinRequestsTableError(error)) {
       savePendingCircleJoin(null);
       showToast("Circle request system was updated. Paste the invite again.");
-      return;
+      return "missing-schema";
     }
 
     showToast("Circle request could not be checked");
-    return;
+    return "error";
   }
 
   if (!request || request.status === "declined" || request.status === "cancelled") {
     savePendingCircleJoin(null);
     showToast("Circle request was not accepted");
-    return;
+    return request?.status || "missing";
   }
 
   if (request.status !== "accepted") {
     showToast("Still waiting for approval");
-    return;
+    return request.status;
   }
 
   await refreshAcceptedCircleJoin(request.circle_id);
+  return "accepted";
 }
 
 async function refreshAcceptedCircleJoin(circleId) {
