@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=181";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=182";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -246,6 +246,7 @@ const state = {
   circle: circleData,
   pendingCircleJoin: loadPendingCircleJoin(),
   pendingCircleRequests: [],
+  lastPendingCircleRequestCount: 0,
   expenseVisibility: "personal",
   selectedPaymentMethod: "cash",
   historyFilter: "all",
@@ -335,6 +336,7 @@ const elements = {
   cancelEditButton: document.querySelector("#cancel-edit-button"),
   historyList: document.querySelector("#history-list"),
   circleAccessButton: document.querySelector("#circle-access-button"),
+  circleRequestBadge: document.querySelector("#circle-request-badge"),
   circleSheet: document.querySelector("#circle-sheet"),
   closeCircleSheetButton: document.querySelector("#close-circle-sheet-button"),
   circlePanel: document.querySelector("#circle-panel"),
@@ -2172,6 +2174,17 @@ function renderCircleContacts() {
 }
 
 function renderCircleRequests() {
+  const pendingRequestCount = state.pendingCircleRequests.length;
+  const showOwnerBadge = isCircleOwner() && pendingRequestCount > 0;
+  elements.circleRequestBadge.hidden = !showOwnerBadge;
+  elements.circleRequestBadge.textContent = String(Math.min(pendingRequestCount, 9));
+  elements.circleAccessButton.setAttribute(
+    "aria-label",
+    showOwnerBadge
+      ? `${pendingRequestCount} Circle join request${pendingRequestCount === 1 ? "" : "s"}`
+      : "Open Circle",
+  );
+
   if (state.pendingCircleJoin && !state.circle) {
     elements.circleRequestList.hidden = false;
     elements.circleRequestList.innerHTML = `
@@ -2194,7 +2207,12 @@ function renderCircleRequests() {
   }
 
   elements.circleRequestList.hidden = false;
-  elements.circleRequestList.innerHTML = state.pendingCircleRequests
+  elements.circleRequestList.innerHTML = `
+    <article class="circle-request-card circle-request-alert">
+      <strong>${pendingRequestCount} join request${pendingRequestCount === 1 ? "" : "s"}</strong>
+      <span>Approve trusted people to add them to this Circle.</span>
+    </article>
+    ${state.pendingCircleRequests
     .map((request) => `
       <article class="circle-request-card">
         <strong>${escapeHtml(request.requester_name || "Someone")}</strong>
@@ -2205,7 +2223,8 @@ function renderCircleRequests() {
         </div>
       </article>
     `)
-    .join("");
+    .join("")}
+  `;
 }
 
 function renderHistory() {
@@ -3474,7 +3493,14 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
         "Circle join request timed out. Check your connection and try again.",
       );
     } catch (error) {
-      if (isMissingJoinRequestsTableError(error) || isCircleJoinTimeoutError(error)) {
+      if (isCircleJoinTimeoutError(error)) {
+        savePendingCircleJoin(request);
+        setStatus("Request sent. Waiting for approval.");
+        showToast("Request sent. Waiting for approval.");
+        return true;
+      }
+
+      if (isMissingJoinRequestsTableError(error)) {
         setStatus("Joining Circle...");
         await withTimeout(
           joinCircleDirectly(request, circle),
@@ -4382,8 +4408,13 @@ async function refreshCircleRemoteData() {
       throw error;
     }
     state.pendingCircleRequests = requests || [];
+    if (state.pendingCircleRequests.length > state.lastPendingCircleRequestCount && elements.circleSheet.hidden) {
+      showToast(`${state.pendingCircleRequests.length} Circle join request${state.pendingCircleRequests.length === 1 ? "" : "s"}`);
+    }
+    state.lastPendingCircleRequestCount = state.pendingCircleRequests.length;
   } else {
     state.pendingCircleRequests = [];
+    state.lastPendingCircleRequestCount = 0;
   }
 
   renderAll();
