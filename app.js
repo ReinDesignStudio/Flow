@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=185";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=186";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -13,8 +13,7 @@ const weeklyInsightMax = 15000;
 const monthlyInsightBaseMax = 15000;
 const circleInviteSyncTimeoutMs = 8000;
 const circleLookupTimeoutMs = 3500;
-const circleJoinTimeoutMs = 10000;
-const circleJoinStatusTimeoutMs = 3500;
+const circleJoinTimeoutMs = 20000;
 const circleRequestRefreshMs = 7000;
 const circleRequestActionTimeoutMs = 4500;
 const defaultCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams"];
@@ -3529,18 +3528,21 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       requestedAt: new Date().toISOString(),
     };
 
+    const joinRequestPromise = requestCircleJoin(request);
     let requestStatus = "";
     try {
       requestStatus = await withTimeout(
-        requestCircleJoin(request),
+        joinRequestPromise,
         circleJoinTimeoutMs,
         "Circle join request timed out. Check your connection and try again.",
       );
     } catch (error) {
       if (isCircleJoinTimeoutError(error)) {
-        setStatus("Could not confirm the request. Try again.");
-        showToast("Could not confirm the request");
-        return false;
+        savePendingCircleJoin(request);
+        watchSlowCircleJoin(request, joinRequestPromise);
+        setStatus("Request is still sending. Check again in a moment.");
+        showToast("Request is still sending");
+        return true;
       }
 
       if (isMissingJoinRequestsTableError(error)) {
@@ -3582,34 +3584,33 @@ async function requestCircleJoin(request) {
     updated_at: new Date().toISOString(),
   };
 
-  const { error: requestError } = await supabase
+  const { data, error: requestError } = await supabase
     .from("circle_join_requests")
-    .upsert(row, { onConflict: "circle_id,requester_user_id" });
+    .upsert(row, { onConflict: "circle_id,requester_user_id" })
+    .select("status")
+    .maybeSingle();
   if (requestError) {
     throw requestError;
   }
 
-  let statusResult = null;
-  try {
-    statusResult = await withTimeout(
-      supabase
-        .from("circle_join_requests")
-        .select("status")
-        .eq("circle_id", request.circleId)
-        .eq("requester_user_id", state.user.id)
-        .maybeSingle(),
-      circleJoinStatusTimeoutMs,
-      "Circle status lookup timed out.",
-    );
-  } catch {
-    return "pending";
-  }
+  return data?.status || "pending";
+}
 
-  if (statusResult.error) {
-    return "pending";
-  }
+function watchSlowCircleJoin(request, promise) {
+  promise
+    .then(async (status) => {
+      if (!state.pendingCircleJoin || state.circle || state.pendingCircleJoin.circleId !== request.circleId) {
+        return;
+      }
 
-  return statusResult.data?.status || "pending";
+      if (status === "accepted") {
+        await refreshAcceptedCircleJoin(request.circleId);
+        return;
+      }
+
+      renderCircle();
+    })
+    .catch(() => {});
 }
 
 function isMissingJoinRequestsTableError(error) {
@@ -3790,10 +3791,16 @@ async function refreshPendingCircleJoin() {
     return "error";
   }
 
-  if (!request || request.status === "declined" || request.status === "cancelled") {
+  if (!request) {
+    savePendingCircleJoin(null);
+    showToast("No Circle request found. Try the invite again.");
+    return "missing";
+  }
+
+  if (request.status === "declined" || request.status === "cancelled") {
     savePendingCircleJoin(null);
     showToast("Circle request was not accepted");
-    return request?.status || "missing";
+    return request.status;
   }
 
   if (request.status !== "accepted") {
