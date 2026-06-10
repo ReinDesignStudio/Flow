@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=182";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=183";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -14,7 +14,6 @@ const monthlyInsightBaseMax = 15000;
 const circleInviteSyncTimeoutMs = 8000;
 const circleLookupTimeoutMs = 3500;
 const circleJoinTimeoutMs = 10000;
-const circleDirectJoinTimeoutMs = 8000;
 const defaultCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams"];
 const defaultCircleCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams", "Faith", "Fun", "Others"];
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
@@ -3501,15 +3500,9 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       }
 
       if (isMissingJoinRequestsTableError(error)) {
-        setStatus("Joining Circle...");
-        await withTimeout(
-          joinCircleDirectly(request, circle),
-          circleDirectJoinTimeoutMs,
-          "Direct Circle join timed out. The Circle database needs updating, then try again.",
-        );
-        setStatus("Circle joined.");
-        showToast("Circle joined");
-        return true;
+        setStatus("Circle requests need the latest database schema. Run the schema, then try again.");
+        showToast("Circle database needs updating");
+        return false;
       }
 
       if (isMissingCircleInviteError(error)) {
@@ -3537,6 +3530,19 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
 }
 
 async function requestCircleJoin(request) {
+  const row = {
+    circle_id: request.circleId,
+    requester_user_id: state.user.id,
+    requester_name: state.profileName || defaultProfileName,
+    status: "pending",
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error: insertError } = await supabase.from("circle_join_requests").insert(row);
+  if (insertError && !isDuplicateJoinRequestError(insertError)) {
+    throw insertError;
+  }
+
   const { data: existing, error: existingError } = await supabase
     .from("circle_join_requests")
     .select("status")
@@ -3545,73 +3551,21 @@ async function requestCircleJoin(request) {
     .maybeSingle();
 
   if (existingError) {
-    throw existingError;
-  }
-
-  if (existing?.status === "accepted") {
-    return "accepted";
-  }
-
-  if (existing?.status === "pending") {
     return "pending";
   }
 
-  const { error } = await supabase.from("circle_join_requests").upsert(
-    {
-      circle_id: request.circleId,
-      requester_user_id: state.user.id,
-      requester_name: state.profileName || defaultProfileName,
-      status: "pending",
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "circle_id,requester_user_id" },
-  );
-
-  if (error) {
-    throw error;
-  }
-
-  return "pending";
-}
-
-async function joinCircleDirectly(request, circle = null) {
-  const now = new Date().toISOString();
-  const { error } = await supabase.from("circle_members").upsert({
-    circle_id: request.circleId,
-    user_id: state.user.id,
-    role: "member",
-    joined_at: now,
-  });
-
-  if (error) {
-    if (isMissingCircleInviteError(error)) {
-      throw new Error("Circle invite is not ready or no longer exists. Ask the owner to copy the invite link again.");
-    }
-
-    throw new Error("Circle database needs updating. Run the latest Supabase schema, then try again.");
-  }
-
-  const joinedCircle = circle || {
-    id: request.circleId,
-    name: request.name || "Circle",
-    invite_code: request.inviteCode || request.circleId.slice(0, 8).toUpperCase(),
-    created_by_user_id: "",
-    members: [state.user.id],
-    categories: defaultCircleCategories,
-    icons: {},
-    updated_at: now,
-  };
-
-  joinAcceptedCircle(joinedCircle, [
-    { user_id: state.user.id },
-    ...(Array.isArray(joinedCircle.members) ? joinedCircle.members.map((userId) => ({ user_id: userId })) : []),
-  ]);
+  return existing?.status || "pending";
 }
 
 function isMissingJoinRequestsTableError(error) {
   const message = String(error?.message || error?.details || error?.hint || "").toLowerCase();
   const code = String(error?.code || "").toLowerCase();
   return code === "pgrst205" || message.includes("circle_join_requests") && message.includes("schema cache");
+}
+
+function isDuplicateJoinRequestError(error) {
+  const message = String(error?.message || error?.details || "").toLowerCase();
+  return String(error?.code || "") === "23505" || message.includes("duplicate key");
 }
 
 function isCircleJoinTimeoutError(error) {
