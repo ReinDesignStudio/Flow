@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=191";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=192";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -284,6 +284,7 @@ const state = {
   circleRequestRefreshTimer: 0,
   circleJoinAction: "",
   circleInviteStatus: "",
+  circleInviteError: "",
   qrDetector: null,
 };
 
@@ -930,6 +931,7 @@ elements.inviteCircleButton.addEventListener("click", async () => {
 
   if (!state.user) {
     state.circleInviteStatus = "auth";
+    state.circleInviteError = "";
     renderCircle();
     showToast("Sign in first to invite");
     return;
@@ -959,6 +961,7 @@ elements.circleForm.addEventListener("submit", (event) => {
 elements.copyCircleLinkButton.addEventListener("click", async () => {
   if (!state.user) {
     state.circleInviteStatus = "auth";
+    state.circleInviteError = "";
     renderCircle();
     showToast("Sign in first to share an invite");
     return;
@@ -2140,7 +2143,7 @@ function renderCircle() {
       : state.circleInviteStatus === "auth"
         ? "Sign in first to prepare an online invite."
         : state.circleInviteStatus === "error"
-        ? "Invite could not be prepared. Check your connection, then tap Invite again."
+        ? state.circleInviteError || "Invite could not be prepared. Check your connection, then tap Invite again."
         : "Preparing online invite...";
     elements.circleQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}`;
   }
@@ -3440,6 +3443,7 @@ function createCircle(rawName) {
   const memberId = state.user?.id || "local";
   const inviteCode = createCircleInviteCode();
   state.circleInviteStatus = "";
+  state.circleInviteError = "";
   state.circle = {
     id: shortCircleIdToUuid(inviteCode),
     name,
@@ -3481,6 +3485,7 @@ function deleteCircle() {
   });
   state.circle = null;
   state.circleInviteStatus = "";
+  state.circleInviteError = "";
   state.expenseVisibility = "personal";
   state.historyFilter = "all";
   localStorage.removeItem(circleStorageKey);
@@ -3875,6 +3880,7 @@ async function refreshAcceptedCircleJoin(circleId) {
 
 function joinAcceptedCircle(circle, members = []) {
   state.circleInviteStatus = "";
+  state.circleInviteError = "";
   state.circle = {
     id: circle.id,
     name: circle.name,
@@ -4075,11 +4081,13 @@ async function prepareCircleInvite({ notify = true } = {}) {
 
   if (!state.user) {
     state.circleInviteStatus = "auth";
+    state.circleInviteError = "";
     renderCircle();
     throw new Error("Sign in first to prepare an online invite.");
   }
 
   state.circleInviteStatus = "preparing";
+  state.circleInviteError = "";
   renderCircle();
   try {
     await syncCircleForInvite();
@@ -4095,6 +4103,7 @@ async function prepareCircleInvite({ notify = true } = {}) {
     return invite;
   } catch (error) {
     state.circleInviteStatus = "error";
+    state.circleInviteError = error?.message || "Invite could not be prepared. Check your connection, then tap Invite again.";
     renderCircle();
     throw error;
   }
@@ -4110,13 +4119,62 @@ async function syncCircleForInvite() {
   }
 
   await withTimeout(
-    syncCircle({ requireOwner: true }),
+    syncCircleInviteRow(),
     circleInviteSyncTimeoutMs,
     "Invite sync timed out. Check your connection and try again.",
   );
   state.circle.inviteSynced = true;
   localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
+  ensureCircleMembership().catch(() => {});
   renderCircle();
+}
+
+async function syncCircleInviteRow() {
+  if (!supabase || !state.user || !state.circle) {
+    throw new Error("Sign in first to share an invite.");
+  }
+
+  claimLocalCircleOwnership();
+
+  if (!isCircleOwner()) {
+    throw new Error("Only the Circle owner can create invites.");
+  }
+
+  const memberIds = state.circle.members.filter(isUuid);
+  if (!memberIds.includes(state.user.id)) {
+    memberIds.push(state.user.id);
+  }
+
+  const inviteCode = state.circle.inviteCode || state.circle.id.slice(0, 8).toUpperCase();
+  const { data, error } = await supabase
+    .from("circles")
+    .upsert({
+      id: state.circle.id,
+      name: state.circle.name,
+      invite_code: inviteCode,
+      created_by_user_id: isUuid(state.circle.createdByUserId) ? state.circle.createdByUserId : state.user.id,
+      members: memberIds,
+      categories: state.circle.categories,
+      icons: state.circle.icons,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "id" })
+    .select("id, invite_code, created_by_user_id, members, updated_at")
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message || "Invite could not be prepared.");
+  }
+
+  state.circle = {
+    ...state.circle,
+    id: data?.id || state.circle.id,
+    inviteCode: data?.invite_code || inviteCode,
+    createdByUserId: data?.created_by_user_id || state.circle.createdByUserId,
+    members: Array.isArray(data?.members) && data.members.length ? data.members : memberIds,
+    inviteSynced: true,
+    updatedAt: data?.updated_at || state.circle.updatedAt,
+  };
+  localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
 }
 
 function setExpenseVisibility(visibility) {
