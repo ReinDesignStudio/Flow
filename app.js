@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=193";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=194";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -4181,7 +4181,11 @@ async function syncCircleInviteRow() {
     throw new Error("Sign in first to share an invite.");
   }
 
-  await ensureOnlineSessionForCircleInvite();
+  const client = await ensureSupabaseClient();
+  if (!client) {
+    throw new Error(supabaseUnavailableMessage("preparing an invite"));
+  }
+
   claimLocalCircleOwnership();
 
   if (!isCircleOwner()) {
@@ -4223,29 +4227,6 @@ async function syncCircleInviteRow() {
     updatedAt: data?.updated_at || state.circle.updatedAt,
   };
   localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
-}
-
-async function ensureOnlineSessionForCircleInvite() {
-  const client = await ensureSupabaseClient();
-  if (!client) {
-    throw new Error(supabaseUnavailableMessage("preparing an invite"));
-  }
-
-  const session = await withTimeout(
-    getSupabaseSession(),
-    8000,
-    "Could not confirm your sign in. Refresh and sign in again.",
-  );
-
-  if (!session?.user) {
-    state.authenticated = false;
-    state.user = null;
-    throw new Error("Sign in again to prepare an online invite.");
-  }
-
-  state.authenticated = true;
-  state.user = session.user;
-  state.auth = { email: session.user.email || state.auth.email || "" };
 }
 
 function setExpenseVisibility(visibility) {
