@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=189";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=190";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -11,7 +11,7 @@ const defaultProfileName = "Rein";
 const productionAppUrl = "https://dailyflow.pro/";
 const weeklyInsightMax = 15000;
 const monthlyInsightBaseMax = 15000;
-const circleInviteSyncTimeoutMs = 8000;
+const circleInviteSyncTimeoutMs = 20000;
 const circleLookupTimeoutMs = 10000;
 const circleJoinTimeoutMs = 20000;
 const circleRequestRefreshMs = 7000;
@@ -283,6 +283,7 @@ const state = {
   qrScanTimer: 0,
   circleRequestRefreshTimer: 0,
   circleJoinAction: "",
+  circleInviteStatus: "",
   qrDetector: null,
 };
 
@@ -928,21 +929,24 @@ elements.inviteCircleButton.addEventListener("click", async () => {
   }
 
   if (!state.user) {
+    state.circleInviteStatus = "auth";
+    renderCircle();
     showToast("Sign in first to invite");
     return;
   }
 
   elements.inviteCircleButton.disabled = true;
   elements.inviteCircleButton.textContent = "Preparing...";
+  state.circleInviteStatus = "preparing";
+  renderCircle();
   try {
-    elements.circleInvite.hidden = false;
-    renderCircle();
     await syncCircleForInvite();
-    elements.circleInvite.hidden = false;
+    state.circleInviteStatus = "ready";
     renderCircle();
-    elements.circleInvite.hidden = false;
     showToast("Invite ready");
   } catch (error) {
+    state.circleInviteStatus = "error";
+    renderCircle();
     showToast(error?.message || "Invite could not be prepared");
   } finally {
     elements.inviteCircleButton.disabled = false;
@@ -961,14 +965,20 @@ elements.circleForm.addEventListener("submit", (event) => {
 
 elements.copyCircleLinkButton.addEventListener("click", async () => {
   if (!state.user) {
+    state.circleInviteStatus = "auth";
+    renderCircle();
     showToast("Sign in first to share an invite");
     return;
   }
 
   elements.copyCircleLinkButton.disabled = true;
   elements.copyCircleLinkButton.textContent = "Preparing...";
+  state.circleInviteStatus = "preparing";
+  renderCircle();
   try {
     await syncCircleForInvite();
+    state.circleInviteStatus = "ready";
+    renderCircle();
     const invite = circleInviteLink() || circleInviteCode();
     if (!invite) {
       throw new Error("Invite could not be prepared");
@@ -980,6 +990,8 @@ elements.copyCircleLinkButton.addEventListener("click", async () => {
       showToast(invite);
     }
   } catch (error) {
+    state.circleInviteStatus = "error";
+    renderCircle();
     showToast(error?.message || "Invite could not be prepared");
   } finally {
     elements.copyCircleLinkButton.disabled = false;
@@ -2125,12 +2137,23 @@ function renderCircle() {
     : "Join";
   elements.joinCircleButton.disabled = hasPendingJoin && Boolean(state.circleJoinAction);
   elements.circleForm.hidden = true;
-  elements.circleInvite.hidden = !hasCircle || !state.circle.inviteSynced;
+  const showInvitePanel = hasCircle && (state.circle.inviteSynced || state.circleInviteStatus);
+  const inviteReady = hasCircle && state.circle.inviteSynced;
+  elements.circleInvite.hidden = !showInvitePanel;
 
   if (hasCircle) {
     const link = circleInviteLink();
-    elements.circleInviteCode.textContent = circleInviteCode();
-    elements.circleInviteLink.textContent = "Share this invite link to join.";
+    elements.circleQr.hidden = !inviteReady;
+    elements.circleInviteCode.hidden = !inviteReady;
+    elements.copyCircleLinkButton.hidden = !inviteReady;
+    elements.circleInviteCode.textContent = inviteReady ? circleInviteCode() : "";
+    elements.circleInviteLink.textContent = inviteReady
+      ? "Share this invite link to join."
+      : state.circleInviteStatus === "auth"
+        ? "Sign in first to prepare an online invite."
+        : state.circleInviteStatus === "error"
+        ? "Invite could not be prepared. Check your connection, then tap Invite again."
+        : "Preparing online invite...";
     elements.circleQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}`;
   }
 
@@ -3428,6 +3451,7 @@ function createCircle(rawName) {
 
   const memberId = state.user?.id || "local";
   const inviteCode = createCircleInviteCode();
+  state.circleInviteStatus = "";
   state.circle = {
     id: shortCircleIdToUuid(inviteCode),
     name,
@@ -3465,6 +3489,7 @@ function deleteCircle() {
     }
   });
   state.circle = null;
+  state.circleInviteStatus = "";
   state.expenseVisibility = "personal";
   state.historyFilter = "all";
   localStorage.removeItem(circleStorageKey);
@@ -3858,6 +3883,7 @@ async function refreshAcceptedCircleJoin(circleId) {
 }
 
 function joinAcceptedCircle(circle, members = []) {
+  state.circleInviteStatus = "";
   state.circle = {
     id: circle.id,
     name: circle.name,
