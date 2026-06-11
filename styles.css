@@ -1306,9 +1306,9 @@ h2 {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
-  gap: 12px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
 }
 
 .circle-invite strong {
@@ -1324,10 +1324,7 @@ h2 {
 }
 
 .circle-invite img {
-  width: 88px;
-  height: 88px;
-  border-radius: 10px;
-  background: #fff;
+  display: none;
 }
 
 .circle-request-list {

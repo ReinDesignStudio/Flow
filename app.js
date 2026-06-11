@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=194";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=195";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -353,7 +353,6 @@ const elements = {
   circleNameDisplay: document.querySelector("#circle-name-display"),
   circleDetail: document.querySelector("#circle-detail"),
   circleInvite: document.querySelector("#circle-invite"),
-  circleQr: document.querySelector("#circle-qr"),
   circleInviteCode: document.querySelector("#circle-invite-code"),
   circleInviteLink: document.querySelector("#circle-invite-link"),
   copyCircleLinkButton: document.querySelector("#copy-circle-link-button"),
@@ -986,7 +985,7 @@ elements.copyCircleLinkButton.addEventListener("click", async () => {
     showToast(error?.message || "Invite could not be prepared");
   } finally {
     elements.copyCircleLinkButton.disabled = false;
-    elements.copyCircleLinkButton.textContent = "Copy invite link";
+    renderCircle();
   }
 });
 
@@ -2128,26 +2127,27 @@ function renderCircle() {
     : "Join";
   elements.joinCircleButton.disabled = hasPendingJoin && Boolean(state.circleJoinAction);
   elements.circleForm.hidden = true;
-  const showInvitePanel = hasCircle && (state.circle.inviteSynced || state.circleInviteStatus);
+  const showInvitePanel = hasCircle;
   const inviteReady = hasCircle && state.circle.inviteSynced;
   elements.circleInvite.hidden = !showInvitePanel;
 
   if (hasCircle) {
     const link = circleInviteLink();
-    elements.circleQr.hidden = !inviteReady;
-    elements.circleInviteCode.hidden = !inviteReady;
-    elements.copyCircleLinkButton.hidden = !inviteReady;
-    elements.circleInviteCode.textContent = inviteReady ? circleInviteCode() : "";
+    elements.circleInviteCode.hidden = false;
+    elements.copyCircleLinkButton.hidden = false;
+    elements.copyCircleLinkButton.textContent = inviteReady ? "Copy invite link" : "Prepare link";
+    elements.circleInviteCode.textContent = circleInviteCode();
     elements.circleInviteLink.textContent = inviteReady
-      ? "Share this invite link to join."
+      ? link
       : state.circleInviteStatus === "auth"
         ? "Sign in first to prepare an online invite."
         : state.circleInviteStatus === "error"
         ? state.circleInviteError || "Invite could not be prepared. Check your connection, then tap Invite again."
         : state.circleInviteStatus === "slow"
         ? state.circleInviteError || "Still preparing online invite. Keep this open a moment."
-        : "Preparing online invite...";
-    elements.circleQr.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(link)}`;
+        : state.circleInviteStatus === "preparing"
+        ? "Preparing online invite..."
+        : "Tap Invite to prepare the online link.";
   }
 
   renderCircleRequests();
