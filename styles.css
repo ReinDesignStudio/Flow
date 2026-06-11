@@ -1312,15 +1312,17 @@ h2 {
 }
 
 .circle-invite strong {
-  display: inline-block;
-  width: fit-content;
+  display: block;
+  width: 100%;
+  max-width: 100%;
   margin-bottom: 6px;
-  border-radius: 999px;
+  border-radius: 14px;
   background: rgba(12, 6, 6, 0.12);
   color: #0c0606;
-  padding: 5px 10px;
-  font-size: 0.9rem;
+  padding: 8px 12px;
+  font-size: 1rem;
   letter-spacing: 0;
+  overflow-wrap: anywhere;
 }
 
 .circle-invite img {

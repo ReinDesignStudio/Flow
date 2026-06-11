@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=195";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=196";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -958,31 +958,31 @@ elements.circleForm.addEventListener("submit", (event) => {
 });
 
 elements.copyCircleLinkButton.addEventListener("click", async () => {
-  if (!state.user) {
-    state.circleInviteStatus = "auth";
-    state.circleInviteError = "";
-    renderCircle();
-    showToast("Sign in first to share an invite");
+  if (!state.circle) {
     return;
   }
 
   elements.copyCircleLinkButton.disabled = true;
-  elements.copyCircleLinkButton.textContent = "Preparing...";
+  elements.copyCircleLinkButton.textContent = "Copying...";
   try {
     const invite = state.circle?.inviteSynced
       ? circleInviteLink() || circleInviteCode()
-      : await prepareCircleInvite({ notify: false });
+      : circleInviteCode();
     if (!invite) {
       return;
     }
     try {
       await navigator.clipboard.writeText(invite);
-      showToast("Invite link copied");
+      showToast(state.circle?.inviteSynced ? "Invite link copied" : "Circle ID copied");
     } catch {
       showToast(invite);
     }
+
+    if (!state.circle.inviteSynced && state.user && state.circleInviteStatus !== "preparing") {
+      prepareCircleInvite({ notify: false }).catch(() => {});
+    }
   } catch (error) {
-    showToast(error?.message || "Invite could not be prepared");
+    showToast(error?.message || "Invite could not be copied");
   } finally {
     elements.copyCircleLinkButton.disabled = false;
     renderCircle();
@@ -2132,22 +2132,23 @@ function renderCircle() {
   elements.circleInvite.hidden = !showInvitePanel;
 
   if (hasCircle) {
-    const link = circleInviteLink();
+    const code = circleInviteCode();
+    const link = inviteReady ? circleInviteLink() : "";
     elements.circleInviteCode.hidden = false;
     elements.copyCircleLinkButton.hidden = false;
-    elements.copyCircleLinkButton.textContent = inviteReady ? "Copy invite link" : "Prepare link";
-    elements.circleInviteCode.textContent = circleInviteCode();
+    elements.copyCircleLinkButton.textContent = inviteReady ? "Copy invite link" : "Copy Circle ID";
+    elements.circleInviteCode.textContent = code;
     elements.circleInviteLink.textContent = inviteReady
       ? link
       : state.circleInviteStatus === "auth"
-        ? "Sign in first to prepare an online invite."
+        ? `${code} is ready. Sign in to prepare an online link.`
         : state.circleInviteStatus === "error"
-        ? state.circleInviteError || "Invite could not be prepared. Check your connection, then tap Invite again."
+        ? `${code} is ready. ${state.circleInviteError || "Online link could not be prepared. Tap Invite again."}`
         : state.circleInviteStatus === "slow"
-        ? state.circleInviteError || "Still preparing online invite. Keep this open a moment."
+        ? `${code} is ready. Online link is still preparing.`
         : state.circleInviteStatus === "preparing"
-        ? "Preparing online invite..."
-        : "Tap Invite to prepare the online link.";
+        ? `${code} is ready. Online link is preparing.`
+        : `Share ${code}, or tap Invite to prepare an online link.`;
   }
 
   renderCircleRequests();
