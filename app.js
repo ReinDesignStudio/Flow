@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=190";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=191";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -937,16 +937,9 @@ elements.inviteCircleButton.addEventListener("click", async () => {
 
   elements.inviteCircleButton.disabled = true;
   elements.inviteCircleButton.textContent = "Preparing...";
-  state.circleInviteStatus = "preparing";
-  renderCircle();
   try {
-    await syncCircleForInvite();
-    state.circleInviteStatus = "ready";
-    renderCircle();
-    showToast("Invite ready");
+    await prepareCircleInvite();
   } catch (error) {
-    state.circleInviteStatus = "error";
-    renderCircle();
     showToast(error?.message || "Invite could not be prepared");
   } finally {
     elements.inviteCircleButton.disabled = false;
@@ -973,13 +966,10 @@ elements.copyCircleLinkButton.addEventListener("click", async () => {
 
   elements.copyCircleLinkButton.disabled = true;
   elements.copyCircleLinkButton.textContent = "Preparing...";
-  state.circleInviteStatus = "preparing";
-  renderCircle();
   try {
-    await syncCircleForInvite();
-    state.circleInviteStatus = "ready";
-    renderCircle();
-    const invite = circleInviteLink() || circleInviteCode();
+    const invite = state.circle?.inviteSynced
+      ? circleInviteLink() || circleInviteCode()
+      : await prepareCircleInvite({ notify: false });
     if (!invite) {
       throw new Error("Invite could not be prepared");
     }
@@ -990,8 +980,6 @@ elements.copyCircleLinkButton.addEventListener("click", async () => {
       showToast(invite);
     }
   } catch (error) {
-    state.circleInviteStatus = "error";
-    renderCircle();
     showToast(error?.message || "Invite could not be prepared");
   } finally {
     elements.copyCircleLinkButton.disabled = false;
@@ -3470,6 +3458,9 @@ function createCircle(rawName) {
   renderCategories();
   renderAll();
   showToast("Circle created");
+  prepareCircleInvite({ notify: false })
+    .then(() => showToast("Invite ready"))
+    .catch(() => {});
 }
 
 function deleteCircle() {
@@ -4075,6 +4066,38 @@ function circleInviteLink() {
   url.searchParams.set("code", ensureCircleInviteCode());
   url.searchParams.set("name", state.circle.name);
   return url.toString();
+}
+
+async function prepareCircleInvite({ notify = true } = {}) {
+  if (!state.circle) {
+    throw new Error("Create a Circle first.");
+  }
+
+  if (!state.user) {
+    state.circleInviteStatus = "auth";
+    renderCircle();
+    throw new Error("Sign in first to prepare an online invite.");
+  }
+
+  state.circleInviteStatus = "preparing";
+  renderCircle();
+  try {
+    await syncCircleForInvite();
+    state.circleInviteStatus = "ready";
+    renderCircle();
+    const invite = circleInviteLink() || circleInviteCode();
+    if (!invite) {
+      throw new Error("Invite could not be prepared.");
+    }
+    if (notify) {
+      showToast("Invite ready");
+    }
+    return invite;
+  } catch (error) {
+    state.circleInviteStatus = "error";
+    renderCircle();
+    throw error;
+  }
 }
 
 async function syncCircleForInvite() {
