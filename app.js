@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=202";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=203";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -16,6 +16,8 @@ const circleLookupTimeoutMs = 10000;
 const circleJoinTimeoutMs = 60000;
 const circleRequestRefreshMs = 7000;
 const circleRequestActionTimeoutMs = 4500;
+const circleFullSelectColumns = "id, name, invite_code, created_by_user_id, members, categories, icons, updated_at";
+const circleMinimalSelectColumns = "id, name, invite_code, created_by_user_id, updated_at";
 const defaultCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams"];
 const defaultCircleCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams", "Faith", "Fun", "Others"];
 const supabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
@@ -3695,6 +3697,11 @@ function isMissingCircleInviteError(error) {
   return message.includes("foreign key") || message.includes("violates") || message.includes("not present");
 }
 
+function isMissingCircleColumnError(error) {
+  const message = String(error?.message || error?.details || error?.hint || "").toLowerCase();
+  return message.includes("column") && message.includes("does not exist");
+}
+
 function isMissingCircleMembershipPolicyError(error) {
   const message = String(error?.message || error?.details || error?.hint || "").toLowerCase();
   const code = String(error?.code || "").toLowerCase();
@@ -3899,7 +3906,7 @@ async function refreshPendingCircleJoin() {
 
 async function refreshAcceptedCircleJoin(circleId) {
   const [{ data: circle }, { data: members }] = await Promise.all([
-    supabase.from("circles").select("id, name, invite_code, created_by_user_id, members, categories, icons, updated_at").eq("id", circleId).maybeSingle(),
+    fetchCircleById(circleId),
     supabase.from("circle_members").select("user_id").eq("circle_id", circleId),
   ]);
 
@@ -3910,6 +3917,19 @@ async function refreshAcceptedCircleJoin(circleId) {
 
   joinAcceptedCircle(circle, members || []);
   showToast("Circle joined");
+}
+
+async function fetchCircleById(circleId, columns = circleFullSelectColumns) {
+  const result = await supabase.from("circles").select(columns).eq("id", circleId).maybeSingle();
+  if (result.error && columns !== circleMinimalSelectColumns && isMissingCircleColumnError(result.error)) {
+    return fetchCircleById(circleId, circleMinimalSelectColumns);
+  }
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  return result;
 }
 
 function joinAcceptedCircle(circle, members = []) {
@@ -3964,19 +3984,7 @@ async function resolveCircleInvite(raw) {
     return parsed;
   }
 
-  let query = supabase
-    .from("circles")
-    .select("id, name, invite_code, created_by_user_id, members, categories, icons, updated_at");
-
-  if (parsed.inviteCode && parsed.circleId) {
-    query = query.or(`invite_code.eq.${parsed.inviteCode},id.eq.${parsed.circleId}`);
-  } else if (parsed.inviteCode) {
-    query = query.eq("invite_code", parsed.inviteCode);
-  } else {
-    query = query.eq("id", parsed.circleId);
-  }
-
-  const { data: circle } = await query.limit(1).maybeSingle();
+  const { data: circle } = await runCircleInviteQuery(parsed, circleFullSelectColumns);
 
   if (!circle) {
     return parsed;
@@ -3988,6 +3996,29 @@ async function resolveCircleInvite(raw) {
     inviteCode: circle.invite_code || parsed.inviteCode,
     circle,
   };
+}
+
+async function runCircleInviteQuery(parsed, columns) {
+  let query = supabase.from("circles").select(columns);
+
+  if (parsed.inviteCode && parsed.circleId) {
+    query = query.or(`invite_code.eq.${parsed.inviteCode},id.eq.${parsed.circleId}`);
+  } else if (parsed.inviteCode) {
+    query = query.eq("invite_code", parsed.inviteCode);
+  } else {
+    query = query.eq("id", parsed.circleId);
+  }
+
+  const result = await query.limit(1).maybeSingle();
+  if (result.error && columns !== circleMinimalSelectColumns && isMissingCircleColumnError(result.error)) {
+    return runCircleInviteQuery(parsed, circleMinimalSelectColumns);
+  }
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  return result;
 }
 
 function parseCircleInvite(raw) {
@@ -4191,18 +4222,17 @@ async function syncCircleInviteRow() {
 
   const inviteCode = state.circle.inviteCode || state.circle.id.slice(0, 8).toUpperCase();
   const now = new Date().toISOString();
-  const { error } = await supabase
-    .from("circles")
-    .upsert({
-      id: state.circle.id,
-      name: state.circle.name,
-      invite_code: inviteCode,
-      created_by_user_id: isUuid(state.circle.createdByUserId) ? state.circle.createdByUserId : state.user.id,
-      members: memberIds,
-      categories: state.circle.categories,
-      icons: state.circle.icons,
-      updated_at: now,
-    }, { onConflict: "id" });
+  const row = {
+    id: state.circle.id,
+    name: state.circle.name,
+    invite_code: inviteCode,
+    created_by_user_id: isUuid(state.circle.createdByUserId) ? state.circle.createdByUserId : state.user.id,
+    members: memberIds,
+    categories: state.circle.categories,
+    icons: state.circle.icons,
+    updated_at: now,
+  };
+  const { error } = await upsertCircleRow(row);
 
   if (error) {
     throw new Error(error.message || "Invite could not be prepared.");
@@ -4217,6 +4247,16 @@ async function syncCircleInviteRow() {
     updatedAt: now,
   };
   localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
+}
+
+async function upsertCircleRow(row) {
+  const result = await supabase.from("circles").upsert(row, { onConflict: "id" });
+  if (!result.error || !isMissingCircleColumnError(result.error)) {
+    return result;
+  }
+
+  const { members, categories, icons, ...minimalRow } = row;
+  return supabase.from("circles").upsert(minimalRow, { onConflict: "id" });
 }
 
 function setExpenseVisibility(visibility) {

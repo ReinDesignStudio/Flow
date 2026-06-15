@@ -27,7 +27,10 @@ create table if not exists public.circles (
 );
 
 alter table public.circles
-  add column if not exists invite_code text;
+  add column if not exists invite_code text,
+  add column if not exists members uuid[] not null default array[]::uuid[],
+  add column if not exists categories text[] not null default array['Groceries', 'Bills', 'Rent', 'Gas', 'Food', 'Kids', 'Savings', 'Emergency', 'Others'],
+  add column if not exists icons jsonb not null default '{}'::jsonb;
 
 create unique index if not exists circles_invite_code_idx
   on public.circles (invite_code)
