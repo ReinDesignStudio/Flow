@@ -8,14 +8,14 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Flow" />
     <title>Flow</title>
-    <link rel="manifest" href="./manifest.webmanifest?v=196" />
-    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=196" />
-    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=196" />
-    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=196" />
+    <link rel="manifest" href="./manifest.webmanifest?v=198" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png?v=198" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png?v=198" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png?v=198" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./styles.css?v=196" />
+    <link rel="stylesheet" href="./styles.css?v=198" />
   </head>
   <body>
     <div class="install-note" id="install-note" role="status" aria-live="polite" hidden>
@@ -377,17 +377,17 @@
           <header class="insight-detail-header">
             <div>
               <p class="kicker">Partner invite</p>
-              <h2 id="qr-title">Join via QR</h2>
+              <h2 id="qr-title">Join Circle</h2>
             </div>
-            <button class="icon-button" id="close-qr-button" type="button" aria-label="Close QR scanner">
+            <button class="icon-button" id="close-qr-button" type="button" aria-label="Close Circle join">
               <span aria-hidden="true">×</span>
             </button>
           </header>
-          <div class="qr-reader">
+          <div class="qr-reader" hidden>
             <video id="qr-video" playsinline muted></video>
             <div class="qr-frame" aria-hidden="true"></div>
           </div>
-          <p class="qr-message" id="qr-message">Point your camera at a Flow Circle QR code.</p>
+          <p class="qr-message" id="qr-message">Paste the Circle ID from your partner.</p>
           <form class="qr-paste-form" id="qr-paste-form">
             <input id="qr-link-input" type="text" placeholder="Invite ID or link" aria-label="Invite ID or link" />
             <button type="submit">Join</button>
@@ -578,6 +578,6 @@
       </div>
     </main>
 
-    <script src="./app.js?v=196" type="module"></script>
+    <script src="./app.js?v=198" type="module"></script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=196";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=198";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -360,6 +360,7 @@ const elements = {
   circleContactList: document.querySelector("#circle-contact-list"),
   joinCircleButton: document.querySelector("#join-circle-button"),
   qrSheet: document.querySelector("#qr-sheet"),
+  qrReader: document.querySelector(".qr-reader"),
   qrVideo: document.querySelector("#qr-video"),
   qrMessage: document.querySelector("#qr-message"),
   qrPasteForm: document.querySelector("#qr-paste-form"),
@@ -2141,14 +2142,14 @@ function renderCircle() {
     elements.circleInviteLink.textContent = inviteReady
       ? link
       : state.circleInviteStatus === "auth"
-        ? `${code} is ready. Sign in to prepare an online link.`
+        ? `${code} is ready. Sign in to put this Circle online.`
         : state.circleInviteStatus === "error"
-        ? `${code} is ready. ${state.circleInviteError || "Online link could not be prepared. Tap Invite again."}`
+        ? `${code} is ready. ${state.circleInviteError || "Circle could not be put online. Tap Invite again."}`
         : state.circleInviteStatus === "slow"
-        ? `${code} is ready. Online link is still preparing.`
+        ? `${code} is ready. Circle is still going online.`
         : state.circleInviteStatus === "preparing"
-        ? `${code} is ready. Online link is preparing.`
-        : `Share ${code}, or tap Invite to prepare an online link.`;
+        ? `${code} is ready. Circle is going online.`
+        : `Share ${code}. If your partner cannot join, tap Invite once.`;
   }
 
   renderCircleRequests();
@@ -3534,10 +3535,14 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
         circleLookupTimeoutMs,
         "Circle lookup timed out.",
       );
-    } catch {
-      setStatus("Could not check the online invite. Try again.");
-      showToast("Could not check online invite");
-      return false;
+    } catch (error) {
+      if (!parsedInvite.circleId || !parsedInvite.inviteCode) {
+        setStatus("Could not check the online invite. Try again.");
+        showToast("Could not check online invite");
+        return false;
+      }
+      resolvedInvite = parsedInvite;
+      setStatus("Circle ID recognized. Sending request...");
     }
 
     const { circleId, name, inviteCode, circle } = resolvedInvite;
@@ -3584,8 +3589,8 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       }
 
       if (isMissingCircleInviteError(error)) {
-        setStatus("Circle invite is not ready or no longer exists. Ask the owner to copy the invite link again.");
-        showToast("Circle invite is not ready");
+        setStatus("Circle ID is not online yet. Ask the owner to tap Invite once, then try again.");
+        showToast("Circle ID is not online yet");
         return false;
       }
       throw error;
@@ -3738,7 +3743,7 @@ async function acceptCircleJoinRequest(requesterUserId, requestCircleId = "") {
     user_id: requesterUserId,
     role: "member",
     joined_at: now,
-  });
+  }, { onConflict: "circle_id,user_id", ignoreDuplicates: true });
   if (memberError) {
     showToast("Could not add member");
     return;
@@ -4193,12 +4198,49 @@ async function syncCircleInviteRow() {
     throw new Error("Only the Circle owner can create invites.");
   }
 
-  const memberIds = state.circle.members.filter(isUuid);
+  let memberIds = state.circle.members.filter(isUuid);
   if (!memberIds.includes(state.user.id)) {
     memberIds.push(state.user.id);
   }
 
   const inviteCode = state.circle.inviteCode || state.circle.id.slice(0, 8).toUpperCase();
+  const { data: existingCircle, error: existingCircleError } = await supabase
+    .from("circles")
+    .select("id, name, invite_code, created_by_user_id, members, categories, icons, updated_at")
+    .eq("invite_code", inviteCode)
+    .eq("created_by_user_id", state.user.id)
+    .maybeSingle();
+
+  if (existingCircleError) {
+    throw new Error(existingCircleError.message || "Invite could not be checked.");
+  }
+
+  if (existingCircle?.id && existingCircle.id !== state.circle.id) {
+    const previousCircleId = state.circle.id;
+    state.circle = {
+      ...state.circle,
+      id: existingCircle.id,
+      name: existingCircle.name || state.circle.name,
+      inviteCode: existingCircle.invite_code || inviteCode,
+      createdByUserId: existingCircle.created_by_user_id || state.circle.createdByUserId,
+      members: Array.isArray(existingCircle.members) && existingCircle.members.length ? existingCircle.members : memberIds,
+      categories: cleanCategoryOrder(existingCircle.categories).length ? cleanCategoryOrder(existingCircle.categories) : state.circle.categories,
+      icons: existingCircle.icons || state.circle.icons,
+      updatedAt: existingCircle.updated_at || state.circle.updatedAt,
+    };
+    state.expenses.forEach((expense) => {
+      if (expense.circleId === previousCircleId) {
+        expense.circleId = state.circle.id;
+      }
+    });
+    localStorage.setItem(storageKey, JSON.stringify(state.expenses));
+    localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
+    memberIds = state.circle.members.filter(isUuid);
+    if (!memberIds.includes(state.user.id)) {
+      memberIds.push(state.user.id);
+    }
+  }
+
   const { data, error } = await supabase
     .from("circles")
     .upsert({
@@ -4244,35 +4286,10 @@ function setExpenseVisibility(visibility) {
 async function openQrScanner() {
   elements.qrSheet.hidden = false;
   elements.qrSheet.classList.add("show");
-  elements.qrMessage.textContent = "Opening camera...";
+  elements.qrMessage.textContent = "Paste the Circle ID from your partner.";
   elements.qrLinkInput.value = "";
-
-  if (!navigator.mediaDevices?.getUserMedia) {
-    elements.qrMessage.textContent = "Camera access is not available here. Paste the invite link instead.";
-    window.setTimeout(() => elements.qrLinkInput.focus(), 60);
-    return;
-  }
-
-  try {
-    if ("BarcodeDetector" in window) {
-      state.qrDetector = new BarcodeDetector({ formats: ["qr_code"] });
-    }
-    state.qrStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment" },
-      audio: false,
-    });
-    elements.qrVideo.srcObject = state.qrStream;
-    await elements.qrVideo.play();
-    elements.qrMessage.textContent = state.qrDetector
-      ? "Point your camera at a Flow Circle QR code."
-      : "Camera is open. This browser cannot read QR codes automatically, so paste the invite link below.";
-    if (state.qrDetector) {
-      scanQrFrame();
-    }
-  } catch {
-    elements.qrMessage.textContent = "Camera permission is needed to scan. You can paste the invite link instead.";
-    window.setTimeout(() => elements.qrLinkInput.focus(), 60);
-  }
+  elements.qrReader.hidden = true;
+  window.setTimeout(() => elements.qrLinkInput.focus(), 60);
 }
 
 async function scanQrFrame() {
