@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=200";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=201";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -3575,7 +3575,7 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
         return false;
       }
       resolvedInvite = parsedInvite;
-      setStatus("Circle ID recognized. Sending request...");
+      setStatus("Circle ID recognized. Joining Circle...");
     }
 
     const { circleId, name, inviteCode, circle } = resolvedInvite;
@@ -3591,32 +3591,21 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       return true;
     }
 
-    const request = {
-      circleId,
-      name: titleCase(name),
-      inviteCode,
-      requesterUserId: state.user.id,
-      requestedAt: new Date().toISOString(),
-    };
-
-    const joinRequestPromise = requestCircleJoin(request);
-    let requestStatus = "";
     try {
-      requestStatus = await withTimeout(
-        joinRequestPromise,
+      await withTimeout(
+        joinCircleMembership(circleId),
         circleJoinTimeoutMs,
-        "Circle join request timed out. Check your connection and try again.",
+        "Circle join timed out. Check your connection and try again.",
       );
     } catch (error) {
       if (isCircleJoinTimeoutError(error)) {
-        watchSlowCircleJoin(request, joinRequestPromise, setStatus);
-        setStatus("Request is still sending. Keep this open a moment.");
-        showToast("Request is still sending");
+        setStatus("Circle is still joining. Check your connection and try again.");
+        showToast("Circle is still joining");
         return false;
       }
 
-      if (isMissingJoinRequestsTableError(error)) {
-        setStatus("Circle requests need the latest database schema. Run the schema, then try again.");
+      if (isMissingCircleMembershipPolicyError(error)) {
+        setStatus("Circle joining needs the latest database policy. Run the schema, then try again.");
         showToast("Circle database needs updating");
         return false;
       }
@@ -3628,20 +3617,27 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       }
       throw error;
     }
-    if (requestStatus === "accepted") {
-      setStatus("Circle joined.");
-      await refreshAcceptedCircleJoin(request.circleId);
-      return true;
-    }
 
-    savePendingCircleJoin(request);
-    setStatus(requestStatus === "pending" ? "Request sent. Waiting for approval." : "Circle request updated.");
-    showToast(requestStatus === "pending" ? "Request sent. Waiting for approval." : "Circle request updated");
+    setStatus("Circle joined.");
+    await refreshAcceptedCircleJoin(circleId);
     return true;
   } catch (error) {
-    setStatus(error?.message || "Circle request could not be sent. Try again.");
-    showToast(error?.message || "Circle request could not be sent");
+    setStatus(error?.message || "Circle could not be joined. Try again.");
+    showToast(error?.message || "Circle could not be joined");
     return false;
+  }
+}
+
+async function joinCircleMembership(circleId) {
+  const { error } = await supabase.from("circle_members").upsert({
+    circle_id: circleId,
+    user_id: state.user.id,
+    role: "member",
+    joined_at: new Date().toISOString(),
+  }, { onConflict: "circle_id,user_id", ignoreDuplicates: true });
+
+  if (error) {
+    throw error;
   }
 }
 
@@ -3700,12 +3696,19 @@ function isMissingJoinRequestsTableError(error) {
 }
 
 function isCircleJoinTimeoutError(error) {
-  return String(error?.message || "").toLowerCase().includes("circle join request timed out");
+  const message = String(error?.message || "").toLowerCase();
+  return message.includes("circle join timed out") || message.includes("circle join request timed out");
 }
 
 function isMissingCircleInviteError(error) {
   const message = String(error?.message || error?.details || error?.hint || "").toLowerCase();
   return message.includes("foreign key") || message.includes("violates") || message.includes("not present");
+}
+
+function isMissingCircleMembershipPolicyError(error) {
+  const message = String(error?.message || error?.details || error?.hint || "").toLowerCase();
+  const code = String(error?.code || "").toLowerCase();
+  return code === "42501" || message.includes("row-level security") || message.includes("circle_members") && message.includes("schema cache");
 }
 
 async function handleCircleJoinRequest(action, requesterUserId = "", requestCircleId = "") {

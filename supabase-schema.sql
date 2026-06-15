@@ -137,6 +137,20 @@ create policy "Circle memberships are visible to authenticated users"
 
 drop policy if exists "Users can join circles" on public.circle_members;
 
+drop policy if exists "Authenticated users can join circles by invite" on public.circle_members;
+create policy "Authenticated users can join circles by invite"
+  on public.circle_members
+  for insert
+  to authenticated
+  with check (
+    user_id = (select auth.uid())
+    and exists (
+      select 1 from public.circles
+      where circles.id = circle_members.circle_id
+      and circles.invite_code is not null
+    )
+  );
+
 drop policy if exists "Circle owners can add accepted members" on public.circle_members;
 create policy "Circle owners can add accepted members"
   on public.circle_members
