@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=199";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=200";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -2885,6 +2885,7 @@ function openSettings() {
   state.settingsReturnFocus = document.activeElement;
   if (state.circle) {
     refreshCircleRemoteData().catch(() => {});
+    autoPrepareCircleInvite();
   } else if (state.pendingCircleJoin) {
     refreshPendingCircleJoin().catch(() => {});
   }
@@ -2998,6 +2999,20 @@ function openCircleSheet({ showContacts = false } = {}) {
     }
     elements.closeCircleSheetButton.focus({ preventScroll: true });
   }, 20);
+}
+
+function autoPrepareCircleInvite() {
+  if (!state.circle || !state.user || state.circle.inviteSynced || ["preparing", "slow"].includes(state.circleInviteStatus)) {
+    return;
+  }
+
+  prepareCircleInvite({ notify: false })
+    .then((invite) => {
+      if (invite) {
+        showToast("Invite ready");
+      }
+    })
+    .catch(() => {});
 }
 
 function closeCircleSheet({ restoreFocus = true } = {}) {
