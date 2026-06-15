@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=201";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=202";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -11,9 +11,9 @@ const defaultProfileName = "Rein";
 const productionAppUrl = "https://dailyflow.pro/";
 const weeklyInsightMax = 15000;
 const monthlyInsightBaseMax = 15000;
-const circleInviteSyncTimeoutMs = 20000;
+const circleInviteSyncTimeoutMs = 60000;
 const circleLookupTimeoutMs = 10000;
-const circleJoinTimeoutMs = 20000;
+const circleJoinTimeoutMs = 60000;
 const circleRequestRefreshMs = 7000;
 const circleRequestActionTimeoutMs = 4500;
 const defaultCategories = ["Date Night", "Groceries", "Prayer", "Home", "Kids", "Dreams"];
@@ -983,11 +983,7 @@ elements.copyCircleLinkButton.addEventListener("click", async () => {
     }
 
     if (!state.circle.inviteSynced) {
-      const preparedInvite = await prepareCircleInvite({ notify: false });
-      if (!preparedInvite) {
-        showToast("Circle is still going online");
-        return;
-      }
+      await prepareCircleInvite({ notify: false });
     }
 
     const invite = circleInviteLink() || circleInviteCode();
@@ -2163,8 +2159,6 @@ function renderCircle() {
         ? `${code} is ready. Sign in to put this Circle online.`
         : state.circleInviteStatus === "error"
         ? `${code} is ready. ${state.circleInviteError || "Circle could not be put online. Tap Invite again."}`
-        : state.circleInviteStatus === "slow"
-        ? `${code} is ready. Circle is still going online.`
         : state.circleInviteStatus === "preparing"
         ? `${code} is ready. Circle is going online.`
         : `${code} is not joinable yet. Put this Circle online before sharing.`;
@@ -3592,15 +3586,11 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
     }
 
     try {
-      await withTimeout(
-        joinCircleMembership(circleId),
-        circleJoinTimeoutMs,
-        "Circle join timed out. Check your connection and try again.",
-      );
+      await withTimeout(joinCircleMembership(circleId), circleJoinTimeoutMs, "Circle join timed out. Try again.");
     } catch (error) {
       if (isCircleJoinTimeoutError(error)) {
-        setStatus("Circle is still joining. Check your connection and try again.");
-        showToast("Circle is still joining");
+        setStatus("Circle join timed out. Try again.");
+        showToast("Circle join timed out");
         return false;
       }
 
@@ -4134,16 +4124,7 @@ async function prepareCircleInvite({ notify = true } = {}) {
   state.circleInviteError = "";
   renderCircle();
   try {
-    const isReady = await syncCircleForInvite({ allowSlow: true });
-    if (!isReady) {
-      state.circleInviteStatus = "slow";
-      state.circleInviteError = "Still preparing online invite. Keep this open a moment.";
-      renderCircle();
-      if (notify) {
-        showToast("Invite is still preparing");
-      }
-      return "";
-    }
+    await syncCircleForInvite();
     state.circleInviteStatus = "ready";
     renderCircle();
     const invite = circleInviteLink() || circleInviteCode();
@@ -4162,7 +4143,7 @@ async function prepareCircleInvite({ notify = true } = {}) {
   }
 }
 
-async function syncCircleForInvite({ allowSlow = false } = {}) {
+async function syncCircleForInvite() {
   if (!state.circle) {
     throw new Error("Create a Circle first.");
   }
@@ -4171,18 +4152,9 @@ async function syncCircleForInvite({ allowSlow = false } = {}) {
     throw new Error("Sign in first to share an invite.");
   }
 
-  const invitePromise = syncCircleInviteRow();
   try {
-    await withTimeout(
-      invitePromise,
-      circleInviteSyncTimeoutMs,
-      "Invite sync timed out. Check your connection and try again.",
-    );
+    await withTimeout(syncCircleInviteRow(), circleInviteSyncTimeoutMs, "Circle could not be put online. Try again.");
   } catch (error) {
-    if (allowSlow && isCircleInviteTimeoutError(error)) {
-      watchSlowCircleInvite(invitePromise);
-      return false;
-    }
     throw error;
   }
   state.circle.inviteSynced = true;
@@ -4192,30 +4164,8 @@ async function syncCircleForInvite({ allowSlow = false } = {}) {
   return true;
 }
 
-function watchSlowCircleInvite(promise) {
-  promise
-    .then(() => {
-      if (!state.circle) {
-        return;
-      }
-      state.circleInviteStatus = "ready";
-      state.circleInviteError = "";
-      state.circle.inviteSynced = true;
-      localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
-      ensureCircleMembership().catch(() => {});
-      renderCircle();
-      showToast("Invite ready");
-    })
-    .catch((error) => {
-      state.circleInviteStatus = "error";
-      state.circleInviteError = error?.message || "Invite could not be prepared. Check your connection, then tap Invite again.";
-      renderCircle();
-      showToast("Invite could not be prepared");
-    });
-}
-
 function isCircleInviteTimeoutError(error) {
-  return String(error?.message || "").toLowerCase().includes("invite sync timed out");
+  return String(error?.message || "").toLowerCase().includes("circle could not be put online");
 }
 
 async function syncCircleInviteRow() {
@@ -4240,44 +4190,8 @@ async function syncCircleInviteRow() {
   }
 
   const inviteCode = state.circle.inviteCode || state.circle.id.slice(0, 8).toUpperCase();
-  const { data: existingCircle, error: existingCircleError } = await supabase
-    .from("circles")
-    .select("id, name, invite_code, created_by_user_id, members, categories, icons, updated_at")
-    .eq("invite_code", inviteCode)
-    .eq("created_by_user_id", state.user.id)
-    .maybeSingle();
-
-  if (existingCircleError) {
-    throw new Error(existingCircleError.message || "Invite could not be checked.");
-  }
-
-  if (existingCircle?.id && existingCircle.id !== state.circle.id) {
-    const previousCircleId = state.circle.id;
-    state.circle = {
-      ...state.circle,
-      id: existingCircle.id,
-      name: existingCircle.name || state.circle.name,
-      inviteCode: existingCircle.invite_code || inviteCode,
-      createdByUserId: existingCircle.created_by_user_id || state.circle.createdByUserId,
-      members: Array.isArray(existingCircle.members) && existingCircle.members.length ? existingCircle.members : memberIds,
-      categories: cleanCategoryOrder(existingCircle.categories).length ? cleanCategoryOrder(existingCircle.categories) : state.circle.categories,
-      icons: existingCircle.icons || state.circle.icons,
-      updatedAt: existingCircle.updated_at || state.circle.updatedAt,
-    };
-    state.expenses.forEach((expense) => {
-      if (expense.circleId === previousCircleId) {
-        expense.circleId = state.circle.id;
-      }
-    });
-    localStorage.setItem(storageKey, JSON.stringify(state.expenses));
-    localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
-    memberIds = state.circle.members.filter(isUuid);
-    if (!memberIds.includes(state.user.id)) {
-      memberIds.push(state.user.id);
-    }
-  }
-
-  const { data, error } = await supabase
+  const now = new Date().toISOString();
+  const { error } = await supabase
     .from("circles")
     .upsert({
       id: state.circle.id,
@@ -4287,10 +4201,8 @@ async function syncCircleInviteRow() {
       members: memberIds,
       categories: state.circle.categories,
       icons: state.circle.icons,
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "id" })
-    .select("id, invite_code, created_by_user_id, members, updated_at")
-    .maybeSingle();
+      updated_at: now,
+    }, { onConflict: "id" });
 
   if (error) {
     throw new Error(error.message || "Invite could not be prepared.");
@@ -4298,12 +4210,11 @@ async function syncCircleInviteRow() {
 
   state.circle = {
     ...state.circle,
-    id: data?.id || state.circle.id,
-    inviteCode: data?.invite_code || inviteCode,
-    createdByUserId: data?.created_by_user_id || state.circle.createdByUserId,
-    members: Array.isArray(data?.members) && data.members.length ? data.members : memberIds,
+    inviteCode,
+    createdByUserId: isUuid(state.circle.createdByUserId) ? state.circle.createdByUserId : state.user.id,
+    members: memberIds,
     inviteSynced: true,
-    updatedAt: data?.updated_at || state.circle.updatedAt,
+    updatedAt: now,
   };
   localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
 }
