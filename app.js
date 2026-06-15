@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=198";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=199";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -940,7 +940,15 @@ elements.inviteCircleButton.addEventListener("click", async () => {
   elements.inviteCircleButton.disabled = true;
   elements.inviteCircleButton.textContent = "Preparing...";
   try {
-    await prepareCircleInvite();
+    const invite = await prepareCircleInvite();
+    if (invite) {
+      try {
+        await navigator.clipboard.writeText(invite);
+        showToast("Invite link copied");
+      } catch {
+        showToast(invite);
+      }
+    }
   } catch (error) {
     showToast(error?.message || "Invite could not be prepared");
   } finally {
@@ -964,23 +972,33 @@ elements.copyCircleLinkButton.addEventListener("click", async () => {
   }
 
   elements.copyCircleLinkButton.disabled = true;
-  elements.copyCircleLinkButton.textContent = "Copying...";
+  elements.copyCircleLinkButton.textContent = state.circle.inviteSynced ? "Copying..." : "Putting online...";
   try {
-    const invite = state.circle?.inviteSynced
-      ? circleInviteLink() || circleInviteCode()
-      : circleInviteCode();
+    if (!state.user) {
+      state.circleInviteStatus = "auth";
+      state.circleInviteError = "";
+      renderCircle();
+      showToast("Sign in first to invite");
+      return;
+    }
+
+    if (!state.circle.inviteSynced) {
+      const preparedInvite = await prepareCircleInvite({ notify: false });
+      if (!preparedInvite) {
+        showToast("Circle is still going online");
+        return;
+      }
+    }
+
+    const invite = circleInviteLink() || circleInviteCode();
     if (!invite) {
       return;
     }
     try {
       await navigator.clipboard.writeText(invite);
-      showToast(state.circle?.inviteSynced ? "Invite link copied" : "Circle ID copied");
+      showToast("Invite link copied");
     } catch {
       showToast(invite);
-    }
-
-    if (!state.circle.inviteSynced && state.user && state.circleInviteStatus !== "preparing") {
-      prepareCircleInvite({ notify: false }).catch(() => {});
     }
   } catch (error) {
     showToast(error?.message || "Invite could not be copied");
@@ -2137,7 +2155,7 @@ function renderCircle() {
     const link = inviteReady ? circleInviteLink() : "";
     elements.circleInviteCode.hidden = false;
     elements.copyCircleLinkButton.hidden = false;
-    elements.copyCircleLinkButton.textContent = inviteReady ? "Copy invite link" : "Copy Circle ID";
+    elements.copyCircleLinkButton.textContent = inviteReady ? "Copy invite link" : state.user ? "Put online" : "Sign in to invite";
     elements.circleInviteCode.textContent = code;
     elements.circleInviteLink.textContent = inviteReady
       ? link
@@ -2149,7 +2167,7 @@ function renderCircle() {
         ? `${code} is ready. Circle is still going online.`
         : state.circleInviteStatus === "preparing"
         ? `${code} is ready. Circle is going online.`
-        : `Share ${code}. If your partner cannot join, tap Invite once.`;
+        : `${code} is not joinable yet. Put this Circle online before sharing.`;
   }
 
   renderCircleRequests();
@@ -3465,7 +3483,7 @@ function createCircle(rawName) {
   elements.circleNameInput.value = "";
   renderCategories();
   renderAll();
-  showToast("Circle created");
+  showToast(state.user ? "Circle created. Preparing invite..." : "Circle created");
   prepareCircleInvite({ notify: false })
     .then(() => showToast("Invite ready"))
     .catch(() => {});
