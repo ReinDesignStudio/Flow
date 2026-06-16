@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=204";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=205";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -4287,8 +4287,7 @@ async function upsertCircleRow(row) {
 }
 
 async function supabaseRestRequest(table, { method = "GET", query = "", prefer = "", body = null, timeoutMs = 20000 } = {}) {
-  const session = await getSupabaseSession();
-  const token = session?.access_token;
+  const token = await getSupabaseAccessToken();
   if (!token) {
     throw new Error("Sign in first.");
   }
@@ -4337,6 +4336,36 @@ function safeJsonParse(text) {
 
 function formatSupabaseRestError(payload, fallback) {
   return payload?.message || payload?.details || payload?.hint || fallback || "Database request failed.";
+}
+
+async function getSupabaseAccessToken() {
+  const cachedToken = getCachedSupabaseAccessToken();
+  if (cachedToken) {
+    return cachedToken;
+  }
+
+  const session = await withTimeout(getSupabaseSession(), 5000, "Could not read your sign-in session. Sign in again.");
+  return session?.access_token || "";
+}
+
+function getCachedSupabaseAccessToken() {
+  try {
+    const projectRef = new URL(SUPABASE_URL).hostname.split(".")[0];
+    const storageKeys = [
+      `sb-${projectRef}-auth-token`,
+      ...Object.keys(localStorage).filter((key) => key.startsWith("sb-") && key.endsWith("-auth-token")),
+    ];
+
+    for (const key of storageKeys) {
+      const saved = JSON.parse(localStorage.getItem(key) || "null");
+      const token = saved?.access_token || saved?.currentSession?.access_token;
+      if (token) {
+        return token;
+      }
+    }
+  } catch {}
+
+  return "";
 }
 
 function setExpenseVisibility(visibility) {
