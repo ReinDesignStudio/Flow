@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=211";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=212";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -3647,8 +3647,15 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       return false;
     }
 
-    if (circle?.created_by_user_id === state.user.id || circle?.members?.includes(state.user.id)) {
-      setStatus("Circle joined.");
+    if (circle?.created_by_user_id === state.user.id) {
+      setStatus("This is your Circle. Open this invite on your partner's signed-in account.");
+      showToast("Use a different signed-in account to join");
+      await refreshAcceptedCircleJoin(circleId, { notify: false });
+      return false;
+    }
+
+    if (circle?.members?.includes(state.user.id)) {
+      setStatus("This account is already in the Circle.");
       await refreshAcceptedCircleJoin(circleId);
       return true;
     }
@@ -3979,7 +3986,7 @@ async function refreshPendingCircleJoin() {
   return "accepted";
 }
 
-async function refreshAcceptedCircleJoin(circleId) {
+async function refreshAcceptedCircleJoin(circleId, { notify = true } = {}) {
   const [{ data: circle }, { data: members }] = await Promise.all([
     fetchCircleById(circleId),
     fetchCircleMembers(circleId),
@@ -3991,7 +3998,9 @@ async function refreshAcceptedCircleJoin(circleId) {
   }
 
   joinAcceptedCircle(circle, members || []);
-  showToast("Circle joined");
+  if (notify) {
+    showToast("Circle joined");
+  }
 }
 
 async function fetchCircleById(circleId, columns = circleFullSelectColumns) {
