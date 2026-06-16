@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=210";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=211";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -14,6 +14,7 @@ const monthlyInsightBaseMax = 15000;
 const circleInviteSyncTimeoutMs = 60000;
 const circleLookupTimeoutMs = 10000;
 const circleJoinTimeoutMs = 60000;
+const circleLiveRefreshMs = 4000;
 const circleRequestRefreshMs = 7000;
 const circleRequestActionTimeoutMs = 4500;
 const circleFullSelectColumns = "id, name, invite_code, created_by_user_id, members, categories, icons, updated_at";
@@ -283,6 +284,8 @@ const state = {
   pendingPhone: "",
   qrStream: null,
   qrScanTimer: 0,
+  circleRemoteRefreshTimer: 0,
+  circleRemoteRefreshInFlight: false,
   circleRequestRefreshTimer: 0,
   circleJoinAction: "",
   circleInviteStatus: "",
@@ -478,6 +481,8 @@ window.addEventListener("online", () => {
 window.addEventListener("focus", () => {
   setGreeting();
   retryPendingExpenseSync();
+  refreshCircleRemoteData({ silent: true }).catch(() => {});
+  syncCircleLiveRefresh();
   syncCircleRequestRefresh();
   refreshOwnerCircleRequests();
 });
@@ -486,9 +491,12 @@ document.addEventListener("visibilitychange", () => {
   if (!document.hidden) {
     setGreeting();
     retryPendingExpenseSync();
+    refreshCircleRemoteData({ silent: true }).catch(() => {});
+    syncCircleLiveRefresh();
     syncCircleRequestRefresh();
     refreshOwnerCircleRequests();
   } else {
+    stopCircleLiveRefresh();
     stopCircleRequestRefresh();
   }
 });
@@ -2988,6 +2996,7 @@ function openCircleSheet({ showContacts = false } = {}) {
   syncCircleRequestRefresh();
   renderCircle();
   elements.circleSheet.hidden = false;
+  syncCircleLiveRefresh();
   window.setTimeout(() => {
     elements.circleSheet.classList.add("show");
     if (showContacts && elements.circleContactList.hidden) {
@@ -3016,6 +3025,7 @@ function closeCircleSheet({ restoreFocus = true } = {}) {
     return;
   }
 
+  stopCircleLiveRefresh();
   elements.circleSheet.classList.remove("show");
   window.setTimeout(() => {
     elements.circleSheet.hidden = true;
@@ -3024,6 +3034,44 @@ function closeCircleSheet({ restoreFocus = true } = {}) {
     }
     state.settingsReturnFocus = null;
   }, 180);
+}
+
+function startCircleLiveRefresh() {
+  if (!state.circle || document.hidden || state.circleRemoteRefreshTimer) {
+    return;
+  }
+
+  state.circleRemoteRefreshTimer = window.setInterval(() => {
+    if (state.circleRemoteRefreshInFlight || !state.circle || elements.circleSheet.hidden || document.hidden) {
+      syncCircleLiveRefresh();
+      return;
+    }
+
+    state.circleRemoteRefreshInFlight = true;
+    refreshCircleRemoteData({ silent: true })
+      .catch(() => {})
+      .finally(() => {
+        state.circleRemoteRefreshInFlight = false;
+      });
+  }, circleLiveRefreshMs);
+}
+
+function stopCircleLiveRefresh() {
+  if (!state.circleRemoteRefreshTimer) {
+    return;
+  }
+
+  window.clearInterval(state.circleRemoteRefreshTimer);
+  state.circleRemoteRefreshTimer = 0;
+  state.circleRemoteRefreshInFlight = false;
+}
+
+function syncCircleLiveRefresh() {
+  if (state.circle && !elements.circleSheet.hidden && !document.hidden) {
+    startCircleLiveRefresh();
+  } else {
+    stopCircleLiveRefresh();
+  }
 }
 
 function startCircleRequestRefresh() {
@@ -4939,7 +4987,7 @@ async function reconcileOwnerCircleForRequests() {
   return { ids: Array.from(ids), namesById };
 }
 
-async function refreshCircleRemoteData() {
+async function refreshCircleRemoteData({ silent = false } = {}) {
   if (!supabase || !state.user || !state.circle) {
     return;
   }
@@ -4956,10 +5004,10 @@ async function refreshCircleRemoteData() {
   const { data: circle } = circleResult;
   const { data: members, error: membersError } = membersResult;
   const { data: circleExpensesData, error: expensesError } = expensesResult;
-  if (membersError) {
+  if (membersError && !silent) {
     showToast(`Circle members could not load: ${membersError.message || "Database error"}`);
   }
-  if (expensesError) {
+  if (expensesError && !silent) {
     showToast(`Circle expenses could not load: ${expensesError.message || "Database error"}`);
   }
 
