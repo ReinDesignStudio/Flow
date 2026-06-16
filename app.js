@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=203";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=204";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -3621,16 +3621,18 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
 }
 
 async function joinCircleMembership(circleId) {
-  const { error } = await supabase.from("circle_members").upsert({
+  await supabaseRestRequest("circle_members", {
+    method: "POST",
+    query: "on_conflict=circle_id,user_id",
+    prefer: "resolution=ignore-duplicates,return=minimal",
+    body: {
     circle_id: circleId,
     user_id: state.user.id,
     role: "member",
     joined_at: new Date().toISOString(),
-  }, { onConflict: "circle_id,user_id", ignoreDuplicates: true });
-
-  if (error) {
-    throw error;
-  }
+    },
+    timeoutMs: circleJoinTimeoutMs,
+  });
 }
 
 async function requestCircleJoin(request) {
@@ -3699,7 +3701,11 @@ function isMissingCircleInviteError(error) {
 
 function isMissingCircleColumnError(error) {
   const message = String(error?.message || error?.details || error?.hint || "").toLowerCase();
-  return message.includes("column") && message.includes("does not exist");
+  return message.includes("column") && (
+    message.includes("does not exist")
+    || message.includes("could not find")
+    || message.includes("schema cache")
+  );
 }
 
 function isMissingCircleMembershipPolicyError(error) {
@@ -4250,13 +4256,87 @@ async function syncCircleInviteRow() {
 }
 
 async function upsertCircleRow(row) {
-  const result = await supabase.from("circles").upsert(row, { onConflict: "id" });
-  if (!result.error || !isMissingCircleColumnError(result.error)) {
-    return result;
+  try {
+    await supabaseRestRequest("circles", {
+      method: "POST",
+      query: "on_conflict=id",
+      prefer: "resolution=merge-duplicates,return=minimal",
+      body: row,
+      timeoutMs: circleInviteSyncTimeoutMs,
+    });
+    return { error: null };
+  } catch (error) {
+    if (!isMissingCircleColumnError(error)) {
+      return { error };
+    }
+
+    const { members, categories, icons, ...minimalRow } = row;
+    try {
+      await supabaseRestRequest("circles", {
+        method: "POST",
+        query: "on_conflict=id",
+        prefer: "resolution=merge-duplicates,return=minimal",
+        body: minimalRow,
+        timeoutMs: circleInviteSyncTimeoutMs,
+      });
+      return { error: null };
+    } catch (fallbackError) {
+      return { error: fallbackError };
+    }
+  }
+}
+
+async function supabaseRestRequest(table, { method = "GET", query = "", prefer = "", body = null, timeoutMs = 20000 } = {}) {
+  const session = await getSupabaseSession();
+  const token = session?.access_token;
+  if (!token) {
+    throw new Error("Sign in first.");
   }
 
-  const { members, categories, icons, ...minimalRow } = row;
-  return supabase.from("circles").upsert(minimalRow, { onConflict: "id" });
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  const url = `${SUPABASE_URL}/rest/v1/${table}${query ? `?${query}` : ""}`;
+
+  try {
+    const response = await fetch(url, {
+      method,
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        ...(prefer ? { Prefer: prefer } : {}),
+      },
+      body: body ? JSON.stringify(body) : null,
+      signal: controller.signal,
+    });
+
+    const text = await response.text();
+    const payload = text ? safeJsonParse(text) : null;
+    if (!response.ok) {
+      throw new Error(formatSupabaseRestError(payload, response.statusText));
+    }
+
+    return payload;
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("Database request timed out. Try again.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
+function safeJsonParse(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function formatSupabaseRestError(payload, fallback) {
+  return payload?.message || payload?.details || payload?.hint || fallback || "Database request failed.";
 }
 
 function setExpenseVisibility(visibility) {
