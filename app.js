@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=205";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=207";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -965,7 +965,7 @@ elements.deleteCircleButton.addEventListener("click", () => {
 
 elements.circleForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  createCircle(elements.circleNameInput.value);
+  createCircle(elements.circleNameInput.value).catch((error) => showToast(error?.message || "Circle could not be created"));
 });
 
 elements.copyCircleLinkButton.addEventListener("click", async () => {
@@ -3465,7 +3465,7 @@ function saveActiveCategories() {
   saveCategories();
 }
 
-function createCircle(rawName) {
+async function createCircle(rawName) {
   const name = titleCase(rawName.trim());
   if (!name) {
     elements.circleNameInput.focus();
@@ -3477,7 +3477,7 @@ function createCircle(rawName) {
   const inviteCode = createCircleInviteCode();
   state.circleInviteStatus = "";
   state.circleInviteError = "";
-  state.circle = {
+  const circle = {
     id: shortCircleIdToUuid(inviteCode),
     name,
     inviteCode,
@@ -3485,19 +3485,37 @@ function createCircle(rawName) {
     members: [memberId],
     categories: [...defaultCircleCategories],
     icons: {},
-    inviteSynced: false,
+    inviteSynced: Boolean(state.user),
     updatedAt: new Date().toISOString(),
   };
+
+  if (state.user) {
+    elements.circleForm.querySelector("button[type='submit']").disabled = true;
+    showToast("Creating Circle...");
+    try {
+      Object.assign(circle, await publishCircleRecord(circle));
+    } catch (error) {
+      state.circleInviteStatus = "error";
+      state.circleInviteError = error?.message || "Circle could not be created online.";
+      showToast(state.circleInviteError);
+      elements.circleForm.querySelector("button[type='submit']").disabled = false;
+      return;
+    }
+    elements.circleForm.querySelector("button[type='submit']").disabled = false;
+  }
+
+  state.circle = circle;
   state.expenseVisibility = "circle";
   state.selectedCategory = state.circle.categories[0];
-  saveCircle();
+  if (state.user) {
+    localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
+  } else {
+    saveCircle();
+  }
   elements.circleNameInput.value = "";
   renderCategories();
   renderAll();
-  showToast(state.user ? "Circle created. Preparing invite..." : "Circle created");
-  prepareCircleInvite({ notify: false })
-    .then(() => showToast("Invite ready"))
-    .catch(() => {});
+  showToast(state.user ? "Circle created online" : "Circle created");
 }
 
 function deleteCircle() {
@@ -3620,7 +3638,7 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
   }
 }
 
-async function joinCircleMembership(circleId) {
+async function joinCircleMembership(circleId, { role = "member" } = {}) {
   await supabaseRestRequest("circle_members", {
     method: "POST",
     query: "on_conflict=circle_id,user_id",
@@ -3628,7 +3646,7 @@ async function joinCircleMembership(circleId) {
     body: {
     circle_id: circleId,
     user_id: state.user.id,
-    role: "member",
+    role,
     joined_at: new Date().toISOString(),
     },
     timeoutMs: circleJoinTimeoutMs,
@@ -4221,21 +4239,34 @@ async function syncCircleInviteRow() {
     throw new Error("Only the Circle owner can create invites.");
   }
 
-  let memberIds = state.circle.members.filter(isUuid);
+  const publishedCircle = await publishCircleRecord(state.circle);
+  state.circle = {
+    ...state.circle,
+    ...publishedCircle,
+  };
+  localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
+}
+
+async function publishCircleRecord(circle) {
+  if (!state.user) {
+    throw new Error("Sign in first.");
+  }
+
+  let memberIds = circle.members.filter(isUuid);
   if (!memberIds.includes(state.user.id)) {
     memberIds.push(state.user.id);
   }
 
-  const inviteCode = state.circle.inviteCode || state.circle.id.slice(0, 8).toUpperCase();
+  const inviteCode = circle.inviteCode || circle.id.slice(0, 8).toUpperCase();
   const now = new Date().toISOString();
   const row = {
-    id: state.circle.id,
-    name: state.circle.name,
+    id: circle.id,
+    name: circle.name,
     invite_code: inviteCode,
-    created_by_user_id: isUuid(state.circle.createdByUserId) ? state.circle.createdByUserId : state.user.id,
+    created_by_user_id: isUuid(circle.createdByUserId) ? circle.createdByUserId : state.user.id,
     members: memberIds,
-    categories: state.circle.categories,
-    icons: state.circle.icons,
+    categories: circle.categories,
+    icons: circle.icons,
     updated_at: now,
   };
   const { error } = await upsertCircleRow(row);
@@ -4244,15 +4275,15 @@ async function syncCircleInviteRow() {
     throw new Error(error.message || "Invite could not be prepared.");
   }
 
-  state.circle = {
-    ...state.circle,
+  await joinCircleMembership(circle.id, { role: row.created_by_user_id === state.user.id ? "owner" : "member" });
+
+  return {
     inviteCode,
-    createdByUserId: isUuid(state.circle.createdByUserId) ? state.circle.createdByUserId : state.user.id,
+    createdByUserId: row.created_by_user_id,
     members: memberIds,
     inviteSynced: true,
     updatedAt: now,
   };
-  localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
 }
 
 async function upsertCircleRow(row) {
@@ -4446,6 +4477,17 @@ function mergeRemoteExpenses(rows) {
   });
   state.expenses = Array.from(byId.values()).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   localStorage.setItem(storageKey, JSON.stringify(state.expenses));
+}
+
+async function fetchCircleExpenseRows(circleId) {
+  const { data, error } = await supabase
+    .from("expenses")
+    .select("*")
+    .eq("circle_id", circleId)
+    .eq("expense_visibility", "circle")
+    .order("created_at", { ascending: false });
+
+  return { data: data || [], error };
 }
 
 function hasPendingExpenseSync() {
@@ -4784,16 +4826,21 @@ async function refreshCircleRemoteData() {
   const { ids: requestCircleIds, namesById: requestCircleNamesById } = await reconcileOwnerCircleForRequests();
   await ensureCircleMembership();
 
-  const [{ data: circle }, { data: members }, { data: circleExpensesData }] = await Promise.all([
-    supabase.from("circles").select("id, name, invite_code, created_by_user_id, members, categories, icons, updated_at").eq("id", state.circle.id).maybeSingle(),
+  const [circleResult, membersResult, expensesResult] = await Promise.all([
+    fetchCircleById(state.circle.id).catch((error) => ({ data: null, error })),
     supabase.from("circle_members").select("user_id").eq("circle_id", state.circle.id),
-    supabase
-      .from("expenses")
-      .select("*")
-      .eq("circle_id", state.circle.id)
-      .eq("expense_visibility", "circle")
-      .order("created_at", { ascending: false }),
+    fetchCircleExpenseRows(state.circle.id),
   ]);
+
+  const { data: circle } = circleResult;
+  const { data: members, error: membersError } = membersResult;
+  const { data: circleExpensesData, error: expensesError } = expensesResult;
+  if (membersError) {
+    showToast(`Circle members could not load: ${membersError.message || "Database error"}`);
+  }
+  if (expensesError) {
+    showToast(`Circle expenses could not load: ${expensesError.message || "Database error"}`);
+  }
 
   if (circle) {
     state.circle = {
@@ -4888,22 +4935,7 @@ async function syncCircle({ requireOwner = false } = {}) {
   }
 
   if (isCircleOwner()) {
-    const { error } = await supabase.from("circles").upsert({
-      id: state.circle.id,
-      name: state.circle.name,
-      invite_code: state.circle.inviteCode || state.circle.id.slice(0, 8).toUpperCase(),
-      created_by_user_id: isUuid(state.circle.createdByUserId) ? state.circle.createdByUserId : state.user.id,
-      members: memberIds,
-      categories: state.circle.categories,
-      icons: state.circle.icons,
-      updated_at: new Date().toISOString(),
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    state.circle.inviteSynced = true;
+    Object.assign(state.circle, await publishCircleRecord(state.circle));
     localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
   } else if (requireOwner) {
     throw new Error("Only the Circle owner can create invites.");
