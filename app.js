@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=207";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=208";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -4680,15 +4680,24 @@ async function restoreRemoteCircleMembership() {
   }
 
   const circleId = memberships[0].circle_id;
-  const [{ data: circle }, { data: members }] = await Promise.all([
-    supabase.from("circles").select("id, name, invite_code, created_by_user_id, members, categories, icons, updated_at").eq("id", circleId).maybeSingle(),
+  const [circleResult, membersResult] = await Promise.all([
+    fetchCircleById(circleId).catch((circleError) => ({ data: null, error: circleError })),
     supabase.from("circle_members").select("user_id").eq("circle_id", circleId),
   ]);
+  const { data: circle, error: circleError } = circleResult;
+  const { data: members, error: membersError } = membersResult;
 
   if (!circle) {
+    if (circleError) {
+      showToast(`Circle details could not load: ${circleError.message || "Database error"}`);
+    }
     return false;
   }
 
+  if (membersError) {
+    showToast(`Circle members could not load: ${membersError.message || "Database error"}`);
+  }
+  savePendingCircleJoin(null);
   joinAcceptedCircle(circle, members || []);
   return true;
 }
