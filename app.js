@@ -1,4 +1,4 @@
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=208";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "./supabase-config.js?v=209";
 
 const storageKey = "flow-expenses-v1";
 const categoryStorageKey = "flow-categories-v1";
@@ -3651,6 +3651,8 @@ async function joinCircleMembership(circleId, { role = "member" } = {}) {
     },
     timeoutMs: circleJoinTimeoutMs,
   });
+
+  rememberCircleMember(circleId, state.user.id);
 }
 
 async function requestCircleJoin(request) {
@@ -3931,7 +3933,7 @@ async function refreshPendingCircleJoin() {
 async function refreshAcceptedCircleJoin(circleId) {
   const [{ data: circle }, { data: members }] = await Promise.all([
     fetchCircleById(circleId),
-    supabase.from("circle_members").select("user_id").eq("circle_id", circleId),
+    fetchCircleMembers(circleId),
   ]);
 
   if (!circle) {
@@ -3959,12 +3961,13 @@ async function fetchCircleById(circleId, columns = circleFullSelectColumns) {
 function joinAcceptedCircle(circle, members = []) {
   state.circleInviteStatus = "";
   state.circleInviteError = "";
+  const memberIds = circleMemberIds(circle, members);
   state.circle = {
     id: circle.id,
     name: circle.name,
     inviteCode: circle.invite_code || circle.id.slice(0, 8).toUpperCase(),
     createdByUserId: circle.created_by_user_id,
-    members: members.map((member) => member.user_id).length ? members.map((member) => member.user_id) : circle.members || [state.user?.id || "local"],
+    members: memberIds.length ? memberIds : [state.user?.id || "local"],
     categories: cleanCategoryOrder(circle.categories).length ? cleanCategoryOrder(circle.categories) : defaultCircleCategories,
     icons: circle.icons || {},
     inviteSynced: true,
@@ -4480,14 +4483,86 @@ function mergeRemoteExpenses(rows) {
 }
 
 async function fetchCircleExpenseRows(circleId) {
-  const { data, error } = await supabase
-    .from("expenses")
-    .select("*")
-    .eq("circle_id", circleId)
-    .eq("expense_visibility", "circle")
-    .order("created_at", { ascending: false });
+  try {
+    const query = [
+      "select=*",
+      `circle_id=eq.${encodeURIComponent(circleId)}`,
+      "expense_visibility=eq.circle",
+      "order=created_at.desc",
+    ].join("&");
+    const data = await supabaseRestRequest("expenses", {
+      query,
+      timeoutMs: circleLookupTimeoutMs,
+    });
 
-  return { data: data || [], error };
+    return { data: Array.isArray(data) ? data : [], error: null };
+  } catch (error) {
+    return { data: [], error };
+  }
+}
+
+async function fetchCircleMembers(circleId) {
+  try {
+    const query = [
+      "select=user_id,role,joined_at",
+      `circle_id=eq.${encodeURIComponent(circleId)}`,
+      "order=joined_at.asc",
+    ].join("&");
+    const data = await supabaseRestRequest("circle_members", {
+      query,
+      timeoutMs: circleLookupTimeoutMs,
+    });
+
+    return { data: Array.isArray(data) ? data : [], error: null };
+  } catch (error) {
+    return { data: [], error };
+  }
+}
+
+async function fetchLatestCircleMembership() {
+  try {
+    const query = [
+      "select=circle_id,joined_at",
+      `user_id=eq.${encodeURIComponent(state.user.id)}`,
+      "order=joined_at.desc",
+      "limit=1",
+    ].join("&");
+    const data = await supabaseRestRequest("circle_members", {
+      query,
+      timeoutMs: circleLookupTimeoutMs,
+    });
+
+    return { data: Array.isArray(data) ? data : [], error: null };
+  } catch (error) {
+    return { data: [], error };
+  }
+}
+
+function circleMemberIds(circle = {}, memberRows = []) {
+  const ids = [];
+  const add = (id) => {
+    if (isUuid(id) && !ids.includes(id)) {
+      ids.push(id);
+    }
+  };
+
+  add(circle.created_by_user_id);
+  memberRows.forEach((member) => add(member.user_id));
+  (circle.members || []).forEach(add);
+  add(state.user?.id);
+  return ids;
+}
+
+function rememberCircleMember(circleId, userId) {
+  if (!state.circle || state.circle.id !== circleId || !isUuid(userId)) {
+    return;
+  }
+
+  if (!state.circle.members.includes(userId)) {
+    state.circle.members = [...state.circle.members, userId];
+    localStorage.setItem(circleStorageKey, JSON.stringify(state.circle));
+    renderCircle();
+  }
 }
 
 function hasPendingExpenseSync() {
@@ -4668,12 +4743,7 @@ async function restoreRemoteCircleMembership() {
     return false;
   }
 
-  const { data: memberships, error } = await supabase
-    .from("circle_members")
-    .select("circle_id, joined_at")
-    .eq("user_id", state.user.id)
-    .order("joined_at", { ascending: false })
-    .limit(1);
+  const { data: memberships, error } = await fetchLatestCircleMembership();
 
   if (error || !memberships?.length) {
     return false;
@@ -4682,7 +4752,7 @@ async function restoreRemoteCircleMembership() {
   const circleId = memberships[0].circle_id;
   const [circleResult, membersResult] = await Promise.all([
     fetchCircleById(circleId).catch((circleError) => ({ data: null, error: circleError })),
-    supabase.from("circle_members").select("user_id").eq("circle_id", circleId),
+    fetchCircleMembers(circleId),
   ]);
   const { data: circle, error: circleError } = circleResult;
   const { data: members, error: membersError } = membersResult;
@@ -4837,7 +4907,7 @@ async function refreshCircleRemoteData() {
 
   const [circleResult, membersResult, expensesResult] = await Promise.all([
     fetchCircleById(state.circle.id).catch((error) => ({ data: null, error })),
-    supabase.from("circle_members").select("user_id").eq("circle_id", state.circle.id),
+    fetchCircleMembers(state.circle.id),
     fetchCircleExpenseRows(state.circle.id),
   ]);
 
@@ -4857,7 +4927,7 @@ async function refreshCircleRemoteData() {
       name: circle.name || state.circle.name,
       inviteCode: circle.invite_code || state.circle.inviteCode || state.circle.id.slice(0, 8).toUpperCase(),
       createdByUserId: circle.created_by_user_id || state.circle.createdByUserId,
-      members: members?.map((member) => member.user_id) || circle.members || state.circle.members,
+      members: circleMemberIds(circle, members || state.circle.members.map((user_id) => ({ user_id }))),
       categories: cleanCategoryOrder(circle.categories).length ? cleanCategoryOrder(circle.categories) : state.circle.categories,
       icons: circle.icons || state.circle.icons,
       updatedAt: circle.updated_at || state.circle.updatedAt,
@@ -4910,16 +4980,9 @@ async function ensureCircleMembership() {
     return;
   }
 
-  const { error } = await supabase.from("circle_members").upsert({
-    circle_id: state.circle.id,
-    user_id: state.user.id,
+  await joinCircleMembership(state.circle.id, {
     role: state.circle.createdByUserId === state.user.id ? "owner" : "member",
-    joined_at: new Date().toISOString(),
   });
-
-  if (error) {
-    throw error;
-  }
 }
 
 function canWriteExpense(expense) {

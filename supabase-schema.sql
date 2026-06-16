@@ -84,6 +84,36 @@ alter table public.circle_members enable row level security;
 alter table public.circle_join_requests enable row level security;
 alter table public.expenses enable row level security;
 
+create or replace function public.sync_circle_members_array()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  target_circle_id uuid;
+begin
+  target_circle_id := coalesce(new.circle_id, old.circle_id);
+
+  update public.circles
+  set
+    members = coalesce((
+      select array_agg(cm.user_id order by cm.joined_at asc)
+      from public.circle_members cm
+      where cm.circle_id = target_circle_id
+    ), array[]::uuid[]),
+    updated_at = now()
+  where id = target_circle_id;
+
+  return coalesce(new, old);
+end;
+$$;
+
+drop trigger if exists sync_circle_members_array_trigger on public.circle_members;
+create trigger sync_circle_members_array_trigger
+  after insert or update or delete on public.circle_members
+  for each row execute function public.sync_circle_members_array();
+
 drop policy if exists "Profiles are owner-only" on public.profiles;
 create policy "Profiles are owner-only"
   on public.profiles
