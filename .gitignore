@@ -1,3 +1,10 @@
 .DS_Store
 audit-*.png
 design mock/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
