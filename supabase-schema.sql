@@ -157,8 +157,24 @@ create policy "Circle owners can manage circles"
   on public.circles
   for all
   to authenticated
-  using ((select auth.uid()) = created_by_user_id or (select auth.uid()) = any(members))
-  with check ((select auth.uid()) = created_by_user_id or (select auth.uid()) = any(members));
+  using (
+    (select auth.uid()) = created_by_user_id
+    or (select auth.uid()) = any(members)
+    or exists (
+      select 1 from public.circle_members
+      where circle_members.circle_id = circles.id
+      and circle_members.user_id = (select auth.uid())
+    )
+  )
+  with check (
+    (select auth.uid()) = created_by_user_id
+    or (select auth.uid()) = any(members)
+    or exists (
+      select 1 from public.circle_members
+      where circle_members.circle_id = circles.id
+      and circle_members.user_id = (select auth.uid())
+    )
+  );
 
 drop policy if exists "Circle memberships are visible to members" on public.circle_members;
 drop policy if exists "Circle memberships are visible to authenticated users" on public.circle_members;
