@@ -3660,17 +3660,45 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       return true;
     }
 
+    const pendingRequest = {
+      circleId,
+      name,
+      inviteCode,
+      requestedAt: new Date().toISOString(),
+    };
+
     try {
-      await withTimeout(joinCircleMembership(circleId), circleJoinTimeoutMs, "Circle join timed out. Try again.");
+      const status = await withTimeout(
+        requestCircleJoin(pendingRequest),
+        circleJoinTimeoutMs,
+        "Circle join request timed out. Try again.",
+      );
+
+      if (status === "accepted") {
+        setStatus("Circle joined.");
+        await refreshAcceptedCircleJoin(circleId);
+        return true;
+      }
+
+      savePendingCircleJoin(pendingRequest);
+      setStatus("Request sent. Waiting for approval.");
+      showToast("Request sent. Waiting for approval.");
+      return true;
     } catch (error) {
       if (isCircleJoinTimeoutError(error)) {
-        setStatus("Circle join timed out. Try again.");
-        showToast("Circle join timed out");
+        setStatus("Circle request timed out. Try again.");
+        showToast("Circle request timed out");
         return false;
       }
 
       if (isMissingCircleMembershipPolicyError(error)) {
-        setStatus("Circle joining needs the latest database policy. Run the schema, then try again.");
+        setStatus("Circle requests need the latest database policy. Run the schema, then try again.");
+        showToast("Circle database needs updating");
+        return false;
+      }
+
+      if (isMissingJoinRequestsTableError(error)) {
+        setStatus("Circle requests need the latest database schema. Run the schema, then try again.");
         showToast("Circle database needs updating");
         return false;
       }
@@ -3682,10 +3710,6 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       }
       throw error;
     }
-
-    setStatus("Circle joined.");
-    await refreshAcceptedCircleJoin(circleId);
-    return true;
   } catch (error) {
     setStatus(error?.message || "Circle could not be joined. Try again.");
     showToast(error?.message || "Circle could not be joined");
@@ -3699,10 +3723,10 @@ async function joinCircleMembership(circleId, { role = "member" } = {}) {
     query: "on_conflict=circle_id,user_id",
     prefer: "resolution=ignore-duplicates,return=minimal",
     body: {
-    circle_id: circleId,
-    user_id: state.user.id,
-    role,
-    joined_at: new Date().toISOString(),
+      circle_id: circleId,
+      user_id: state.user.id,
+      role,
+      joined_at: new Date().toISOString(),
     },
     timeoutMs: circleJoinTimeoutMs,
   });
@@ -3712,6 +3736,20 @@ async function joinCircleMembership(circleId, { role = "member" } = {}) {
 }
 
 async function requestCircleJoin(request) {
+  const existing = await supabase
+    .from("circle_join_requests")
+    .select("status")
+    .eq("circle_id", request.circleId)
+    .eq("requester_user_id", state.user.id)
+    .maybeSingle();
+  if (existing.error) {
+    throw existing.error;
+  }
+
+  if (existing.data?.status === "accepted" || existing.data?.status === "pending") {
+    return existing.data.status;
+  }
+
   const row = {
     circle_id: request.circleId,
     requester_user_id: state.user.id,
