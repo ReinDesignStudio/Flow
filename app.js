@@ -1116,6 +1116,11 @@ elements.historyFilter.addEventListener("click", (event) => {
 
   state.historyFilter = button.dataset.historyFilter;
   renderHistory();
+
+  // Fetch fresh circle expenses whenever the Circle tab is selected
+  if (button.dataset.historyFilter === "circle" && state.circle && supabase) {
+    refreshCircleRemoteData({ silent: true }).catch(() => {});
+  }
 });
 
 document.addEventListener("click", (event) => {
@@ -2202,6 +2207,9 @@ function renderCircle() {
   if (!hasCircle) {
     state.expenseVisibility = "personal";
     state.historyFilter = "all";
+  } else if (state.expenseVisibility !== "circle") {
+    // Default to circle visibility when a circle is active
+    state.expenseVisibility = "circle";
   }
 
   elements.circleNameDisplay.textContent = hasCircle ? state.circle.name : "Circle";
@@ -3752,22 +3760,29 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       throw error;
     }
 
-    setStatus("Joined!");
+    setStatus("Joined! Loading shared expenses…");
     // Use the circle data already fetched during invite resolution so we don't
     // race with RLS propagation from the just-committed circle_members insert.
     if (circle) {
-      // Fetch fresh members in the background so the member list fills in.
-      fetchCircleMembers(circleId).then(({ data: freshMembers }) => {
-        joinAcceptedCircle(circle, freshMembers || []);
-      }).catch(() => {
-        joinAcceptedCircle(circle, []);
-      });
-      // Also patch the owner's circles.members column so they see us.
+      // Fetch members + circle expenses in parallel
+      const [{ data: freshMembers }, { data: circleExpenseRows }] = await Promise.all([
+        fetchCircleMembers(circleId).catch(() => ({ data: [] })),
+        fetchCircleExpenseRows(circleId).catch(() => ({ data: [] })),
+      ]);
+      joinAcceptedCircle(circle, freshMembers || []);
+      if (circleExpenseRows?.length) {
+        mergeRemoteExpenses(circleExpenseRows);
+      }
+      // Switch to Circle tab so the user immediately sees shared expenses
+      state.historyFilter = "circle";
+      // Also patch the owner's circles.members column so they see us
       syncCircleMemberColumn(circleId, [state.user.id]).catch(() => {});
+      renderAll();
     } else {
       // Fallback: full refresh from DB (slower, might race)
       await refreshAcceptedCircleJoin(circleId);
     }
+    showToast("Circle joined! Showing shared expenses.");
     return true;
   } catch (error) {
     setStatus(error?.message || "Could not join Circle. Try again.");
