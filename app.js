@@ -820,14 +820,18 @@ elements.closeSettingsButton.addEventListener("click", () => {
   closeSettings();
 });
 
-elements.labelSettingsButton.addEventListener("click", () => {
-  openLabelSettings();
-});
+if (elements.labelSettingsButton) {
+  elements.labelSettingsButton.addEventListener("click", () => {
+    openLabelSettings();
+  });
+}
 
-elements.circleContactsButton.addEventListener("click", () => {
-  closeSettings({ restoreFocus: false });
-  openCircleSheet({ showContacts: true });
-});
+if (elements.circleContactsButton) {
+  elements.circleContactsButton.addEventListener("click", () => {
+    closeSettings({ restoreFocus: false });
+    openCircleSheet({ showContacts: true });
+  });
+}
 
 elements.closeCircleSheetButton.addEventListener("click", () => {
   closeCircleSheet();
@@ -867,6 +871,61 @@ elements.settingsSheet.addEventListener("click", (event) => {
 elements.logoutButton.addEventListener("click", () => {
   signOut();
 });
+
+// ── Notifications toggle ──────────────────────────────────────────────────
+const notificationsToggleRow = document.querySelector("#notifications-toggle-row");
+const notificationsSwitch    = document.querySelector("#notifications-switch");
+
+function isNotificationsEnabled() {
+  return localStorage.getItem("flow-notifications") === "on";
+}
+
+function setNotificationsUI(enabled) {
+  notificationsSwitch?.classList.toggle("active", enabled);
+  notificationsToggleRow?.setAttribute("aria-pressed", String(enabled));
+}
+
+// Restore saved preference on load
+setNotificationsUI(isNotificationsEnabled());
+
+if (notificationsToggleRow) {
+  notificationsToggleRow.addEventListener("click", async () => {
+    const currentlyOn = isNotificationsEnabled();
+
+    if (currentlyOn) {
+      // Turn off
+      localStorage.setItem("flow-notifications", "off");
+      setNotificationsUI(false);
+      showToast("Notifications turned off");
+      return;
+    }
+
+    // Turn on — request browser permission first
+    if (!("Notification" in window)) {
+      showToast("Your browser doesn't support notifications");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+
+    if (permission === "granted") {
+      localStorage.setItem("flow-notifications", "on");
+      setNotificationsUI(true);
+      // Send a confirmation notification
+      new Notification("Flow Notifications", {
+        body: "You'll be notified about Circle activity and expense reminders.",
+        icon: "/icons/icon-192.png",
+      });
+      showToast("Notifications enabled ✓");
+    } else if (permission === "denied") {
+      setNotificationsUI(false);
+      showToast("Notifications blocked — enable them in browser settings");
+    } else {
+      // dismissed
+      setNotificationsUI(false);
+    }
+  });
+}
 
 elements.cancelSaveDateButton.addEventListener("click", () => {
   closeSaveDateConfirm();
@@ -2077,8 +2136,12 @@ function cleanAuthUrl() {
 async function signOut() {
   closeSettings();
   resetCapture();
-  if (supabase) {
-    await supabase.auth.signOut();
+  try {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+  } catch (err) {
+    console.warn("Sign-out error:", err);
   }
   state.authenticated = false;
   state.user = null;
@@ -2939,29 +3002,53 @@ const settingsInfoCopy = {
   },
   faq: {
     kicker: "FAQ",
-    title: "Common questions",
+    title: "Frequently Asked Questions",
     items: [
-      ["Can I use Flow offline?", "Yes. You can save expenses offline, and pending expenses upload when internet returns."],
-      ["Can I edit labels?", "Yes. Open General settings to add, edit, delete, or rearrange labels."],
-      ["What is Circle?", "Circle lets you share selected expenses with people you trust."],
+      ["What is Flow?", "Flow is a simple, beautiful expense tracker designed to help you stay on top of your daily spending — personally or with a group through Circles."],
+      ["Can I use Flow offline?", "Yes. You can log expenses without an internet connection. They'll sync automatically the next time you're online."],
+      ["What is a Circle?", "A Circle is a shared space where you can track expenses with family members, a partner, or roommates. Everyone in the Circle can see expenses marked as shared."],
+      ["How do I join a Circle?", "Ask the Circle owner to share their invite code. Go to the Circle section, tap Join, and enter the code. Your request will be approved by the owner."],
+      ["How do I share an expense to my Circle?", "When logging an expense, switch the visibility toggle to 'Circle' before saving. That expense will be visible to all Circle members."],
+      ["Can I edit or delete an expense?", "Yes. Tap any expense in your history to edit or delete it."],
+      ["Is my data private?", "Yes. Personal expenses are only visible to you. Circle expenses are only visible to the members of that specific Circle."],
+      ["How do I turn on notifications?", "Go to Settings and toggle Notifications on. Your browser will ask for permission. Notifications keep you updated on Circle activity."],
+      ["Can I change my display name?", "Yes. Tap your name at the top of Settings to edit it."],
+      ["How do I log out?", "Scroll to the bottom of Settings and tap Log out."],
     ],
   },
   terms: {
-    kicker: "Terms",
-    title: "Simple terms of service",
+    kicker: "Terms of Service",
+    title: "Terms of Service",
     body: [
-      "Flow is a personal expense tracking tool. Use it responsibly and keep your account details private.",
-      "Your entries are your responsibility. Flow helps organize spending, but it is not financial, legal, or tax advice.",
-      "Do not use Flow to store sensitive secrets such as passwords, government IDs, or payment card numbers.",
+      "Last updated: July 2026",
+      "By using Flow, you agree to these terms. Please read them carefully.",
+      "1. Use of Service — Flow is a personal and shared expense tracking tool. You agree to use it only for lawful purposes and in a manner that does not infringe the rights of others.",
+      "2. Your Account — You are responsible for maintaining the confidentiality of your account credentials and for all activity that occurs under your account.",
+      "3. Your Data — You own your data. Flow stores your expenses on your device and syncs them to your account. You can delete your data at any time.",
+      "4. No Financial Advice — Flow is an organizational tool only. It is not financial, legal, tax, or investment advice. Always consult a qualified professional for financial decisions.",
+      "5. Acceptable Use — Do not use Flow to store sensitive information such as passwords, government IDs, or full payment card numbers.",
+      "6. Service Availability — We strive to keep Flow available at all times, but we do not guarantee uninterrupted access. We may update or change features without notice.",
+      "7. Termination — We reserve the right to suspend or terminate accounts that violate these terms.",
+      "8. Changes — We may update these terms from time to time. Continued use of Flow after changes means you accept the updated terms.",
+      "If you have questions, contact us at support@dailyflow.pro",
     ],
   },
   policy: {
-    kicker: "Privacy",
-    title: "User policy",
+    kicker: "Privacy Policy",
+    title: "Privacy Policy",
     body: [
-      "Flow stores your expenses locally on your device and syncs with your account when Supabase is available.",
-      "Offline expenses stay on your device until they can be uploaded.",
-      "Circle expenses are visible to the Circle members you share them with.",
+      "Last updated: July 2026",
+      "Your privacy matters to us. Here is how Flow handles your information.",
+      "What we collect — We collect your email address for authentication, your display name, and the expense data you choose to enter. We do not collect payment information.",
+      "How we use it — Your data is used solely to provide the Flow service — storing, syncing, and displaying your expenses across your devices.",
+      "Data storage — Expenses are stored locally on your device and synced to a secure database (Supabase) tied to your account. Circle expenses are shared only with the specific members of your Circle.",
+      "Third-party services — Flow uses Supabase for authentication and data storage. Their privacy policy applies to data processed by their infrastructure.",
+      "Data sharing — We do not sell, rent, or share your personal data with third parties for marketing purposes. Circle expenses are visible only to Circle members you have accepted.",
+      "Notifications — If you enable notifications, your browser stores a permission preference locally. We do not store push tokens on external servers.",
+      "Your rights — You can delete your expenses at any time within the app. To request full account deletion, contact us at support@dailyflow.pro",
+      "Security — We use industry-standard security practices, including encrypted connections (HTTPS) and row-level security on our database.",
+      "Changes — We may update this policy from time to time. We will notify users of significant changes.",
+      "Contact — For any privacy questions or concerns, email us at support@dailyflow.pro",
     ],
   },
 };
