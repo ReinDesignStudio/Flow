@@ -376,8 +376,8 @@
         <div class="qr-panel">
           <header class="insight-detail-header">
             <div>
-              <p class="kicker">Partner invite</p>
-              <h2 id="qr-title">Join Circle</h2>
+              <p class="kicker">Join a Circle</p>
+              <h2 id="qr-title">Enter Flow ID</h2>
             </div>
             <button class="icon-button" id="close-qr-button" type="button" aria-label="Close Circle join">
               <span aria-hidden="true">×</span>
@@ -387,10 +387,10 @@
             <video id="qr-video" playsinline muted></video>
             <div class="qr-frame" aria-hidden="true"></div>
           </div>
-          <p class="qr-message" id="qr-message">Paste the Circle ID from your partner.</p>
+          <p class="qr-message" id="qr-message">Enter the Flow ID from your circle owner to request to join.</p>
           <form class="qr-paste-form" id="qr-paste-form">
-            <input id="qr-link-input" type="text" placeholder="Invite ID or link" aria-label="Invite ID or link" />
-            <button type="submit">Join</button>
+            <input id="qr-link-input" type="text" placeholder="FLOW-A1B2C3D4" aria-label="Flow ID" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+            <button type="submit">Request to Join</button>
           </form>
         </div>
       </div>
@@ -427,15 +427,16 @@
               <button class="circle-action secondary" id="join-circle-button" type="button">Join</button>
               <button class="circle-action danger" id="delete-circle-button" type="button" hidden>Delete</button>
             </div>
+            <div class="circle-request-list" id="circle-request-list" hidden></div>
             <div class="circle-invite" id="circle-invite" hidden>
               <div>
+                <p class="kicker">Your Flow ID</p>
                 <strong id="circle-invite-code">FLOW</strong>
-                <span id="circle-invite-link">Share this invite to join.</span>
-                <button id="copy-circle-link-button" type="button">Copy Circle ID</button>
+                <span id="circle-invite-link">Share this ID — others enter it to request joining your circle.</span>
+                <button id="copy-circle-link-button" type="button">Share Flow ID</button>
               </div>
             </div>
             <div class="circle-contact-list" id="circle-contact-list" hidden></div>
-            <div class="circle-request-list" id="circle-request-list" hidden></div>
           </section>
         </div>
       </div>

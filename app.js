@@ -1010,17 +1010,18 @@ elements.inviteCircleButton.addEventListener("click", async () => {
   elements.inviteCircleButton.disabled = true;
   elements.inviteCircleButton.textContent = "Preparing...";
   try {
-    const invite = await prepareCircleInvite();
-    if (invite) {
+    await prepareCircleInvite({ notify: false });
+    const code = circleInviteCode();
+    if (code) {
       try {
-        await navigator.clipboard.writeText(invite);
-        showToast("Invite link copied");
+        await navigator.clipboard.writeText(code);
+        showToast("Flow ID copied — share it so others can join");
       } catch {
-        showToast(invite);
+        showToast(code);
       }
     }
   } catch (error) {
-    showToast(error?.message || "Invite could not be prepared");
+    showToast(error?.message || "Flow ID could not be prepared");
   } finally {
     elements.inviteCircleButton.disabled = false;
     elements.inviteCircleButton.textContent = "Invite";
@@ -1056,15 +1057,15 @@ elements.copyCircleLinkButton.addEventListener("click", async () => {
       await prepareCircleInvite({ notify: false });
     }
 
-    const invite = circleInviteLink() || circleInviteCode();
-    if (!invite) {
+    const code = circleInviteCode();
+    if (!code) {
       return;
     }
     try {
-      await navigator.clipboard.writeText(invite);
-      showToast("Invite link copied");
+      await navigator.clipboard.writeText(code);
+      showToast("Flow ID copied — share it so others can join");
     } catch {
-      showToast(invite);
+      showToast(code);
     }
   } catch (error) {
     showToast(error?.message || "Invite could not be copied");
@@ -2232,17 +2233,21 @@ function renderCircle() {
     const link = inviteReady ? circleInviteLink() : "";
     elements.circleInviteCode.hidden = false;
     elements.copyCircleLinkButton.hidden = false;
-    elements.copyCircleLinkButton.textContent = inviteReady ? "Copy invite link" : state.user ? "Put online" : "Sign in to invite";
+    elements.copyCircleLinkButton.textContent = inviteReady
+      ? "Share Flow ID"
+      : state.user
+        ? state.circleInviteStatus === "preparing" ? "Getting Flow ID…" : "Get Flow ID"
+        : "Sign in first";
     elements.circleInviteCode.textContent = code;
     elements.circleInviteLink.textContent = inviteReady
-      ? link
+      ? "Share this ID — others enter it to request joining your circle."
       : state.circleInviteStatus === "auth"
-        ? `${code} is ready. Sign in to put this Circle online.`
+        ? "Sign in to activate your Flow ID."
         : state.circleInviteStatus === "error"
-        ? `${code} is ready. ${state.circleInviteError || "Circle could not be put online. Tap Invite again."}`
+        ? `Could not activate Flow ID. ${state.circleInviteError || "Check your connection and try again."}`
         : state.circleInviteStatus === "preparing"
-        ? `${code} is ready. Circle is going online.`
-        : `${code} is not joinable yet. Put this Circle online before sharing.`;
+        ? "Activating your Flow ID…"
+        : "Tap Get Flow ID to activate sharing.";
   }
 
   renderCircleRequests();
@@ -2344,15 +2349,15 @@ function renderCircleRequests() {
   elements.circleRequestList.hidden = false;
   elements.circleRequestList.innerHTML = `
     <article class="circle-request-card circle-request-alert">
-      <strong>${pendingRequestCount} join request${pendingRequestCount === 1 ? "" : "s"}</strong>
-      <span>Approve trusted people to add them to this Circle.</span>
+      <strong>🔔 ${pendingRequestCount} join request${pendingRequestCount === 1 ? "" : "s"}</strong>
+      <span>Someone wants to join your circle. Accept to add them.</span>
     </article>
     ${state.pendingCircleRequests
     .map((request) => `
       <article class="circle-request-card">
-          <strong>${escapeHtml(request.requester_name || "Someone")}</strong>
-          <span>wants to join ${escapeHtml(request.circle_name || "this Circle")}.</span>
-          <div class="circle-request-actions">
+        <strong>${escapeHtml(request.requester_name || "Someone")}</strong>
+        <span>wants to join ${escapeHtml(request.circle_name || "this Circle")}.</span>
+        <div class="circle-request-actions">
           <button type="button" data-join-request="accept" data-request-user-id="${escapeHtml(request.requester_user_id)}" data-request-circle-id="${escapeHtml(request.circle_id || state.circle.id)}">Accept</button>
           <button class="secondary" type="button" data-join-request="decline" data-request-user-id="${escapeHtml(request.requester_user_id)}" data-request-circle-id="${escapeHtml(request.circle_id || state.circle.id)}">Decline</button>
         </div>
@@ -3096,6 +3101,7 @@ function openCircleSheet({ showContacts = false } = {}) {
   state.settingsReturnFocus = document.activeElement;
   if (state.circle) {
     refreshCircleRemoteData().catch(() => {});
+    autoPrepareCircleInvite();
   } else if (state.pendingCircleJoin) {
     refreshPendingCircleJoin().catch(() => {});
   }
@@ -3107,6 +3113,10 @@ function openCircleSheet({ showContacts = false } = {}) {
     elements.circleSheet.classList.add("show");
     if (showContacts && elements.circleContactList.hidden) {
       elements.circleContactList.hidden = false;
+    }
+    // Auto-scroll to pending join requests so the owner sees them immediately
+    if (isCircleOwner() && state.pendingCircleRequests?.length) {
+      elements.circleRequestList.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
     elements.closeCircleSheetButton.focus({ preventScroll: true });
   }, 20);
@@ -4647,7 +4657,7 @@ function setExpenseVisibility(visibility) {
 async function openQrScanner() {
   elements.qrSheet.hidden = false;
   elements.qrSheet.classList.add("show");
-  elements.qrMessage.textContent = "Paste the Circle ID from your partner.";
+  elements.qrMessage.textContent = "Enter the Flow ID from your circle owner to request to join.";
   elements.qrLinkInput.value = "";
   elements.qrReader.hidden = true;
   window.setTimeout(() => elements.qrLinkInput.focus(), 60);
