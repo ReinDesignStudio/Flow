@@ -1103,6 +1103,8 @@ elements.qrPasteForm.addEventListener("submit", async (event) => {
   const joined = await joinCircleFromInvite(elements.qrLinkInput.value, { showInlineStatus: true });
   if (joined) {
     closeQrScanner();
+    // Re-render the circle sheet to show the joined state immediately
+    renderCircle();
   }
 });
 
@@ -3750,8 +3752,22 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
       throw error;
     }
 
-    setStatus("Joined! Loading Circle…");
-    await refreshAcceptedCircleJoin(circleId);
+    setStatus("Joined!");
+    // Use the circle data already fetched during invite resolution so we don't
+    // race with RLS propagation from the just-committed circle_members insert.
+    if (circle) {
+      // Fetch fresh members in the background so the member list fills in.
+      fetchCircleMembers(circleId).then(({ data: freshMembers }) => {
+        joinAcceptedCircle(circle, freshMembers || []);
+      }).catch(() => {
+        joinAcceptedCircle(circle, []);
+      });
+      // Also patch the owner's circles.members column so they see us.
+      syncCircleMemberColumn(circleId, [state.user.id]).catch(() => {});
+    } else {
+      // Fallback: full refresh from DB (slower, might race)
+      await refreshAcceptedCircleJoin(circleId);
+    }
     return true;
   } catch (error) {
     setStatus(error?.message || "Could not join Circle. Try again.");
@@ -4081,8 +4097,7 @@ async function refreshAcceptedCircleJoin(circleId, { notify = true } = {}) {
   ]);
 
   if (!circle) {
-    showToast("Circle not found");
-    return;
+    throw new Error("Circle not found. Tap Join again.");
   }
 
   joinAcceptedCircle(circle, members || []);
