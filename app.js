@@ -869,7 +869,7 @@ elements.settingsSheet.addEventListener("click", (event) => {
 });
 
 elements.logoutButton.addEventListener("click", () => {
-  signOut();
+  signOut().catch((err) => console.warn("Logout error:", err));
 });
 
 // ── Notifications toggle ──────────────────────────────────────────────────
@@ -2083,6 +2083,8 @@ function registerAuthStateListener() {
       await loadRemoteData();
       cleanAuthUrl();
       showApp();
+    } else {
+      showAuth("signin");
     }
   });
 }
@@ -2136,18 +2138,23 @@ function cleanAuthUrl() {
 async function signOut() {
   closeSettings();
   resetCapture();
-  try {
-    if (supabase) {
-      await supabase.auth.signOut();
-    }
-  } catch (err) {
-    console.warn("Sign-out error:", err);
-  }
   state.authenticated = false;
   state.user = null;
   state.auth = { email: "" };
   showAuth("signin");
   showToast("Logged out");
+  try {
+    if (supabase) {
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("signOut timeout")), 5000)
+        ),
+      ]);
+    }
+  } catch (err) {
+    console.warn("Sign-out error:", err);
+  }
 }
 
 function renderAll() {
