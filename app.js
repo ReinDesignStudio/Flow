@@ -1076,11 +1076,6 @@ elements.copyCircleLinkButton.addEventListener("click", async () => {
 });
 
 elements.joinCircleButton.addEventListener("click", () => {
-  if (state.pendingCircleJoin) {
-    handleCircleJoinRequest("check").catch(() => showToast("Circle request could not be checked"));
-    return;
-  }
-
   openQrScanner();
 });
 
@@ -2199,7 +2194,6 @@ function setTheme(theme) {
 
 function renderCircle() {
   const hasCircle = Boolean(state.circle);
-  const hasPendingJoin = Boolean(state.pendingCircleJoin && !hasCircle);
   elements.visibilityToggle.hidden = !hasCircle;
   elements.historyFilter.hidden = !hasCircle;
 
@@ -2208,21 +2202,15 @@ function renderCircle() {
     state.historyFilter = "all";
   }
 
-  elements.circleNameDisplay.textContent = hasCircle ? state.circle.name : hasPendingJoin ? state.pendingCircleJoin.name : "Circle";
+  elements.circleNameDisplay.textContent = hasCircle ? state.circle.name : "Circle";
   elements.circleDetail.textContent = hasCircle
     ? `${state.circle.members.length} member${state.circle.members.length === 1 ? "" : "s"} · ${circleExpenses().length} shared expense${circleExpenses().length === 1 ? "" : "s"}`
-    : hasPendingJoin
-      ? "Request sent. Waiting for your partner to accept."
     : "Create a Circle for family, couples, or roommates.";
-  elements.createCircleButton.hidden = hasCircle || hasPendingJoin;
+  elements.createCircleButton.hidden = hasCircle;
   elements.inviteCircleButton.hidden = !hasCircle;
   elements.deleteCircleButton.hidden = !hasCircle;
-  elements.joinCircleButton.textContent = hasPendingJoin
-    ? state.circleJoinAction === "check"
-      ? "Checking..."
-      : "Check request"
-    : "Join";
-  elements.joinCircleButton.disabled = hasPendingJoin && Boolean(state.circleJoinAction);
+  elements.joinCircleButton.textContent = "Join";
+  elements.joinCircleButton.disabled = false;
   elements.circleForm.hidden = true;
   const showInvitePanel = hasCircle;
   const inviteReady = hasCircle && state.circle.inviteSynced;
@@ -2240,7 +2228,7 @@ function renderCircle() {
         : "Sign in first";
     elements.circleInviteCode.textContent = code;
     elements.circleInviteLink.textContent = inviteReady
-      ? "Share this ID — others enter it to request joining your circle."
+      ? "Share this ID — anyone who enters it joins your circle instantly."
       : state.circleInviteStatus === "auth"
         ? "Sign in to activate your Flow ID."
         : state.circleInviteStatus === "error"
@@ -2311,60 +2299,11 @@ function renderCircleContacts() {
 }
 
 function renderCircleRequests() {
-  const pendingRequestCount = state.pendingCircleRequests.length;
-  const showOwnerBadge = isCircleOwner() && pendingRequestCount > 0;
-  elements.circleRequestBadge.hidden = !showOwnerBadge;
-  elements.circleRequestBadge.textContent = String(Math.min(pendingRequestCount, 9));
-  elements.circleAccessButton.setAttribute(
-    "aria-label",
-    showOwnerBadge
-      ? `${pendingRequestCount} Circle join request${pendingRequestCount === 1 ? "" : "s"}`
-      : "Open Circle",
-  );
-
-  if (state.pendingCircleJoin && !state.circle) {
-    const isChecking = state.circleJoinAction === "check";
-    const isCancelling = state.circleJoinAction === "cancel";
-    const actionDisabled = state.circleJoinAction ? " disabled" : "";
-    elements.circleRequestList.hidden = false;
-    elements.circleRequestList.innerHTML = `
-      <article class="circle-request-card">
-        <strong>Waiting for approval</strong>
-        <span>${escapeHtml(state.pendingCircleJoin.name)} will open after the owner accepts your request.</span>
-        <div class="circle-request-actions">
-          <button type="button" data-join-request="check"${actionDisabled}>${isChecking ? "Checking..." : "Check request"}</button>
-          <button class="secondary" type="button" data-join-request="cancel"${actionDisabled}>${isCancelling ? "Cancelling..." : "Cancel"}</button>
-        </div>
-      </article>
-    `;
-    return;
-  }
-
-  if (!state.circle || !isCircleOwner() || !state.pendingCircleRequests.length) {
-    elements.circleRequestList.hidden = true;
-    elements.circleRequestList.innerHTML = "";
-    return;
-  }
-
-  elements.circleRequestList.hidden = false;
-  elements.circleRequestList.innerHTML = `
-    <article class="circle-request-card circle-request-alert">
-      <strong>🔔 ${pendingRequestCount} join request${pendingRequestCount === 1 ? "" : "s"}</strong>
-      <span>Someone wants to join your circle. Accept to add them.</span>
-    </article>
-    ${state.pendingCircleRequests
-    .map((request) => `
-      <article class="circle-request-card">
-        <strong>${escapeHtml(request.requester_name || "Someone")}</strong>
-        <span>wants to join ${escapeHtml(request.circle_name || "this Circle")}.</span>
-        <div class="circle-request-actions">
-          <button type="button" data-join-request="accept" data-request-user-id="${escapeHtml(request.requester_user_id)}" data-request-circle-id="${escapeHtml(request.circle_id || state.circle.id)}">Accept</button>
-          <button class="secondary" type="button" data-join-request="decline" data-request-user-id="${escapeHtml(request.requester_user_id)}" data-request-circle-id="${escapeHtml(request.circle_id || state.circle.id)}">Decline</button>
-        </div>
-      </article>
-    `)
-    .join("")}
-  `;
+  // Join requests are no longer needed — joining is instant with the Flow ID.
+  elements.circleRequestBadge.hidden = true;
+  elements.circleAccessButton.setAttribute("aria-label", "Open Circle");
+  elements.circleRequestList.hidden = true;
+  elements.circleRequestList.innerHTML = "";
 }
 
 function renderHistory() {
@@ -3563,12 +3502,9 @@ function loadCircleData() {
 }
 
 function loadPendingCircleJoin() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(circleJoinRequestStorageKey));
-    return saved?.circleId && saved?.name ? saved : null;
-  } catch {
-    return null;
-  }
+  // Joining is now instant — clear any old "waiting for approval" state.
+  localStorage.removeItem(circleJoinRequestStorageKey);
+  return null;
 }
 
 function savePendingCircleJoin(request) {
@@ -3731,12 +3667,12 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
   const value = raw.trim();
 
   if (!value) {
-    setStatus("Paste a Circle ID or invite link first.");
+    setStatus("Enter a Flow ID first.");
     return false;
   }
 
   try {
-    setStatus("Checking Circle invite...");
+    setStatus("Looking up Circle…");
 
     if (!supabase || !state.user) {
       setStatus("Sign in first to join a Circle.");
@@ -3746,8 +3682,8 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
 
     const parsedInvite = parseCircleInvite(value);
     if (!parsedInvite.circleId && !parsedInvite.inviteCode) {
-      setStatus("Circle ID not recognized. Check the invite and try again.");
-      showToast("Circle ID not recognized");
+      setStatus("Flow ID not recognised. Check it and try again.");
+      showToast("Flow ID not recognised");
       return false;
     }
 
@@ -3758,89 +3694,68 @@ async function joinCircleFromInvite(raw, { showInlineStatus = false } = {}) {
         circleLookupTimeoutMs,
         "Circle lookup timed out.",
       );
-    } catch (error) {
+    } catch {
       if (!parsedInvite.circleId || !parsedInvite.inviteCode) {
-        setStatus("Could not check the online invite. Try again.");
-        showToast("Could not check online invite");
+        setStatus("Could not find that Circle. Check the Flow ID and try again.");
+        showToast("Circle not found");
         return false;
       }
       resolvedInvite = parsedInvite;
-      setStatus("Circle ID recognized. Joining Circle...");
     }
 
-    const { circleId, name, inviteCode, circle } = resolvedInvite;
+    const { circleId, name, circle } = resolvedInvite;
     if (!circleId || !name) {
-      setStatus("Circle ID not recognized. Check the invite and try again.");
-      showToast("Circle ID not recognized");
+      setStatus("Flow ID not recognised. Check it and try again.");
+      showToast("Flow ID not recognised");
       return false;
     }
 
     if (circle?.created_by_user_id === state.user.id) {
-      setStatus("This is your Circle. Open this invite on your partner's signed-in account.");
-      showToast("Use a different signed-in account to join");
+      setStatus("This is your own Circle. Share the Flow ID with someone else to let them join.");
+      showToast("This is your own Circle");
       await refreshAcceptedCircleJoin(circleId, { notify: false });
       return false;
     }
 
     if (circle?.members?.includes(state.user.id)) {
-      setStatus("This account is already in the Circle.");
-      await refreshAcceptedCircleJoin(circleId);
+      setStatus("You're already in this Circle.");
+      await refreshAcceptedCircleJoin(circleId, { notify: false });
+      showToast("You're already in this Circle");
       return true;
     }
 
-    const pendingRequest = {
-      circleId,
-      name,
-      inviteCode,
-      requestedAt: new Date().toISOString(),
-    };
-
+    setStatus("Joining Circle…");
     try {
-      const status = await withTimeout(
-        requestCircleJoin(pendingRequest),
+      await withTimeout(
+        joinCircleMembership(circleId, { role: "member" }),
         circleJoinTimeoutMs,
-        "Circle join request timed out. Try again.",
+        "Circle join timed out. Try again.",
       );
-
-      if (status === "accepted") {
-        setStatus("Circle joined.");
-        await refreshAcceptedCircleJoin(circleId);
-        return true;
-      }
-
-      savePendingCircleJoin(pendingRequest);
-      setStatus("Request sent. Waiting for approval.");
-      showToast("Request sent. Waiting for approval.");
-      return true;
     } catch (error) {
       if (isCircleJoinTimeoutError(error)) {
-        setStatus("Circle request timed out. Try again.");
-        showToast("Circle request timed out");
+        setStatus("Join timed out. Try again.");
+        showToast("Circle join timed out");
         return false;
       }
-
       if (isMissingCircleMembershipPolicyError(error)) {
-        setStatus("Circle requests need the latest database policy. Run the schema, then try again.");
-        showToast("Circle database needs updating");
+        setStatus("The database needs updating. Run the latest schema in Supabase, then try again.");
+        showToast("Database needs updating — run schema");
         return false;
       }
-
-      if (isMissingJoinRequestsTableError(error)) {
-        setStatus("Circle requests need the latest database schema. Run the schema, then try again.");
-        showToast("Circle database needs updating");
-        return false;
-      }
-
       if (isMissingCircleInviteError(error)) {
-        setStatus("Circle ID is not online yet. Ask the owner to tap Invite once, then try again.");
-        showToast("Circle ID is not online yet");
+        setStatus("This Circle isn't shareable yet. Ask the owner to tap Share Flow ID once, then try again.");
+        showToast("Circle not shareable yet");
         return false;
       }
       throw error;
     }
+
+    setStatus("Joined! Loading Circle…");
+    await refreshAcceptedCircleJoin(circleId);
+    return true;
   } catch (error) {
-    setStatus(error?.message || "Circle could not be joined. Try again.");
-    showToast(error?.message || "Circle could not be joined");
+    setStatus(error?.message || "Could not join Circle. Try again.");
+    showToast(error?.message || "Could not join Circle");
     return false;
   }
 }
@@ -4657,7 +4572,7 @@ function setExpenseVisibility(visibility) {
 async function openQrScanner() {
   elements.qrSheet.hidden = false;
   elements.qrSheet.classList.add("show");
-  elements.qrMessage.textContent = "Enter the Flow ID from your circle owner to request to join.";
+  elements.qrMessage.textContent = "Enter the Flow ID from your circle owner to join instantly.";
   elements.qrLinkInput.value = "";
   elements.qrReader.hidden = true;
   window.setTimeout(() => elements.qrLinkInput.focus(), 60);
