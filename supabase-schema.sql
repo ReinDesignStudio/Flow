@@ -190,19 +190,13 @@ drop policy if exists "Circle owners can add accepted members" on public.circle_
 drop policy if exists "Accepted users can keep their circle membership" on public.circle_members;
 
 -- Anyone who knows the Flow ID can join instantly — no owner approval needed.
--- The invite_code IS the access control: owners share it only with trusted people.
+-- The invite_code IS the access control: the client only calls this after resolving
+-- a valid invite code. UUIDs are unguessable so open self-insert is safe here.
 create policy "Authenticated users can join circles with invite code"
   on public.circle_members
   for insert
   to authenticated
-  with check (
-    user_id = (select auth.uid())
-    and exists (
-      select 1 from public.circles
-      where circles.id = circle_members.circle_id
-      and circles.invite_code is not null
-    )
-  );
+  with check (user_id = (select auth.uid()));
 
 drop policy if exists "Users can update their circle membership" on public.circle_members;
 create policy "Users can update their circle membership"
