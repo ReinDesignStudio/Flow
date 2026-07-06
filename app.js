@@ -13,7 +13,7 @@ const weeklyInsightMax = 15000;
 const monthlyInsightBaseMax = 15000;
 const circleInviteSyncTimeoutMs = 60000;
 const circleLookupTimeoutMs = 10000;
-const circleJoinTimeoutMs = 60000;
+const circleJoinTimeoutMs = 20000;
 const circleLiveRefreshMs = 4000;
 const circleRequestRefreshMs = 7000;
 const circleRequestActionTimeoutMs = 4500;
@@ -3760,20 +3760,27 @@ async function joinCircleMembership(circleId, { role = "member" } = {}) {
 }
 
 async function requestCircleJoin(request) {
-  const existing = await supabase
-    .from("circle_join_requests")
-    .select("status")
-    .eq("circle_id", request.circleId)
-    .eq("requester_user_id", state.user.id)
-    .maybeSingle();
-  if (existing.error) {
-    throw existing.error;
+  // Use supabaseRestRequest (AbortController-backed) so a stalled DB
+  // connection fails fast (15 s) instead of hanging for 60 s.
+  const reqTimeoutMs = 15000;
+
+  // 1. Check for an existing request
+  const existingRows = await supabaseRestRequest("circle_join_requests", {
+    query: [
+      "select=status",
+      `circle_id=eq.${encodeURIComponent(request.circleId)}`,
+      `requester_user_id=eq.${encodeURIComponent(state.user.id)}`,
+      "limit=1",
+    ].join("&"),
+    timeoutMs: reqTimeoutMs,
+  });
+
+  const existing = Array.isArray(existingRows) ? existingRows[0] : null;
+  if (existing?.status === "accepted" || existing?.status === "pending") {
+    return existing.status;
   }
 
-  if (existing.data?.status === "accepted" || existing.data?.status === "pending") {
-    return existing.data.status;
-  }
-
+  // 2. Upsert the join request
   const row = {
     circle_id: request.circleId,
     requester_user_id: state.user.id,
@@ -3782,15 +3789,15 @@ async function requestCircleJoin(request) {
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error: requestError } = await supabase
-    .from("circle_join_requests")
-    .upsert(row, { onConflict: "circle_id,requester_user_id" })
-    .select("status")
-    .maybeSingle();
-  if (requestError) {
-    throw requestError;
-  }
+  const result = await supabaseRestRequest("circle_join_requests", {
+    method: "POST",
+    query: "on_conflict=circle_id,requester_user_id&select=status",
+    prefer: "resolution=merge-duplicates,return=representation",
+    body: row,
+    timeoutMs: reqTimeoutMs,
+  });
 
+  const data = Array.isArray(result) ? result[0] : result;
   return data?.status || "pending";
 }
 
