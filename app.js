@@ -290,6 +290,7 @@ const state = {
   circleJoinAction: "",
   circleInviteStatus: "",
   circleInviteError: "",
+  circleMemberProfiles: {},
   qrDetector: null,
 };
 
@@ -2208,18 +2209,29 @@ function renderCircleContacts() {
   elements.circleContactList.hidden = false;
   elements.circleContactList.innerHTML = `
     <div class="circle-contact-heading">
-      <strong>My Contact</strong>
+      <strong>Members</strong>
       <span>${contacts.length} Circle member${contacts.length === 1 ? "" : "s"}</span>
     </div>
-    ${contacts.map((memberId, index) => `
-      <article class="circle-contact-card">
-        <div class="circle-contact-avatar">${escapeHtml(memberId === state.user?.id ? (state.profileName || defaultProfileName).charAt(0).toUpperCase() : String(index + 1))}</div>
-        <div>
-          <strong>${escapeHtml(memberId === state.user?.id ? `${state.profileName || defaultProfileName} (You)` : `Circle member ${index + 1}`)}</strong>
-          <span>${escapeHtml(memberId === state.circle.createdByUserId ? "Owner" : "Member")}</span>
-        </div>
-      </article>
-    `).join("")}
+    ${contacts.map((memberId, index) => {
+      const isMe = memberId === state.user?.id;
+      const resolvedName = isMe
+        ? `${state.profileName || defaultProfileName} (You)`
+        : (state.circleMemberProfiles?.[memberId] || `Member ${index + 1}`);
+      const initial = (isMe
+        ? (state.profileName || defaultProfileName)
+        : (state.circleMemberProfiles?.[memberId] || String(index + 1))
+      ).charAt(0).toUpperCase();
+      const role = memberId === state.circle.createdByUserId ? "Owner" : "Member";
+      return `
+        <article class="circle-contact-card">
+          <div class="circle-contact-avatar">${escapeHtml(initial)}</div>
+          <div>
+            <strong>${escapeHtml(resolvedName)}</strong>
+            <span>${escapeHtml(role)}</span>
+          </div>
+        </article>
+      `;
+    }).join("")}
   `;
 }
 
@@ -3075,12 +3087,21 @@ function syncCircleLiveRefresh() {
 }
 
 function startCircleRequestRefresh() {
-  if (!state.circle || !isCircleOwner() || document.hidden || state.circleRequestRefreshTimer) {
+  const needsOwnerRefresh = Boolean(state.circle && isCircleOwner());
+  const needsJoinerRefresh = Boolean(state.pendingCircleJoin && !state.circle);
+
+  if ((!needsOwnerRefresh && !needsJoinerRefresh) || document.hidden || state.circleRequestRefreshTimer) {
     return;
   }
 
   state.circleRequestRefreshTimer = window.setInterval(() => {
-    refreshOwnerCircleRequests();
+    // Owner: poll for incoming join requests
+    if (state.circle && isCircleOwner()) {
+      refreshOwnerCircleRequests();
+    // Joiner: auto-detect when the owner accepts their request
+    } else if (state.pendingCircleJoin && !state.circle) {
+      refreshPendingCircleJoin().catch(() => {});
+    }
   }, circleRequestRefreshMs);
 }
 
@@ -3094,7 +3115,10 @@ function stopCircleRequestRefresh() {
 }
 
 function syncCircleRequestRefresh() {
-  if (!state.circle || !isCircleOwner() || document.hidden) {
+  const needsOwnerRefresh = Boolean(state.circle && isCircleOwner());
+  const needsJoinerRefresh = Boolean(state.pendingCircleJoin && !state.circle);
+
+  if ((!needsOwnerRefresh && !needsJoinerRefresh) || document.hidden) {
     stopCircleRequestRefresh();
     return;
   }
@@ -4588,6 +4612,36 @@ function mergeRemoteExpenses(rows) {
   localStorage.setItem(storageKey, JSON.stringify(state.expenses));
 }
 
+async function fetchCircleMemberProfiles(memberIds) {
+  if (!supabase || !memberIds || !memberIds.length) {
+    return {};
+  }
+
+  const uuids = memberIds.filter(isUuid);
+  if (!uuids.length) {
+    return {};
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, name")
+      .in("id", uuids);
+
+    if (error || !data) {
+      return {};
+    }
+
+    const map = {};
+    data.forEach((profile) => {
+      map[profile.id] = profile.name || "Circle member";
+    });
+    return map;
+  } catch {
+    return {};
+  }
+}
+
 async function fetchCircleExpenseRows(circleId) {
   try {
     const query = [
@@ -5040,7 +5094,16 @@ async function refreshCircleRemoteData({ silent = false } = {}) {
   }
 
   const { ids: requestCircleIds, namesById: requestCircleNamesById } = await reconcileOwnerCircleForRequests();
-  await ensureCircleMembership();
+
+  // Ensure membership is recorded — wrap in try/catch so a transient
+  // RLS or network error doesn't block the expense/member fetch below.
+  try {
+    await ensureCircleMembership();
+  } catch (err) {
+    if (!silent) {
+      console.warn("Circle membership sync failed:", err?.message || err);
+    }
+  }
 
   const [circleResult, membersResult, expensesResult] = await Promise.all([
     fetchCircleById(state.circle.id).catch((error) => ({ data: null, error })),
@@ -5074,6 +5137,14 @@ async function refreshCircleRemoteData({ silent = false } = {}) {
     if (members?.length && !sameMembers(memberIds, circle.members || [])) {
       syncCircleMemberColumn(state.circle.id, memberIds).catch(() => {});
     }
+
+    // Fetch display names for all members so contacts panel shows real names
+    fetchCircleMemberProfiles(memberIds).then((profiles) => {
+      if (profiles && Object.keys(profiles).length) {
+        state.circleMemberProfiles = { ...state.circleMemberProfiles, ...profiles };
+        renderCircleContacts();
+      }
+    }).catch(() => {});
   } else if (members?.length) {
     state.circle.members = members.map((member) => member.user_id);
     saveCircle();
