@@ -713,50 +713,6 @@ h2 {
   color: var(--accent);
 }
 
-.payment-select-label {
-  position: relative;
-  display: block;
-  width: fit-content;
-  max-width: 100%;
-}
-
-.payment-select-label::after {
-  content: "";
-  position: absolute;
-  right: 13px;
-  top: 50%;
-  width: 7px;
-  height: 7px;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  color: var(--bg);
-  pointer-events: none;
-  transform: translateY(-65%) rotate(45deg);
-}
-
-.payment-select-label select {
-  min-width: 118px;
-  height: 50px;
-  border: 0;
-  border-radius: 999px;
-  background: #262525;
-  color: var(--text);
-  appearance: none;
-  outline: 0;
-  padding: 0 38px 0 18px;
-  font-size: 0.96rem;
-  font-weight: 700;
-}
-
-.payment-select-label select:focus {
-  box-shadow: 0 0 0 2px rgba(16, 16, 16, 0.16);
-}
-
-.payment-select-label select:valid {
-  background: var(--accent);
-  color: var(--bg);
-}
-
 .visibility-toggle,
 .history-filter {
   display: grid;
@@ -3357,7 +3313,6 @@ h1 {
 .category-composer input,
 .qr-paste-form input,
 .save-date-field input,
-.payment-select-label select,
 :root[data-theme="light"] .auth-form input,
 :root[data-theme="light"] .note-field input,
 :root[data-theme="light"] .category-composer input,
@@ -3418,19 +3373,6 @@ h1 {
   background: var(--ft-lime);
 }
 
-.payment-select-label select,
-.payment-select-label select:valid {
-  border: 0;
-  background: var(--ft-lime);
-  color: #151515;
-  box-shadow: none;
-}
-
-.payment-select-label::after {
-  right: 18px;
-  color: #151515;
-}
-
 @media (max-width: 380px) {
   .quick-input {
     gap: 10px;
@@ -3452,17 +3394,6 @@ h1 {
     top: 22px;
   }
 
-  .payment-select-label select {
-    min-width: 102px;
-    height: 46px;
-    padding-left: 14px;
-    padding-right: 32px;
-    font-size: 0.86rem;
-  }
-
-  .payment-select-label::after {
-    right: 14px;
-  }
 }
 
 .visibility-toggle,

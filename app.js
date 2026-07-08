@@ -330,7 +330,6 @@ const elements = {
   noteEntry: document.querySelector("#note-entry"),
   expenseForm: document.querySelector("#expense-form"),
   parsePreview: document.querySelector("#parse-preview"),
-  paymentMethodSelect: document.querySelector("#payment-method-select"),
   visibilityToggle: document.querySelector("#visibility-toggle"),
   categoryGrid: document.querySelector("#category-grid"),
   categoryPagination: document.querySelector("#category-pagination"),
@@ -560,15 +559,7 @@ elements.quickEntry.addEventListener("input", () => {
 });
 
 elements.amountEntryRow.addEventListener("click", (event) => {
-  if (event.target.closest(".payment-select-label")) {
-    return;
-  }
-
   focusCapture({ immediate: true });
-});
-
-elements.paymentMethodSelect.addEventListener("change", () => {
-  selectPaymentMethod(elements.paymentMethodSelect.value);
 });
 
 elements.categoryGrid.addEventListener("scroll", () => {
@@ -1636,7 +1627,7 @@ function selectPaymentMethod(method) {
 }
 
 function renderPaymentMethods() {
-  elements.paymentMethodSelect.value = state.selectedPaymentMethod;
+  // Payment method select removed; method persisted in state only
 }
 
 function paymentMethodLabel(method) {
