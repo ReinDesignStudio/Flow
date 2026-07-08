@@ -11,11 +11,11 @@ const assets = [
   "./assets/onboarding-slide-1.png",
   "./assets/onboarding-slide-2.png",
   "./assets/onboarding-slide-3.png",
-  "./icons/icon-192.svg?v=212",
-  "./icons/icon-512.svg?v=212",
-  "./icons/icon-192.png?v=212",
-  "./icons/icon-512.png?v=212",
-  "./icons/apple-touch-icon.png?v=212",
+  "./icons/icon-192.svg?v=213",
+  "./icons/icon-512.svg?v=213",
+  "./icons/icon-192.png?v=213",
+  "./icons/icon-512.png?v=213",
+  "./icons/apple-touch-icon.png?v=213",
 ];
 
 self.addEventListener("install", (event) => {
@@ -27,9 +27,14 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((key) => key !== cacheName).map((key) => caches.delete(key)))),
+      .then((keys) => Promise.all(keys.filter((key) => key !== cacheName).map((key) => caches.delete(key))))
+      .then(() => self.clients.claim())
+      .then(() =>
+        self.clients.matchAll({ type: "window" }).then((clients) => {
+          clients.forEach((client) => client.navigate(client.url));
+        })
+      )
   );
-  self.clients.claim();
 });
 
 self.addEventListener("message", (event) => {
